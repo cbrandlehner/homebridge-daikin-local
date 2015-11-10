@@ -1,0 +1,30 @@
+{
+  "name": "homebridge-thermostat",
+  "version": "0.0.1",
+  "description": "thermostat plugin for homebridge: https://github.com/nfarina/homebridge",
+  "license": "ISC",
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "engines": {
+    "node": ">=0.12.0",
+    "homebridge": ">=0.2.0"
+  },
+  "author": "Pierre-Julien Cazaux",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PJCzx/homebridge-thermostat.git"
+  },
+  "dependencies": {
+    "request": "^2.65.0"
+  },
+  "bugs": {
+    "url": "https://github.com/PJCzx/homebridge-thermostat/issues"
+  },
+  "homepage": "https://github.com/PJCzx/homebridge-thermostat#readme",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
