@@ -36,10 +36,30 @@ function Thermostat(log, config) {
 	this.aSetting = config["aSetting"] || "aSetting";
 	this.name = config["name"];
 	this.log(this);
+
+	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
+	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
+	this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+	this.temperature = 19;
+	this.relativeHumidity = 0.70;
+	// The value property of CurrentHeatingCoolingState must be one of the following:
+	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
+	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
+	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
+	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.HEAT;
+	this.targetTemperature = 21;
+	this.targetRelativeHumidity = 0.5;
+	this.heatingThresholdTemperature = 22;
+	this.coolingThresholdTemperature = 19;
+	// The value property of TargetHeatingCoolingState must be one of the following:
+	//Characteristic.TargetHeatingCoolingState.OFF = 0;
+	//Characteristic.TargetHeatingCoolingState.HEAT = 1;
+	//Characteristic.TargetHeatingCoolingState.COOL = 2;
+	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
+	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 }
 
 Thermostat.prototype = {
-
 	httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
 		request({
 				url: url,
@@ -62,46 +82,56 @@ Thermostat.prototype = {
 	},
 	// Required
 	getCurrentHeatingCoolingState: function(callback) {
-		this.log("getCurrentHeatingCoolingState");
-		callback(10);
+		this.log("getCurrentHeatingCoolingState :", this.heatingCoolingState);		
+		var error = null;
+		callback(error, this.heatingCoolingState);
 	},
 	setTargetHeatingCoolingState: function(value, callback) {
-		this.log("setTargetHeatingCoolingState");
-		callback(null, value);
+		this.log("setTargetHeatingCoolingState from/to:", this.targetHeatingCoolingState, value);
+		this.targetHeatingCoolingState = value;
+		callback();
 	},
 	getCurrentTemperature: function(callback) {
-		this.log("getCurrentTemperature");
-		callback(11);
+		this.log("getCurrentTemperature :", this.temperature);
+		var error = null;
+		callback(error, this.temperature);
 	},
 	setTargetTemperature: function(value, callback) {
-		this.log("setTargetTemperature");
-		callback(null, value);
+		this.log("setTargetTemperature from/to", this.targetTemperature, value);
+		this.targetTemperature = value;
+		callback();
 	},
 	getTemperatureDisplayUnits: function(callback) {
-		this.log("getTemperatureDisplayUnits");
-		callback(null, Characteristic.TemperatureDisplayUnits.CELSIUS);
+		this.log("getTemperatureDisplayUnits :", this.temperatureDisplayUnits);
+		var error = null;
+		callback(error, this.temperatureDisplayUnits);
 	},
 
 	// Optional
 	getCurrentRelativeHumidity: function(callback) {
-		this.log("getCurrentRelativeHumidity");
-		callback(12);
+		this.log("getCurrentRelativeHumidity :", this.relativeHumidity);
+		var error = null;
+		callback(error, this.relativeHumidity);
 	},
 	setTargetRelativeHumidity: function(value, callback) {
-		this.log("setTargetRelativeHumidity");
-		callback(null, value);
+		this.log("setTargetRelativeHumidity from/to :", this.targetRelativeHumidity, value);
+		this.targetRelativeHumidity = value;
+		callback();
 	},
 	getCoolingThresholdTemperature: function(callback) {
-		this.log("getCoolingThresholdTemperature");
-		callback(null, 13);
+		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
+		var error = null;
+		callback(error, this.coolingThresholdTemperature);
 	},
 	getHeatingThresholdTemperature: function(callback) {
-		this.log("getHeatingThresholdTemperature");
-		callback(null, 14);
+		this.log("getHeatingThresholdTemperature :" , this.heatingThresholdTemperature);
+		var error = null;
+		callback(error, this.heatingThresholdTemperature);
 	},
 	getName: function(callback) {
-		this.log("getName");
-		callback(null, this.name);
+		this.log("getName :", this.name);
+		var error = null;
+		callback(error, this.name);
 	},
 
 	getServices: function() {
@@ -139,6 +169,7 @@ Thermostat.prototype = {
 				.on('get', this.getTemperatureDisplayUnits.bind(this));
 
 			// Optional Characteristics
+			
 			thermostatService
 				.getCharacteristic(Characteristic.CurrentRelativeHumidity)
 				.on('get', this.getCurrentRelativeHumidity.bind(this));
@@ -158,6 +189,7 @@ Thermostat.prototype = {
 			thermostatService
 				.getCharacteristic(Characteristic.Name)
 				.on('get', this.getName.bind(this));
+			
 
 			return [informationService, thermostatService];
 		}
