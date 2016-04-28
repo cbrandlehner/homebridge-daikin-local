@@ -24,7 +24,7 @@ Configuration sample:
             {
                 "accessory": "Thermostat",
                 "name": "Thermostat Demo",
-                "aSetting": "Hello"
+                "statusurl": "http://myurl.com"
             }
         ],
 
