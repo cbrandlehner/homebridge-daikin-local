@@ -3,14 +3,14 @@
     "bridge": {
     	...
     },
-    
+
     "description": "...",
 
     "accessories": [
         {
             "accessory": "Thermostat",
             "name": "Thermostat Demo",
-            "aSetting": "Hello"
+            "apiroute": "http://myurl.com"
         }
     ],
 
@@ -33,9 +33,9 @@ module.exports = function(homebridge){
 function Thermostat(log, config) {
 	this.log = log;
 
-	this.aSetting = config["aSetting"] || "aSetting";
 	this.name = config["name"];
-	this.log(this);
+	this.apiroute = config["apiroute"] || "apiroute";
+	this.log(this.name, this.apiroute);
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
 	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
@@ -46,7 +46,7 @@ function Thermostat(log, config) {
 	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
 	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
 	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
-	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.HEAT;
+	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
 	this.targetTemperature = 21;
 	this.targetRelativeHumidity = 0.5;
 	this.heatingThresholdTemperature = 22;
@@ -82,19 +82,116 @@ Thermostat.prototype = {
 	},
 	// Required
 	getCurrentHeatingCoolingState: function(callback) {
-		this.log("getCurrentHeatingCoolingState :", this.heatingCoolingState);		
+		this.log("getCurrentHeatingCoolingState from:", this.apiroute+"/status");
+		request.get({
+			url: this.apiroute+"/status"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				this.log("Heating state is %s", json.state);
+				switch(json.state) {
+					case "OFF":
+					this.state = Characteristic.TargetHeatingCoolingState.OFF;
+					break;
+
+					case "COMFORT":
+					this.state = Characteristic.TargetHeatingCoolingState.HEAT;
+					break;
+					
+					case "COMFORT_MINUS_ONE":
+					this.state = Characteristic.TargetHeatingCoolingState.AUTO;
+					break;
+					
+					case "COMFORT_MINUS_TWO":
+					this.state = Characteristic.TargetHeatingCoolingState.COOL;
+					break;
+
+					default:
+					this.state = Characteristic.TargetHeatingCoolingState.HEAT;
+					this.log("Not handled case:", json.state);
+					break;
+				}
+				callback(null, this.state); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
+	},
+	setCurrentHeatingCoolingState: function(value, callback) {
+		this.log("TO BE REMOVED BECAUSE USELESS setCurrentHeatingCoolingState:", value);
+		this.heatingCoolingState = value;
 		var error = null;
-		callback(error, this.heatingCoolingState);
+		callback(error);
+	},
+	getTargetHeatingCoolingState: function(callback) {
+		this.log("getTargetHeatingCoolingState:", this.targetHeatingCoolingState);
+		var error = null;
+		callback(error, this.targetHeatingCoolingState);
 	},
 	setTargetHeatingCoolingState: function(value, callback) {
 		this.log("setTargetHeatingCoolingState from/to:", this.targetHeatingCoolingState, value);
 		this.targetHeatingCoolingState = value;
-		callback();
+
+		var action;
+
+		switch(this.targetHeatingCoolingState) {
+			case Characteristic.TargetHeatingCoolingState.OFF:
+			action = "/off";
+			break;
+
+			case Characteristic.TargetHeatingCoolingState.HEAT://"COMFORT"
+			action = "/comfort";
+			break;
+			
+			case Characteristic.TargetHeatingCoolingState.AUTO://"COMFORT_MINUS_ONE"
+			action = "/comfort-minus-one";
+			break;
+			
+			case Characteristic.TargetHeatingCoolingState.COOL://"COMFORT_MINUS_TWO"
+			action = "/comfort-minus-two";
+			break;
+
+			default:
+			action = "/comfort";
+			this.log("Not handled case:", json.state);
+			break;
+		}
+		
+		request.get({
+			url: this.apiroute + action
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				this.heatingCoolingState = this.targetHeatingCoolingState;
+				callback(null); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
 	},
 	getCurrentTemperature: function(callback) {
-		this.log("getCurrentTemperature :", this.temperature);
-		var error = null;
-		callback(error, this.temperature);
+		this.log("getCurrentTemperature from:", this.apiroute+"/status");
+		request.get({
+			url: this.apiroute+"/status"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				this.log("Heating state is %s (%s)", json.state, json.temperature);
+				this.temperature = parseFloat(json.temperature);
+				callback(null, this.temperature); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
+	},
+	getTargetTemperature: function(callback) {
+		this.log("getTargetTemperature:", this.targetTemperature);
+		callback(null, this.targetTemperature);
 	},
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature from/to", this.targetTemperature, value);
@@ -102,23 +199,47 @@ Thermostat.prototype = {
 		callback();
 	},
 	getTemperatureDisplayUnits: function(callback) {
-		this.log("getTemperatureDisplayUnits :", this.temperatureDisplayUnits);
+		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
 		var error = null;
 		callback(error, this.temperatureDisplayUnits);
+	},
+	setTemperatureDisplayUnits: function(value, callback) {
+		this.log("setTemperatureDisplayUnits from %s to %s", this.temperatureDisplayUnits, value);
+		this.temperatureDisplayUnits = value;
+		var error = null;
+		callback(error);
 	},
 
 	// Optional
 	getCurrentRelativeHumidity: function(callback) {
-		this.log("getCurrentRelativeHumidity :", this.relativeHumidity);
+		this.log("getCurrentRelativeHumidity from:", this.apiroute+"/status");
+		request.get({
+					url: this.apiroute+"/status"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				this.log("Humidity state is %s (%s)", json.state, json.humidity);
+				this.relativeHumidity = parseFloat(json.humidity);
+				callback(null, this.relativeHumidity); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
+	},
+	getTargetRelativeHumidity: function(value, callback) {
+		this.log("getTargetRelativeHumidity:", this.targetRelativeHumidity);
 		var error = null;
-		callback(error, this.relativeHumidity);
+		callback(error, this.targetRelativeHumidity);
 	},
 	setTargetRelativeHumidity: function(value, callback) {
 		this.log("setTargetRelativeHumidity from/to :", this.targetRelativeHumidity, value);
 		this.targetRelativeHumidity = value;
-		callback();
+		var error = null;
+		callback(error);
 	},
-	getCoolingThresholdTemperature: function(callback) {
+/*	getCoolingThresholdTemperature: function(callback) {
 		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
 		var error = null;
 		callback(error, this.coolingThresholdTemperature);
@@ -128,6 +249,7 @@ Thermostat.prototype = {
 		var error = null;
 		callback(error, this.heatingThresholdTemperature);
 	},
+*/
 	getName: function(callback) {
 		this.log("getName :", this.name);
 		var error = null;
@@ -145,52 +267,55 @@ Thermostat.prototype = {
 			.setCharacteristic(Characteristic.Model, "HTTP Model")
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
-			var thermostatService = new Service.Thermostat(this.name);
+		var thermostatService = new Service.Thermostat(this.name);
 
-			// Required Characteristics
-			thermostatService
-				.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-				.on('get', this.getCurrentHeatingCoolingState.bind(this));
+		// Required Characteristics
+		thermostatService
+			.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
+			.on('get', this.getCurrentHeatingCoolingState.bind(this))
+			.on('set', this.setCurrentHeatingCoolingState.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.TargetHeatingCoolingState)
-				.on('set', this.setTargetHeatingCoolingState.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.TargetHeatingCoolingState)
+			.on('get', this.getTargetHeatingCoolingState.bind(this))
+			.on('set', this.setTargetHeatingCoolingState.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.CurrentTemperature)
-				.on('get', this.getCurrentTemperature.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.CurrentTemperature)
+			.on('get', this.getCurrentTemperature.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.TargetTemperature)
-				.on('set', this.setTargetTemperature.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.TargetTemperature)
+			.on('get', this.getTargetTemperature.bind(this))
+			.on('set', this.setTargetTemperature.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.TemperatureDisplayUnits)
-				.on('get', this.getTemperatureDisplayUnits.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.TemperatureDisplayUnits)
+			.on('get', this.getTemperatureDisplayUnits.bind(this))
+			.on('set', this.setTemperatureDisplayUnits.bind(this));
 
-			// Optional Characteristics
-			
-			thermostatService
-				.getCharacteristic(Characteristic.CurrentRelativeHumidity)
-				.on('get', this.getCurrentRelativeHumidity.bind(this));
+		// Optional Characteristics
+		thermostatService
+			.getCharacteristic(Characteristic.CurrentRelativeHumidity)
+			.on('get', this.getCurrentRelativeHumidity.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.CurrentRelativeHumidity)
-				.on('set', this.setTargetRelativeHumidity.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.TargetRelativeHumidity)
+			.on('get', this.getTargetRelativeHumidity.bind(this))
+			.on('set', this.setTargetRelativeHumidity.bind(this));
+		/*
+		thermostatService
+			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
+			.on('get', this.getCoolingThresholdTemperature.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.CoolingThresholdTemperature)
-				.on('get', this.getCoolingThresholdTemperature.bind(this));
+		thermostatService
+			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
+			.on('get', this.getHeatingThresholdTemperature.bind(this));
+		*/
+		thermostatService
+			.getCharacteristic(Characteristic.Name)
+			.on('get', this.getName.bind(this));
 
-			thermostatService
-				.getCharacteristic(Characteristic.CoolingThresholdTemperature)
-				.on('get', this.getHeatingThresholdTemperature.bind(this));
-
-			thermostatService
-				.getCharacteristic(Characteristic.Name)
-				.on('get', this.getName.bind(this));
-			
-
-			return [informationService, thermostatService];
-		}
+		return [informationService, thermostatService];
+	}
 };

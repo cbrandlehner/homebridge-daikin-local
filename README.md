@@ -24,7 +24,7 @@ Configuration sample:
             {
                 "accessory": "Thermostat",
                 "name": "Thermostat Demo",
-                "aSetting": "Hello"
+                "apiroute": "http://myurl.com"
             }
         ],
 
