@@ -34,7 +34,7 @@ function Thermostat(log, config) {
 	this.log = log;
 
 	this.name = config["name"];
-	this.apiroute = config["apiroute"] || "apiroute";
+	this.apiroute = config["apiroute"] || "apiroute";//test
 	this.log(this.name, this.apiroute);
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
