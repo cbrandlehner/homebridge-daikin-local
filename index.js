@@ -49,8 +49,8 @@ function Thermostat(log, config) {
 	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
 	this.targetTemperature = 21;
 	this.targetRelativeHumidity = 0.5;
-	this.heatingThresholdTemperature = 22;
-	this.coolingThresholdTemperature = 19;
+	this.heatingThresholdTemperature = 25;
+	this.coolingThresholdTemperature = 5;
 	// The value property of TargetHeatingCoolingState must be one of the following:
 	//Characteristic.TargetHeatingCoolingState.OFF = 0;
 	//Characteristic.TargetHeatingCoolingState.HEAT = 1;
@@ -190,13 +190,35 @@ Thermostat.prototype = {
 		}.bind(this));
 	},
 	getTargetTemperature: function(callback) {
-		this.log("getTargetTemperature:", this.targetTemperature);
-		callback(null, this.targetTemperature);
+		this.log("getTargetTemperature from:", this.apiroute+"/status");
+		request.get({
+			url: this.apiroute+"/status"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				this.temperature = parseFloat(json.targetTemperature);
+				this.log("Target temperature is %s", this.targetTemperature);
+				callback(null, this.temperature); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
 	},
 	setTargetTemperature: function(value, callback) {
-		this.log("setTargetTemperature from/to", this.targetTemperature, value);
-		this.targetTemperature = value;
-		callback();
+		this.log("setTargetTemperature from:", this.apiroute+"/targetTemperature/"+value);
+		request.get({
+			url: this.apiroute+"/targetTemperature/"+value
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				callback(null); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
 	},
 	getTemperatureDisplayUnits: function(callback) {
 		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
@@ -244,12 +266,11 @@ Thermostat.prototype = {
 		var error = null;
 		callback(error, this.coolingThresholdTemperature);
 	},
-	getHeatingThresholdTemperature: function(callback) {
+*/	getHeatingThresholdTemperature: function(callback) {
 		this.log("getHeatingThresholdTemperature :" , this.heatingThresholdTemperature);
 		var error = null;
 		callback(error, this.heatingThresholdTemperature);
 	},
-*/
 	getName: function(callback) {
 		this.log("getName :", this.name);
 		var error = null;
@@ -307,11 +328,11 @@ Thermostat.prototype = {
 		thermostatService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
-
+		*/
 		thermostatService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this));
-		*/
+		
 		thermostatService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
