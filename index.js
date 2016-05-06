@@ -33,8 +33,8 @@ module.exports = function(homebridge){
 function Thermostat(log, config) {
 	this.log = log;
 
-	this.name = config.name;
-	this.apiroute = config.apiroute || "apiroute";
+	this.name = config["name"];
+	this.apiroute = config["apiroute"] || "apiroute";
 	this.log(this.name, this.apiroute);
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
