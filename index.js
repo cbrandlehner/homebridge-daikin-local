@@ -27,14 +27,14 @@ module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   homebridge.registerAccessory("homebridge-thermostat", "Thermostat", Thermostat);
-}
+};
 
 
 function Thermostat(log, config) {
 	this.log = log;
 
-	this.name = config["name"];
-	this.apiroute = config["apiroute"] || "apiroute";
+	this.name = config.name;
+	this.apiroute = config.apiroute || "apiroute";
 	this.log(this.name, this.apiroute);
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
@@ -72,8 +72,8 @@ Thermostat.prototype = {
 				}
 			},
 			function(error, response, body) {
-				callback(error, response, body)
-			})
+				callback(error, response, body);
+			});
 	},
 	//Start
 	identify: function(callback) {
@@ -329,10 +329,11 @@ Thermostat.prototype = {
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
 		*/
+
 		thermostatService
-			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
+			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this));
-		
+
 		thermostatService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
