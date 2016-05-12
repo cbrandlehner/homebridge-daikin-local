@@ -31,3 +31,17 @@ Configuration sample:
         "platforms":[]
     }
 ```
+# API Expectations
+
+The `apiroute` is used for two main calls: Get from the thermostat and set the target temperature. Your API should provide
+
+1. GET `/status` 
+```
+{
+    "targetTemperature":18,
+    "temperature":"21.40",
+    "humidity":"69.20"
+}
+```
+
+2. GET `/targettemperature/{FLOAT_VALUE}`
