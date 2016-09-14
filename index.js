@@ -250,7 +250,7 @@ Thermostat.prototype = {
 			}
 		}.bind(this));
 	},
-	getTargetRelativeHumidity: function(value, callback) {
+	getTargetRelativeHumidity: function(callback) {
 		this.log("getTargetRelativeHumidity:", this.targetRelativeHumidity);
 		var error = null;
 		callback(error, this.targetRelativeHumidity);
