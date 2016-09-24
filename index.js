@@ -145,8 +145,8 @@ Thermostat.prototype = {
 			action = "/comfort";
 			break;
 			
-			case Characteristic.TargetHeatingCoolingState.AUTO://"COMFORT_MINUS_ONE"
-			action = "/comfort-minus-one";
+			case Characteristic.TargetHeatingCoolingState.AUTO://"AUTO"
+			action = "/auto";
 			break;
 			
 			case Characteristic.TargetHeatingCoolingState.COOL://"COMFORT_MINUS_TWO"
@@ -154,7 +154,7 @@ Thermostat.prototype = {
 			break;
 
 			default:
-			action = "/comfort";
+			action = "/no-frost";
 			this.log("Not handled case:", json.state);
 			break;
 		}
