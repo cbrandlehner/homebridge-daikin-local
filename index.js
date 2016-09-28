@@ -82,9 +82,9 @@ Daikin.prototype = {
 	},
 	// Required
 	getCurrentHeatingCoolingState: function(callback) {
-		this.log("getCurrentHeatingCoolingState from:", this.apiroute+"/status");
+		this.log("getCurrentHeatingCoolingState from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-			url: this.apiroute+"/status"
+			url: this.apiroute+"/aircon/get_control_info"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -173,9 +173,9 @@ Daikin.prototype = {
 		}.bind(this));
 	},
 	getCurrentTemperature: function(callback) {
-		this.log("getCurrentTemperature from:", this.apiroute+"/status");
+		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-			url: this.apiroute+"/status"
+			url: this.apiroute+"/aircon/get_control_info"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -190,9 +190,9 @@ Daikin.prototype = {
 		}.bind(this));
 	},
 	getTargetTemperature: function(callback) {
-		this.log("getTargetTemperature from:", this.apiroute+"/status");
+		this.log("getTargetTemperature from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-			url: this.apiroute+"/status"
+			url: this.apiroute+"/aircon/get_control_info"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -234,9 +234,9 @@ Daikin.prototype = {
 
 	// Optional
 	getCurrentRelativeHumidity: function(callback) {
-		this.log("getCurrentRelativeHumidity from:", this.apiroute+"/status");
+		this.log("getCurrentRelativeHumidity from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-					url: this.apiroute+"/status"
+					url: this.apiroute+"/aircon/get_control_info"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
