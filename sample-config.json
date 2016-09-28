@@ -10,8 +10,8 @@
 
     "accessories": [
         {
-            "accessory": "Thermostat",
-            "name": "Thermostat Demo",
+            "accessory": "Daikin Air Conditioner",
+            "name": "Daikin Demo",
             "apiroute": "http://myurl.com"
         }
     ],

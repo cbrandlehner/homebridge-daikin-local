@@ -8,8 +8,8 @@
 
     "accessories": [
         {
-            "accessory": "Thermostat",
-            "name": "Thermostat Demo",
+            "accessory": "Daikin Air Conditioner",
+            "name": "Daikin Demo",
             "apiroute": "http://myurl.com"
         }
     ],
@@ -26,7 +26,7 @@ var request = require("request");
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-thermostat", "Thermostat", Thermostat);
+  homebridge.registerAccessory("homebridge-daikin", "Thermostat", Thermostat);
 };
 
 
