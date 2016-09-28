@@ -26,11 +26,11 @@ var request = require("request");
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-daikin", "Thermostat", Thermostat);
+  homebridge.registerAccessory("homebridge-daikin", "Daikin", Daikin);
 };
 
 
-function Thermostat(log, config) {
+function Daikin(log, config) {
 	this.log = log;
 
 	this.name = config.name;
@@ -59,7 +59,7 @@ function Thermostat(log, config) {
 	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 }
 
-Thermostat.prototype = {
+Daikin.prototype = {
 	httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
 		request({
 				url: url,
@@ -288,56 +288,56 @@ Thermostat.prototype = {
 			.setCharacteristic(Characteristic.Model, "HTTP Model")
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
-		var thermostatService = new Service.Thermostat(this.name);
+		var daikinService = new Service.Daikin(this.name);
 
 		// Required Characteristics
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
 			.on('get', this.getCurrentHeatingCoolingState.bind(this))
 			.on('set', this.setCurrentHeatingCoolingState.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.TargetHeatingCoolingState)
 			.on('get', this.getTargetHeatingCoolingState.bind(this))
 			.on('set', this.setTargetHeatingCoolingState.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.CurrentTemperature)
 			.on('get', this.getCurrentTemperature.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.TargetTemperature)
 			.on('get', this.getTargetTemperature.bind(this))
 			.on('set', this.setTargetTemperature.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.TemperatureDisplayUnits)
 			.on('get', this.getTemperatureDisplayUnits.bind(this))
 			.on('set', this.setTemperatureDisplayUnits.bind(this));
 
 		// Optional Characteristics
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.CurrentRelativeHumidity)
 			.on('get', this.getCurrentRelativeHumidity.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.TargetRelativeHumidity)
 			.on('get', this.getTargetRelativeHumidity.bind(this))
 			.on('set', this.setTargetRelativeHumidity.bind(this));
 		/*
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
 		*/
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this));
 
-		thermostatService
+		daikinService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
 
-		return [informationService, thermostatService];
+		return [informationService, daikinService];
 	}
 };
