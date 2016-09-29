@@ -52,4 +52,5 @@ The `apiroute` is used for two main calls: Get from the thermostat and set the t
 # Credit
 
 This whole plugin is based on homebridge-thermostat, tuned just for Daikin units specifically. Please check out the original (https://github.com/PJCzx/homebridge-thermostat) and if you have any improvements that are not specific to Daikin systems, contribute there!
+
 Information for the HTTP GET and POST requests is vastly informed from daikin-control (https://github.com/ael-code/daikin-control) with a bit of testing with my own unit to verify commands and find additional settings
