@@ -1,6 +1,7 @@
 # homebridge-daikin
 
 Supports Daikin Air Conditioners on HomeBridge
+Initially will be built to support talking to a Daikin BRP072A42 Wifi Adapter for a FTXS series Split System Air Conditioner, and once that's working, aim to add support for other Daikin Wifi adapters and Air Conditioners as the information becomes available
 
 # Installation
 
@@ -51,3 +52,4 @@ The `apiroute` is used for two main calls: Get from the thermostat and set the t
 # Credit
 
 This whole plugin is based on homebridge-thermostat, tuned just for Daikin units specifically. Please check out the original (https://github.com/PJCzx/homebridge-thermostat) and if you have any improvements that are not specific to Daikin systems, contribute there!
+Information for the HTTP GET and POST requests is vastly informed from daikin-control (https://github.com/ael-code/daikin-control) with a bit of testing with my own unit to verify commands and find additional settings
