@@ -1,6 +1,7 @@
 # homebridge-daikin
 
 Supports Daikin Air Conditioners on HomeBridge
+
 Initially will be built to support talking to a Daikin BRP072A42 Wifi Adapter for a FTXS series Split System Air Conditioner, and once that's working, aim to add support for other Daikin Wifi adapters and Air Conditioners as the information becomes available
 
 # Installation
