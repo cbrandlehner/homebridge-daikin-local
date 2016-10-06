@@ -37,18 +37,11 @@ Configuration sample:
 ```
 # API Expectations
 
-The `apiroute` is used for two main calls: Get from the thermostat and set the target temperature. Your API should provide
+The `apiroute` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
 
-1. GET `/status` 
-```
-{
-    "targetTemperature":18,
-    "temperature":"21.40",
-    "humidity":"69.20"
-}
-```
+1. `/common` uses POST and GET methods for control and system information about the Aircon (e.g software version, MAC address, Reboot System, Region)
 
-2. GET `/targettemperature/{FLOAT_VALUE}`
+2. `/aircon` uses POST and GET methods to set Aircon related information (e.g Target Temperature, Modes like Heat and Cool, Temperature Sensor Readings, Timers)
 
 # Credit
 
