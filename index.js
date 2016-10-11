@@ -88,30 +88,39 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
-				this.log("Heating state is %s", json.state);
-				switch(json.state) {
-					case "OFF":
+				var json = JSON.parse(body); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+				this.log("Heating state is %s", json.mode);
+				if (json.pow == 0){
+					// The Daikin is off
 					this.state = Characteristic.TargetHeatingCoolingState.OFF;
-					break;
-
-					case "COMFORT":
-					this.state = Characteristic.TargetHeatingCoolingState.HEAT;
-					break;
-					
-					case "COMFORT_MINUS_ONE":
-					this.state = Characteristic.TargetHeatingCoolingState.AUTO;
-					break;
-					
-					case "COMFORT_MINUS_TWO":
-					this.state = Characteristic.TargetHeatingCoolingState.COOL;
-					break;
-
-					default:
-					this.state = Characteristic.TargetHeatingCoolingState.HEAT;
-					this.log("Not handled case:", json.state);
-					break;
-				}
+				} else if (json.pow == 1) {
+					// The Daikin is on
+					switch(json.mode) {
+						// Commented cases exist for the Daikin, but not for HomeKit.
+						// Keeping for reference while I try come up with a way to include them
+						/*
+						case "2":
+						this.state = Characteristic.TargetHeatingCoolingState.DRY;
+						break;
+						*/
+						case "3":
+						this.state = Characteristic.TargetHeatingCoolingState.COOL;
+						break;
+						
+						case "4":
+						this.state = Characteristic.TargetHeatingCoolingState.HEAT;
+						break;
+						/*
+						case "6":
+						this.state = Characteristic.TargetHeatingCoolingState.FAN;
+						break;
+						*/
+						default:
+						this.state = Characteristic.TargetHeatingCoolingState.AUTO;
+						this.log("Auto (if 0, 1 or 5), or not handled case:", json.mode);
+						break;
+					}
+				)
 				callback(null, this.state); // success
 			} else {
 				this.log("Error getting state: %s", err);
@@ -173,9 +182,9 @@ Daikin.prototype = {
 		}.bind(this));
 	},
 	getCurrentTemperature: function(callback) {
-		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_control_info");
+		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_sensor_info");
 		request.get({
-			url: this.apiroute+"/aircon/get_control_info"
+			url: this.apiroute+"/aircon/get_sensor_info"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
