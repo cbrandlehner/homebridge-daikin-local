@@ -111,6 +111,29 @@ function setDaikinMode() {
 		}
 }
 
+function convertDaikinToJSON(input) {
+	// Daikin systems respond with HTTP response strings, not JSON objects. JSON is much easier to
+	// parse, so we convert it with some RegExp here.
+	var stageOne;
+	var stageTwo;
+	
+	stageOne = replaceAll(input, "\=", "\":\"");
+	stageTwo = replaceAll(stageOne, "&", "\",\"");
+	
+	
+	return "{\"" + stageTwo + "\"}";
+}
+
+function escapeRegExp(str) {
+	return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+	// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
+}
+
+function replaceAll(str, find, replace) {
+	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+	// From http://stackoverflow.com/a/1144788
+}
+
 Daikin.prototype = {
 	httpRequest: function(url, body, method, username, password, sendimmediately, callback) {
 		request({
@@ -140,7 +163,7 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				var json = JSON.parse(body); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 				this.log("Heating state is %s", json.mode);
 				if (json.pow == "0"){
 					// The Daikin is off
@@ -205,7 +228,7 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
 				this.log("Heating state is %s (%s)", json.mode, json.htemp);
 				this.temperature = parseFloat(json.htemp);
 				callback(null, this.temperature); // success
@@ -222,7 +245,7 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				var json = JSON.parse(body); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
 				this.temperature = parseFloat(json.stemp);
 				this.log("Target temperature is %s", this.targetTemperature);
 				callback(null, this.temperature); // success
