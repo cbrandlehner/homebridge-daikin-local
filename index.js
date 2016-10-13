@@ -41,14 +41,14 @@ function Daikin(log, config) {
 	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
 	this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
 	this.temperature = 19;
-	this.relativeHumidity = 0.70;
+	// this.relativeHumidity = 0.70;
 	// The value property of CurrentHeatingCoolingState must be one of the following:
 	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
 	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
 	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
 	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
 	this.targetTemperature = 21;
-	this.targetRelativeHumidity = 0.5;
+	// this.targetRelativeHumidity = 0.5;
 	this.heatingThresholdTemperature = 25;
 	this.coolingThresholdTemperature = 18;
 	// The value property of TargetHeatingCoolingState must be one of the following:
