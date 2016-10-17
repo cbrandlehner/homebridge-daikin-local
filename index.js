@@ -196,7 +196,7 @@ Daikin.prototype = {
 						this.log("Auto (if 0, 1 or 5), or not handled case:", json.mode);
 						break;
 					}
-				)
+				}
 				callback(null, this.state); // success
 			} else {
 				this.log("Error getting state: %s", err);
