@@ -108,7 +108,8 @@ function setDaikinMode() {
 		} else {
 			this.log("Error getting state: %s", err);
 			callback(err);
-		}.bind(this));
+		}
+	}.bind(this));
 }
 
 function convertDaikinToJSON(input) {
