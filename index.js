@@ -8,7 +8,7 @@
 
     "accessories": [
         {
-            "accessory": "Daikin Air Conditioner",
+            "accessory": "Daikin",
             "name": "Daikin Demo",
             "apiroute": "http://myurl.com"
         }
