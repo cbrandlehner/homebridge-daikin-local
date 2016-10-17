@@ -8,7 +8,7 @@
 
     "accessories": [
         {
-            "accessory": "Daikin",
+            "accessory": "Daikin Air Conditioner",
             "name": "Daikin Demo",
             "apiroute": "http://myurl.com"
         }
@@ -108,7 +108,7 @@ function setDaikinMode() {
 		} else {
 			this.log("Error getting state: %s", err);
 			callback(err);
-		}
+		}.bind(this));
 }
 
 function convertDaikinToJSON(input) {
@@ -213,7 +213,6 @@ Daikin.prototype = {
 		this.targetHeatingCoolingState = value;
 		
 		setDaikinMode();
-		}.bind(this));
 	},
 	getCurrentTemperature: function(callback) {
 		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_sensor_info");
@@ -252,7 +251,6 @@ Daikin.prototype = {
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature to " + value);
 		setDaikinMode();
-		}.bind(this));
 	},
 	getTemperatureDisplayUnits: function(callback) {
 		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
