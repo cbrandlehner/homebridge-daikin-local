@@ -126,7 +126,7 @@ function convertDaikinToJSON(input) {
 }
 
 function escapeRegExp(str) {
-	return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+	return str.replace(/([.*+?^=!:${}()|\[\]\/\\]\")/g, "\\$1");
 	// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
 }
 
