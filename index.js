@@ -131,7 +131,8 @@ function escapeRegExp(str) {
 }
 
 function replaceAll(str, find, replace) {
-	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+	var escapedStr = new RegExp(escapeRegExp(str));
+	return escapedStr.replace(new RegExp(escapeRegExp(find), 'g'), replace);
 	// From http://stackoverflow.com/a/1144788
 }
 
