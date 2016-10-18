@@ -6,11 +6,20 @@ Initially will be built to support talking to a Daikin BRP072A42 Wifi Adapter fo
 
 # Installation
 
-DO NOT INSTALL, CRITICAL ERROR ON INITIAL STATUS CHECK. WILL CRASH HOMEBRIDGE
-TO UNINSTALL
+The following will install HomeBridge-Daikin. In it's current form, it does retrieves sensor and mode data from Daikin Systems, but does not set modes (e.g turn system on or change heating mode). The install may require you to run as an administrator (using a different login or sudo)
 
-1. Remove or comment out the accessory section for Daikin in your config.json file
-2. Uninstall this plugin using: npm uninstall -g homebridge-daikin
+1. Install homebridge using: npm install -g homebridge
+2. Install this plugin using: npm install -g homebridge-daikin
+3. Update your configuration file. See sample-config.json in this repository for a sample.
+
+IMPORTANT
+
+If you installed a version prior to 0.0.10, please do the following to reinstall plugin to avoid a critical crash:
+
+1. sudo npm uninstall -g homebridge-daikin
+2. sudo npm install -g homebridge-daikin
+
+You do not need to change your config.json file if you have the Daikin Accessory entry from previous versions
 
 # Configuration
 
