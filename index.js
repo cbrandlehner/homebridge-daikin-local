@@ -88,7 +88,7 @@ function setDaikinMode() {
 		
 		default:
 		pow = "?pow=0";
-		this.log("Not handled case:", this.targetHeatingCoolingState);
+		//this.log("Not handled case:", this.targetHeatingCoolingState);
 		break;
 	}
 	
@@ -96,20 +96,8 @@ function setDaikinMode() {
 	sTemp = "&stemp=" + this.setTargetTemperature;
 	
 	// Finally, we send the command
-	this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp)
-	request.get({
-		url: this.apiroute + "/common/set_control_info" + pow + mode + sTemp
-	}, function(err, response, body) {
-		if (!err && response.statusCode == 200) {
-			this.log("response success");
-			this.heatingCoolingState = this.targetHeatingCoolingState;
-			this.targetTemperature = this.setTargetTemperature;
-			callback(null); // success
-		} else {
-			this.log("Error getting state: %s", err);
-			callback(err);
-		}
-	}.bind(this));
+	//this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp)
+	return pow + mode + sTemp;
 }
 
 function convertDaikinToJSON(input) {
@@ -213,7 +201,20 @@ Daikin.prototype = {
 		this.log("setTargetHeatingCoolingState from/to:" + this.targetHeatingCoolingState + "/" + value);
 		this.targetHeatingCoolingState = value;
 		
-		setDaikinMode();
+		var sendCommand = setDaikinMode();
+		request.get({
+			url: this.apiroute + "/common/set_control_info" + sendCommand
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				this.heatingCoolingState = this.targetHeatingCoolingState;
+				this.targetTemperature = this.setTargetTemperature;
+				callback(null); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
 	},
 	getCurrentTemperature: function(callback) {
 		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_sensor_info");
@@ -251,7 +252,21 @@ Daikin.prototype = {
 	},
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature to " + value);
-		setDaikinMode();
+		
+		var sendCommand = setDaikinMode();
+		request.get({
+			url: this.apiroute + "/common/set_control_info" + sendCommand
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				this.heatingCoolingState = this.targetHeatingCoolingState;
+				this.targetTemperature = this.setTargetTemperature;
+				callback(null); // success
+			} else {
+				this.log("Error getting state: %s", err);
+				callback(err);
+			}
+		}.bind(this));
 	},
 	getTemperatureDisplayUnits: function(callback) {
 		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
