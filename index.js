@@ -119,7 +119,7 @@ function convertDaikinToJSON(input) {
 	var stageTwo;
 	
 	stageOne = replaceAll(input, "\=", "\":\"");
-	stageTwo = replaceAll(stageOne, "&", "\",\"");
+	stageTwo = replaceAll(stageOne, ",", "\",\"");
 	
 	
 	return "{\"" + stageTwo + "\"}";
@@ -131,7 +131,7 @@ function escapeRegExp(str) {
 }
 
 function replaceAll(str, find, replace) {
-	return str.replace(new RegExp(escapeRegExp(find), 'g'), new RegExp(escapeRegExp(replace)));
+	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
 	// From http://stackoverflow.com/a/1144788
 }
 
