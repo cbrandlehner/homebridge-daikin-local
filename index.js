@@ -380,6 +380,7 @@ Daikin.prototype = {
 		switch(this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
 			pow = "?pow=0";
+			mode = "&mode=0";
 			this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
@@ -403,6 +404,7 @@ Daikin.prototype = {
 			
 			default:
 			pow = "?pow=0";
+			mode = "&mode=0";
 			this.log("Not handled case:", this.targetHeatingCoolingState);
 			break;
 		}
@@ -412,13 +414,14 @@ Daikin.prototype = {
 		
 		// Finally, we send the command
 		this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp)
+		this.log("Sending: " + this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp);
 		request.get({
-			url: this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp
+			url: this.apiroute + "/aircon/set_control_info",
+			body: pow + mode + sTemp
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				this.heatingCoolingState = this.targetHeatingCoolingState;
-				this.targetTemperature = this.setTargetTemperature;
+				this.log("body: %s", body);
 				result = null; // success
 			} else {
 				this.log("Error getting state: %s", err);
