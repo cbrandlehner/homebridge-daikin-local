@@ -203,7 +203,7 @@ Daikin.prototype = {
 		
 		var sendCommand = setDaikinMode();
 		request.get({
-			url: this.apiroute + "/common/set_control_info" + sendCommand
+			url: this.apiroute + "/aircon/set_control_info" + sendCommand
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
