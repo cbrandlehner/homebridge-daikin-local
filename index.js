@@ -171,8 +171,8 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
-				this.log("Heating state is %s (%s)", json.mode, json.htemp);
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
+				this.log("Daikin mode is %s, currently %s degrees", this.currentHeatingCoolingState, json.htemp);
 				this.temperature = parseFloat(json.htemp);
 				callback(null, this.temperature); // success
 			} else {
@@ -191,7 +191,7 @@ Daikin.prototype = {
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
 				this.targetTemperature = parseFloat(json.stemp);
 				this.log("Target temperature is %s", this.targetTemperature);
-				callback(null, this.temperature); // success
+				callback(null, this.targetTemperature); // success
 			} else {
 				this.log("Error getting state: %s", err);
 				callback(err);
