@@ -6,7 +6,7 @@ Initially will be built to support talking to a Daikin BRP072A42 Wifi Adapter fo
 
 # Installation
 
-The following will install HomeBridge-Daikin. In it's current form, it does retrieves sensor and mode data from Daikin Systems, but does not set modes (e.g turn system on or change heating mode). The install may require you to run as an administrator (using a different login or sudo)
+The following will install HomeBridge-Daikin. In it's current form, it does retrieves sensor and mode data from Daikin Systems, and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo)
 
 1. Install homebridge using: npm install -g homebridge
 2. Install this plugin using: npm install -g homebridge-daikin
