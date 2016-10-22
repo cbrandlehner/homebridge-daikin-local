@@ -49,55 +49,14 @@ function Daikin(log, config) {
 	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
 	this.targetTemperature = 21;
 	// this.targetRelativeHumidity = 0.5;
-	this.heatingThresholdTemperature = 25;
-	this.coolingThresholdTemperature = 18;
+	// this.heatingThresholdTemperature = 25;
+	// this.coolingThresholdTemperature = 18;
 	// The value property of TargetHeatingCoolingState must be one of the following:
 	//Characteristic.TargetHeatingCoolingState.OFF = 0;
 	//Characteristic.TargetHeatingCoolingState.HEAT = 1;
 	//Characteristic.TargetHeatingCoolingState.COOL = 2;
 	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
 	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-}
-
-function setDaikinMode() {
-	// The Daikin doesn't always respond when you only send one parameter, so this is a catchall to send everything at once
-	var pow; // 0 or 1
-	var mode; // 0, 1, 2, 3, 4, 6 or 7
-	var stemp; // Int for degrees in Celcius
-	
-	// This sets up the Power and Mode parameters
-	switch(this.targetHeatingCoolingState) {
-		case Characteristic.TargetHeatingCoolingState.OFF:
-		pow = "?pow=0";
-		break;
-		
-		case Characteristic.TargetHeatingCoolingState.HEAT: //"4"
-		pow = "?pow=1";
-		mode = "&mode=4";
-		break;
-		
-		case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1 or 7"
-		pow = "?pow=1";
-		mode = "&mode=0";
-		break;
-		
-		case Characteristic.TargetHeatingCoolingState.COOL: //"3"
-		pow = "?pow=1";
-		mode = "&mode=3";
-		break;
-		
-		default:
-		pow = "?pow=0";
-		//this.log("Not handled case:", this.targetHeatingCoolingState);
-		break;
-	}
-	
-	// This sets the Target Temperature parameter
-	sTemp = "&stemp=" + this.setTargetTemperature;
-	
-	// Finally, we send the command
-	//this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp)
-	return pow + mode + sTemp;
 }
 
 function convertDaikinToJSON(input) {
@@ -200,21 +159,10 @@ Daikin.prototype = {
 	setTargetHeatingCoolingState: function(value, callback) {
 		this.log("setTargetHeatingCoolingState from/to:" + this.targetHeatingCoolingState + "/" + value);
 		this.targetHeatingCoolingState = value;
-		
-		var sendCommand = setDaikinMode();
-		request.get({
-			url: this.apiroute + "/aircon/set_control_info" + sendCommand
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				this.heatingCoolingState = this.targetHeatingCoolingState;
-				this.targetTemperature = this.setTargetTemperature;
-				callback(null); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
+		this.log("State: %s", this.targetHeatingCoolingState);
+		this.log("Temp: %s", this.targetTemperature);
+		var cBack = this.setDaikinMode();
+		callback(cBack);
 	},
 	getCurrentTemperature: function(callback) {
 		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_sensor_info");
@@ -241,7 +189,7 @@ Daikin.prototype = {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
-				this.temperature = parseFloat(json.stemp);
+				this.targetTemperature = parseFloat(json.stemp);
 				this.log("Target temperature is %s", this.targetTemperature);
 				callback(null, this.temperature); // success
 			} else {
@@ -252,21 +200,10 @@ Daikin.prototype = {
 	},
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature to " + value);
-		
-		var sendCommand = setDaikinMode();
-		request.get({
-			url: this.apiroute + "/common/set_control_info" + sendCommand
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				this.heatingCoolingState = this.targetHeatingCoolingState;
-				this.targetTemperature = this.setTargetTemperature;
-				callback(null); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
+		this.targetTemperature = value;
+		this.log("Temp: %s", this.targetTemperature);
+		var cBack = this.setDaikinMode();
+		callback(cBack);
 	},
 	getTemperatureDisplayUnits: function(callback) {
 		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
@@ -309,7 +246,7 @@ Daikin.prototype = {
 		this.targetRelativeHumidity = value;
 		var error = null;
 		callback(error);
-	},*/
+	},
 	getCoolingThresholdTemperature: function(callback) {
 		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
 		var error = null;
@@ -319,7 +256,7 @@ Daikin.prototype = {
 		this.log("getHeatingThresholdTemperature :" , this.heatingThresholdTemperature);
 		var error = null;
 		callback(error, this.heatingThresholdTemperature);
-	},
+	},*/
 	getName: function(callback) {
 		this.log("getName :", this.name);
 		var error = null;
@@ -373,7 +310,7 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.TargetRelativeHumidity)
 			.on('get', this.getTargetRelativeHumidity.bind(this))
 			.on('set', this.setTargetRelativeHumidity.bind(this));
-		*/
+		
 		daikinService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
@@ -382,11 +319,72 @@ Daikin.prototype = {
 		daikinService
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this));
-
+		*/
 		daikinService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
 
 		return [informationService, daikinService];
+	},
+	
+	setDaikinMode: function() {
+		// The Daikin doesn't always respond when you only send one parameter, so this is a catchall to send everything at once
+		var pow; // 0 or 1
+		var mode; // 0, 1, 2, 3, 4, 6 or 7
+		var stemp; // Int for degrees in Celcius
+		var result;
+		
+		this.log("Temp: %s", this.targetTemperature);
+		// This sets up the Power and Mode parameters
+		switch(this.targetHeatingCoolingState) {
+			case Characteristic.TargetHeatingCoolingState.OFF:
+			pow = "?pow=0";
+			mode = "&mode=0";
+			this.log("State: %s", this.targetHeatingCoolingState);
+			break;
+			
+			case Characteristic.TargetHeatingCoolingState.HEAT: //"4"
+			pow = "?pow=1";
+			mode = "&mode=4";
+                        this.log("State: %s", this.targetHeatingCoolingState);
+			break;
+			
+			case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1 or 7"
+			pow = "?pow=1";
+			mode = "&mode=0";
+                        this.log("State: %s", this.targetHeatingCoolingState);
+			break;
+			
+			case Characteristic.TargetHeatingCoolingState.COOL: //"3"
+			pow = "?pow=1";
+			mode = "&mode=3";
+                        this.log("State: %s", this.targetHeatingCoolingState);
+			break;
+			
+			default:
+			pow = "?pow=0";
+			mode = "&mode=0";
+			this.log("Not handled case:", this.targetHeatingCoolingState);
+			break;
+		}
+		
+		// This sets the Target Temperature parameter
+		sTemp = "&stemp=" + this.targetTemperature;
+		
+		// Finally, we send the command
+		this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp);
+		request.get({
+			url: this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp + "&shum=0"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				this.log("body: %s", body);
+				result = null; // success
+			} else {
+				this.log("Error getting state: %s", err);
+				result = err;
+			}
+		}.bind(this));
+		return result;
 	}
 };
