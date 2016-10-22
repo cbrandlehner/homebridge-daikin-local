@@ -414,10 +414,10 @@ Daikin.prototype = {
 		
 		// Finally, we send the command
 		this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp)
-		this.log("Sending: " + this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp);
+		this.log("Sending: " + this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp + "&shum=0");
 		request.get({
 			url: this.apiroute + "/aircon/set_control_info",
-			body: pow + mode + sTemp
+			body: pow + mode + sTemp + "&shum=0"
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
