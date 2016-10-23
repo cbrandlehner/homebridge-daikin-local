@@ -48,9 +48,9 @@ Configuration sample:
 
 The `apiroute` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
 
-1. `/common` uses POST and GET methods for control and system information about the Aircon (e.g software version, MAC address, Reboot System, Region)
+1. `/common` uses the GET method for control and system information about the Aircon (e.g software version, MAC address, Reboot System, Region)
 
-2. `/aircon` uses POST and GET methods to set Aircon related information (e.g Target Temperature, Modes like Heat and Cool, Temperature Sensor Readings, Timers)
+2. `/aircon` uses the GET method to set Aircon related information (e.g Target Temperature, Modes like Heat and Cool, Temperature Sensor Readings, Timers)
 
 # Credit
 
