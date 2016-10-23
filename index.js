@@ -115,7 +115,8 @@ Daikin.prototype = {
 				this.log("Heating state is %s", json.mode);
 				if (json.pow == "0"){
 					// The Daikin is off
-					this.state = Characteristic.TargetHeatingCoolingState.OFF;
+					this.state = Characteristic.CurrentHeatingCoolingState.OFF;
+					this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
 				} else if (json.pow == "1") {
 					// The Daikin is on
 					switch(json.mode) {
@@ -127,11 +128,13 @@ Daikin.prototype = {
 						break;
 						*/
 						case "3":
-						this.state = Characteristic.TargetHeatingCoolingState.COOL;
+						this.state = Characteristic.CurrentHeatingCoolingState.COOL;
+						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
 						break;
 						
 						case "4":
-						this.state = Characteristic.TargetHeatingCoolingState.HEAT;
+						this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
+						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
 						break;
 						/*
 						case "6":
@@ -139,7 +142,8 @@ Daikin.prototype = {
 						break;
 						*/
 						default:
-						this.state = Characteristic.TargetHeatingCoolingState.AUTO;
+						this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
+						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 						this.log("Auto (if 0, 1 or 5), or not handled case:", json.mode);
 						break;
 					}
