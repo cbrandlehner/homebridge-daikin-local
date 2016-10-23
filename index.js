@@ -46,7 +46,7 @@ function Daikin(log, config) {
 	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
 	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
 	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
-	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
+	this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
 	this.targetTemperature = 21;
 	// this.targetRelativeHumidity = 0.5;
 	// this.heatingThresholdTemperature = 25;
@@ -339,7 +339,7 @@ Daikin.prototype = {
 		switch(this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
 			pow = "?pow=0";
-			mode = "&mode=0";
+			mode = "&mode=4";
 			this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
@@ -349,7 +349,7 @@ Daikin.prototype = {
                         this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
-			case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1 or 7"
+			case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1, 5 or 7"
 			pow = "?pow=1";
 			mode = "&mode=0";
                         this.log("State: %s", this.targetHeatingCoolingState);
@@ -363,7 +363,7 @@ Daikin.prototype = {
 			
 			default:
 			pow = "?pow=0";
-			mode = "&mode=0";
+			mode = "&mode=4";
 			this.log("Not handled case:", this.targetHeatingCoolingState);
 			break;
 		}
