@@ -274,7 +274,7 @@ Daikin.prototype = {
 		var informationService = new Service.AccessoryInformation();
 
 		informationService
-			.setCharacteristic(Characteristic.Manufacturer, "HTTP Manufacturer")
+			.setCharacteristic(Characteristic.Manufacturer, "Daikin")
 			.setCharacteristic(Characteristic.Model, "HTTP Model")
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
