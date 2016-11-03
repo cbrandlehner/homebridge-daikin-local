@@ -276,6 +276,7 @@ Daikin.prototype = {
 		informationService
 			.setCharacteristic(Characteristic.Manufacturer, "Daikin")
 			.setCharacteristic(Characteristic.Model, "HTTP Model")
+			.setCharacteristic(Characteristic.FirmwareRevision, "HTTP Version")
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
 		var daikinService = new Service.Thermostat(this.name);
