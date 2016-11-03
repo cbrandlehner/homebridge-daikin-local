@@ -391,5 +391,16 @@ Daikin.prototype = {
 			}
 		}.bind(this));
 		return result;
+	},
+	
+	getModelInfo: function() {
+		// A parser for the model details will be coded here, returning the Firmware Revision, and if not set in the config
+		// file, the Name and Model as well
+	},
+	
+	getControlInfo: function() {
+		// A parser for the control details from the Daikin will be coded here. It will also record all info returned in
+		// the get_control_info calls, so that the plugin behaves a little more like the Daikin app/remote controls,
+		// such as remembering each mode's last temperature and reusing it when changing modes
 	}
 };
