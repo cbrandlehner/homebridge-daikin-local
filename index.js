@@ -8,7 +8,7 @@
 
     "accessories": [
         {
-            "accessory": "Daikin Air Conditioner",
+            "accessory": "Daikin",
             "name": "Daikin Demo",
             "apiroute": "http://myurl.com"
         }
@@ -36,6 +36,9 @@ function Daikin(log, config) {
 	this.name = config.name;
 	this.apiroute = config.apiroute || "apiroute";
 	this.log(this.name, this.apiroute);
+	
+	this.model = config.model || "HTTP Model";
+	this.firmwareRevision = "HTTP Version";
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
 	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
@@ -273,10 +276,12 @@ Daikin.prototype = {
 		// the default values for things like serial number, model, etc.
 		var informationService = new Service.AccessoryInformation();
 
+		this.getModelInfo();
+		
 		informationService
 			.setCharacteristic(Characteristic.Manufacturer, "Daikin")
-			.setCharacteristic(Characteristic.Model, "HTTP Model")
-			.setCharacteristic(Characteristic.FirmwareRevision, "HTTP Version")
+			.setCharacteristic(Characteristic.Model, this.model)
+			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
 		var daikinService = new Service.Thermostat(this.name);
@@ -396,6 +401,44 @@ Daikin.prototype = {
 	getModelInfo: function() {
 		// A parser for the model details will be coded here, returning the Firmware Revision, and if not set in the config
 		// file, the Name and Model as well
+		request.get({
+			url: this.apiroute+"/aircon/get_model_info"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+				
+				
+				if (this.model == "HTTP Model" & json.model != "NOTSUPPORT") {
+					this.model = json.model;
+				}
+				
+			} else {
+				this.log("Error getting model info: %s", err);
+				var firmwareVersion = replaceAll(json.)
+			}
+		}.bind(this));
+		
+		request.get({
+			url: this.apiroute+"/common/basic_info"
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.log("response success");
+				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+				
+				if (this.name == "Default Daikin") {
+					// Need to convert a series of Hexadecimal values to ASCII characters here
+				}
+				
+				var firmwareVersion = replaceAll(json.ver, "_", ".");
+				this.firmwareRevision = firmwareVersion;
+				
+				this.log("Set firmware version to " + firmwareVersion);
+				
+			} else {
+				this.log("Error getting basic info: %s", err);
+			}
+		}.bind(this));
 	},
 	
 	getControlInfo: function() {
