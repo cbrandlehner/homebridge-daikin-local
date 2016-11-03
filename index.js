@@ -415,7 +415,6 @@ Daikin.prototype = {
 				
 			} else {
 				this.log("Error getting model info: %s", err);
-				var firmwareVersion = replaceAll(json.)
 			}
 		}.bind(this));
 		
