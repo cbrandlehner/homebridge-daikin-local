@@ -166,8 +166,6 @@ Daikin.prototype = {
 	setTargetHeatingCoolingState: function(value, callback) {
 		this.log("setTargetHeatingCoolingState from/to:" + this.targetHeatingCoolingState + "/" + value);
 		this.targetHeatingCoolingState = value;
-		this.log("State: %s", this.targetHeatingCoolingState);
-		this.log("Temp: %s", this.targetTemperature);
 		var cBack = this.setDaikinMode();
 		callback(cBack);
 	},
@@ -208,7 +206,6 @@ Daikin.prototype = {
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature to " + value);
 		this.targetTemperature = value;
-		this.log("Temp: %s", this.targetTemperature);
 		var cBack = this.setDaikinMode();
 		callback(cBack);
 	},
@@ -344,31 +341,26 @@ Daikin.prototype = {
 		var stemp; // Int for degrees in Celcius
 		var result;
 		
-		this.log("Temp: %s", this.targetTemperature);
 		// This sets up the Power and Mode parameters
 		switch(this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
 			pow = "?pow=0";
 			mode = "&mode=4";
-			this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
 			case Characteristic.TargetHeatingCoolingState.HEAT: //"4"
 			pow = "?pow=1";
 			mode = "&mode=4";
-                        this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
 			case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1, 5 or 7"
 			pow = "?pow=1";
 			mode = "&mode=0";
-                        this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
 			case Characteristic.TargetHeatingCoolingState.COOL: //"3"
 			pow = "?pow=1";
 			mode = "&mode=3";
-                        this.log("State: %s", this.targetHeatingCoolingState);
 			break;
 			
 			default:
@@ -388,7 +380,6 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
-				this.log("body: %s", body);
 				result = null; // success
 			} else {
 				this.log("Error getting state: %s", err);
@@ -409,8 +400,9 @@ Daikin.prototype = {
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 				
 				
-				if (this.model == "HTTP Model" & json.model != "NOTSUPPORT") {
+				if (this.model == "HTTP Model" /*& json.model != "NOTSUPPORT"*/) {
 					this.model = json.model;
+					// this.log("Model: " + json.model + ", " + this.model);
 				}
 				
 			} else {
