@@ -398,12 +398,12 @@ Daikin.prototype = {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
-				
+				this.log("Your Model is: " + json.model);
 				
 				if (this.model == "HTTP Model" /*& json.model != "NOTSUPPORT"*/) {
 					this.model = json.model;
 					// this.log("Model: " + json.model + ", " + this.model);
-				}
+				} // Doesn't yet override original value, working on that later
 				
 			} else {
 				this.log("Error getting model info: %s", err);
@@ -421,10 +421,9 @@ Daikin.prototype = {
 					// Need to convert a series of Hexadecimal values to ASCII characters here
 				}
 				
-				var firmwareVersion = replaceAll(json.ver, "_", ".");
-				this.firmwareRevision = firmwareVersion;
+				this.firmwareRevision = replaceAll(json.ver, "_", ".");
 				
-				this.log("Set firmware version to " + firmwareVersion);
+				this.log("Set firmware version to " + this.firmwareRevision);
 				
 			} else {
 				this.log("Error getting basic info: %s", err);
