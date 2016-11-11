@@ -60,6 +60,8 @@ function Daikin(log, config) {
 	//Characteristic.TargetHeatingCoolingState.COOL = 2;
 	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
 	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+	
+	this.service = new Service.Thermostat(this.name);
 }
 
 function convertDaikinToJSON(input) {
@@ -281,57 +283,55 @@ Daikin.prototype = {
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
 			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
 
-		var daikinService = new Service.Thermostat(this.name);
-
 		// Required Characteristics
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
 			.on('get', this.getCurrentHeatingCoolingState.bind(this));
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.TargetHeatingCoolingState)
 			.on('get', this.getTargetHeatingCoolingState.bind(this))
 			.on('set', this.setTargetHeatingCoolingState.bind(this));
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.CurrentTemperature)
 			.on('get', this.getCurrentTemperature.bind(this));
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.TargetTemperature)
 			.on('get', this.getTargetTemperature.bind(this))
 			.on('set', this.setTargetTemperature.bind(this));
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.TemperatureDisplayUnits)
 			.on('get', this.getTemperatureDisplayUnits.bind(this))
 			.on('set', this.setTemperatureDisplayUnits.bind(this));
 
 		// Optional Characteristics
 		/*
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.CurrentRelativeHumidity)
 			.on('get', this.getCurrentRelativeHumidity.bind(this));
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.TargetRelativeHumidity)
 			.on('get', this.getTargetRelativeHumidity.bind(this))
 			.on('set', this.setTargetRelativeHumidity.bind(this));
 		
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
 		
 
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this));
 		*/
-		daikinService
+		this.service
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
 
-		return [informationService, daikinService];
+		return [informationService, this.service];
 	},
 	
 	setDaikinMode: function() {
