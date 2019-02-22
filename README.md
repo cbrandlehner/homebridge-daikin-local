@@ -1,5 +1,6 @@
 # homebridge-daikin-local
 
+{"image":"https://img.shields.io/npm/dm/homebridge-daikin.local.svg?style=flat","url":"https://npmjs.com/package/homebridge-daikin-local"}
 Supports Daikin Air Conditioners on HomeBridge
 
 
