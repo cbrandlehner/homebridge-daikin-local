@@ -1,27 +1,27 @@
 {
-  "name": "homebridge-daikin",
-  "version": "0.1.4",
+  "name": "homebridge-daikin-2019",
+  "version": "2019.8.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "ISC",
   "keywords": [
     "homebridge-plugin"
   ],
   "engines": {
-    "node": ">=0.12.0",
-    "homebridge": ">=0.2.0"
+    "node": ">=4.3.2",
+    "homebridge": ">=0.4.46"
   },
-  "author": "Dirty DevWork",
+  "author": "Christian Brandlehner",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DirtyDevWork/homebridge-daikin.git"
+    "url": "git+https://github.com/cbrandlehner/homebridge-daikin-2019.git"
   },
   "dependencies": {
-    "request": "^2.65.0"
+    "request": "^2.88.0"
   },
   "bugs": {
-    "url": "https://github.com/DirtyDevWork/homebridge-daikin/issues"
+    "url": "https://github.com/cbrandlehner/homebridge-daikin-2019/issues"
   },
-  "homepage": "https://github.com/DirtyDevWork/homebridge-daikin#readme",
+  "homepage": "https://github.com/cbrandlehner/homebridge-daikin-2019#readme",
   "main": "index.js",
   "devDependencies": {},
   "scripts": {
