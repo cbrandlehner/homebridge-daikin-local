@@ -1,11 +1,11 @@
-# homebridge-daikin-2019
+# homebridge-daikin-local
 
 Supports Daikin Air Conditioners on HomeBridge
 
 
 # Installation
 
-The following will install HomeBridge-Daikin-2019. It retrieves sensor and mode data from Daikin Systems, and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo)
+The following will install HomeBridge-Daikin-local. It retrieves sensor and mode data from Daikin Systems in your local network and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo)
 
 1. Install homebridge using: npm install -g homebridge
 2. Install this plugin using: npm install -g homebridge-daikin-2019
@@ -26,7 +26,7 @@ Configuration sample:
 
         "accessories": [
             {
-                "accessory": "Daikin Air Conditioner",
+                "accessory": "Daikin-Local",
                 "name": "Living room",
                 "apiroute": "http://192.168.1.50"
             }
@@ -45,4 +45,4 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 
 # Credit
 
-This 2019 remake is based on homebridge-daikin. Since it's no longer maintained, I forked the project.
+This remake is based on homebridge-daikin. Since it's no longer maintained, I forked the project.
