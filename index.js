@@ -400,11 +400,9 @@ Daikin.prototype = {
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 				this.log("Your Model is: " + json.model);
 
-				if (this.model == "HTTP Model" /*& json.model != "NOTSUPPORT"*/) {
+				if (this.model == "HTTP Model" & this.model != "NOTSUPPORT") {
 					this.model = json.model;
-					// this.log("Model: " + json.model + ", " + this.model);
-				} // Doesn't yet override original value, working on that later
-
+				}
 			} else {
 				this.log("Error getting model info: %s", err);
 			}
