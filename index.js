@@ -8,9 +8,9 @@
 
     "accessories": [
         {
-            "accessory": "Daikin",
-            "name": "Daikin Demo",
-            "apiroute": "http://myurl.com"
+            "accessory": "Daikin Air Conditioner 2019",
+            "name": "Living room",
+            "apiroute": "http://192.168.1.50"
         }
     ],
 
@@ -26,17 +26,19 @@ var request = require("request");
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-daikin", "Daikin", Daikin);
+  homebridge.registerAccessory("homebridge-daikin-2019", "Daikin", Daikin);
 };
 
-
-function Daikin(log, config) {
+unction Daikin(log, config) {
 	this.log = log;
 
 	this.name = config.name;
 	this.apiroute = config.apiroute || "apiroute";
-	this.log(this.name, this.apiroute);
-	
+	// TODO: Might need some check if config.apiroute actually IS configured and a valid hostname.
+        this.apiIP = this.apiroute.hostname;
+
+	this.log(this.name, this.apiroute, this.apiIP);
+
 	this.model = config.model || "HTTP Model";
 	this.firmwareRevision = "HTTP Version";
 
@@ -60,7 +62,7 @@ function Daikin(log, config) {
 	//Characteristic.TargetHeatingCoolingState.COOL = 2;
 	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
 	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-	
+
 	this.service = new Service.Thermostat(this.name);
 }
 
@@ -69,11 +71,11 @@ function convertDaikinToJSON(input) {
 	// parse, so we convert it with some RegExp here.
 	var stageOne;
 	var stageTwo;
-	
+
 	stageOne = replaceAll(input, "\=", "\":\"");
 	stageTwo = replaceAll(stageOne, ",", "\",\"");
-	
-	
+
+
 	return "{\"" + stageTwo + "\"}";
 }
 
@@ -112,7 +114,10 @@ Daikin.prototype = {
 	getCurrentHeatingCoolingState: function(callback) {
 		this.log("getCurrentHeatingCoolingState from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-			url: this.apiroute+"/aircon/get_control_info"
+			url: this.apiroute+"/aircon/get_control_info",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -136,7 +141,7 @@ Daikin.prototype = {
 						this.state = Characteristic.CurrentHeatingCoolingState.COOL;
 						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
 						break;
-						
+
 						case "4":
 						this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
 						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
@@ -174,7 +179,10 @@ Daikin.prototype = {
 	getCurrentTemperature: function(callback) {
 		this.log("getCurrentTemperature from:", this.apiroute+"/aircon/get_sensor_info");
 		request.get({
-			url: this.apiroute+"/aircon/get_sensor_info"
+			url: this.apiroute+"/aircon/get_sensor_info",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -191,7 +199,10 @@ Daikin.prototype = {
 	getTargetTemperature: function(callback) {
 		this.log("getTargetTemperature from:", this.apiroute+"/aircon/get_control_info");
 		request.get({
-			url: this.apiroute+"/aircon/get_control_info"
+			url: this.apiroute+"/aircon/get_control_info",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -276,7 +287,7 @@ Daikin.prototype = {
 		var informationService = new Service.AccessoryInformation();
 
 		this.getModelInfo();
-		
+
 		informationService
 			.setCharacteristic(Characteristic.Manufacturer, "Daikin")
 			.setCharacteristic(Characteristic.Model, this.model)
@@ -317,11 +328,11 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.TargetRelativeHumidity)
 			.on('get', this.getTargetRelativeHumidity.bind(this))
 			.on('set', this.setTargetRelativeHumidity.bind(this));
-		
+
 		this.service
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.on('get', this.getCoolingThresholdTemperature.bind(this));
-		
+
 
 		this.service
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
@@ -333,50 +344,53 @@ Daikin.prototype = {
 
 		return [informationService, this.service];
 	},
-	
+
 	setDaikinMode: function() {
 		// The Daikin doesn't always respond when you only send one parameter, so this is a catchall to send everything at once
 		var pow; // 0 or 1
 		var mode; // 0, 1, 2, 3, 4, 6 or 7
 		var stemp; // Int for degrees in Celcius
 		var result;
-		
+
 		// This sets up the Power and Mode parameters
 		switch(this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
 			pow = "?pow=0";
 			mode = "&mode=4";
 			break;
-			
+
 			case Characteristic.TargetHeatingCoolingState.HEAT: //"4"
 			pow = "?pow=1";
 			mode = "&mode=4";
 			break;
-			
+
 			case Characteristic.TargetHeatingCoolingState.AUTO: //"0, 1, 5 or 7"
 			pow = "?pow=1";
 			mode = "&mode=0";
 			break;
-			
+
 			case Characteristic.TargetHeatingCoolingState.COOL: //"3"
 			pow = "?pow=1";
 			mode = "&mode=3";
 			break;
-			
+
 			default:
 			pow = "?pow=0";
 			mode = "&mode=4";
 			this.log("Not handled case:", this.targetHeatingCoolingState);
 			break;
 		}
-		
+
 		// This sets the Target Temperature parameter
 		sTemp = "&stemp=" + this.targetTemperature;
-		
+
 		// Finally, we send the command
 		this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp);
 		request.get({
-			url: this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp + "&shum=0"
+			url: this.apiroute + "/aircon/set_control_info" + pow + mode + sTemp + "&shum=0",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
@@ -388,49 +402,57 @@ Daikin.prototype = {
 		}.bind(this));
 		return result;
 	},
-	
+
 	getModelInfo: function() {
 		// A parser for the model details will be coded here, returning the Firmware Revision, and if not set in the config
 		// file, the Name and Model as well
+    // 'Host' : '192.168.71.135',
 		request.get({
-			url: this.apiroute+"/aircon/get_model_info"
+			url: this.apiroute+"/aircon/get_model_info",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
+
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 				this.log("Your Model is: " + json.model);
-				
+
 				if (this.model == "HTTP Model" /*& json.model != "NOTSUPPORT"*/) {
 					this.model = json.model;
 					// this.log("Model: " + json.model + ", " + this.model);
 				} // Doesn't yet override original value, working on that later
-				
+
 			} else {
 				this.log("Error getting model info: %s", err);
 			}
 		}.bind(this));
-		
+
 		request.get({
-			url: this.apiroute+"/common/basic_info"
+			url: this.apiroute+"/common/basic_info",
+      headers: {
+                 'User-Agent' : 'request', 'Host' : this.apiIP
+                },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("response success");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
-				
+
 				if (this.name == "Default Daikin") {
 					// Need to convert a series of Hexadecimal values to ASCII characters here
 				}
-				
+
 				this.firmwareRevision = replaceAll(json.ver, "_", ".");
-				
+
 				this.log("Set firmware version to " + this.firmwareRevision);
-				
+
 			} else {
 				this.log("Error getting basic info: %s", err);
 			}
 		}.bind(this));
 	},
-	
+
 	getControlInfo: function() {
 		// A parser for the control details from the Daikin will be coded here. It will also record all info returned in
 		// the get_control_info calls, so that the plugin behaves a little more like the Daikin app/remote controls,
