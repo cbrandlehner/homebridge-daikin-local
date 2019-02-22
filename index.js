@@ -33,9 +33,11 @@ function Daikin(log, config) {
 	this.log = log;
 
 	this.name = config.name;
-	this.apiroute = config.apiroute || "apiroute";
+	// this.apiroute = config.apiroute || "apiroute";
 	// TODO: Might need some check if config.apiroute actually IS configured and a valid hostname.
-        this.apiIP = this.apiroute.hostname;
+        const myURL = new URL(config.apiroute);
+	this.apiroute = myURL.origin;
+	this.apiIP = myURL.hostname;
 
 	this.log(this.name, this.apiroute, this.apiIP);
 
