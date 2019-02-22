@@ -8,7 +8,7 @@
 
     "accessories": [
         {
-            "accessory": "Daikin Air Conditioner 2019",
+            "accessory": "Daikin-Local",
             "name": "Living room",
             "apiroute": "http://192.168.1.50"
         }
@@ -26,7 +26,7 @@ var request = require("request");
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-daikin-2019", "Daikin2019", Daikin);
+  homebridge.registerAccessory("homebridge-daikin-local", "Daikin-Local", Daikin);
 };
 
 function Daikin(log, config) {
