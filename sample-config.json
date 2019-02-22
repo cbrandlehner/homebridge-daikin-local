@@ -1,20 +1,24 @@
 {
     "bridge": {
-        "name": "Homebridge on Mac",
+        "name": "Homebridge",
         "username": "CC:22:9K:B3:CE:30",
         "port": 51826,
-        "pin": "031-45-154"
+        "pin": "000-00-000"
     },
     
-    "description": "This is an example configuration file with one fake accessory and one fake platform. You can use this as a template for creating your own configuration file containing devices you actually own.",
+    "description": "This is an example configuration file. Make sure to adapt it to list the IP of your Daikin Controller(s).",
 
     "accessories": [
         {
             "accessory": "Daikin Air Conditioner",
-            "name": "Daikin Demo",
-            "apiroute": "http://myurl.com"
+            "name": "Living room",
+            "url": "http://192.168.1.50"
+        }, 
+        {
+            "accessory": "Daikin Air Conditioner",
+            "name": "Master bedroom",
+            "url": "http://192.168.1.51"
         }
     ],
-
     "platforms":[]
 }
