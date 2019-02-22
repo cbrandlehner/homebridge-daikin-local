@@ -1,25 +1,3 @@
-/*
-{
-    "bridge": {
-    	...
-    },
-
-    "description": "...",
-
-    "accessories": [
-        {
-            "accessory": "Daikin-Local",
-            "name": "Living room",
-            "apiroute": "http://192.168.1.50"
-        }
-    ],
-
-    "platforms":[]
-}
-
-*/
-
-
 var Service, Characteristic;
 var request = require("request");
 
@@ -220,7 +198,8 @@ Daikin.prototype = {
 	},
 	setTargetTemperature: function(value, callback) {
 		this.log("setTargetTemperature to " + value);
-		this.targetTemperature = value;
+    // round value to nearest .5 values
+    this.targetTemperature = Math.round(value*2)/2;
 		var cBack = this.setDaikinMode();
 		callback(cBack);
 	},
