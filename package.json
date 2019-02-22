@@ -2,7 +2,7 @@
   "name": "homebridge-daikin-2019",
   "version": "2019.8.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
-  "license": "ISC",
+  "license": "MIT",
   "keywords": [
     "homebridge-plugin"
   ],
