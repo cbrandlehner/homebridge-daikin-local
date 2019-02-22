@@ -273,7 +273,7 @@ Daikin.prototype = {
 			.setCharacteristic(Characteristic.Manufacturer, "Daikin")
 			.setCharacteristic(Characteristic.Model, this.model)
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
-			.setCharacteristic(Characteristic.SerialNumber, "HTTP Serial Number");
+			.setCharacteristic(Characteristic.SerialNumber, this.firmwareRevision); // As the Apple HOME app does not display firmware version for accessories, I am using the serial number instead.
 
 		// Required Characteristics
 		this.service
@@ -396,12 +396,13 @@ Daikin.prototype = {
 
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				this.log("response success");
+				this.log("response success for /get_model_info");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 				this.log("Your Model is: " + json.model);
 
-				if (this.model == "HTTP Model" & json.model != "NOTSUPPORT") {
+				if (json.model != "NOTSUPPORT") {
 					this.model = json.model;
+          this.log("Set Model information to: " + json.model);
 				}
 			} else {
 				this.log("Error getting model info: %s", err);
@@ -415,7 +416,7 @@ Daikin.prototype = {
                 },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				this.log("response success");
+				this.log("response success for /basic_info");
 				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 
 				if (this.name == "Default Daikin") {
