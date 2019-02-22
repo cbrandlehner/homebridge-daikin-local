@@ -29,7 +29,7 @@ module.exports = function(homebridge){
   homebridge.registerAccessory("homebridge-daikin-2019", "Daikin", Daikin);
 };
 
-unction Daikin(log, config) {
+function Daikin(log, config) {
 	this.log = log;
 
 	this.name = config.name;
