@@ -10,12 +10,12 @@
 
     "accessories": [
         {
-            "accessory": "Daikin Air Conditioner",
+            "accessory": "Daikin Air Conditioner 2019",
             "name": "Living room",
             "url": "http://192.168.1.50"
         }, 
         {
-            "accessory": "Daikin Air Conditioner",
+            "accessory": "Daikin Air Conditioner 2019",
             "name": "Master bedroom",
             "url": "http://192.168.1.51"
         }
