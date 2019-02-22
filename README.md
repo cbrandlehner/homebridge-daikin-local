@@ -28,7 +28,7 @@ Configuration sample:
             {
                 "accessory": "Daikin Air Conditioner",
                 "name": "Living room",
-                "url": "http://192.168.1.50"
+                "apiroute": "http://192.168.1.50"
             }
         ],
 
@@ -37,7 +37,7 @@ Configuration sample:
 ```
 # API Expectations
 
-The `url` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
+The `apiroute` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
 
 1. `/common` uses the GET method for control and system information about the Aircon (e.g software version, MAC address, Reboot System, Region)
 
