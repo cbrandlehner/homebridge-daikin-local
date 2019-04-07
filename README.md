@@ -1,7 +1,5 @@
 # homebridge-daikin-local
 
-[![npm](https://img.shields.io/npm/dt/homebridge-daikin.local.svg?style=flat)](https://npmjs.com/package/homebridge-daikin-local)
-
 Supports Daikin Air Conditioners on HomeBridge
 
 
@@ -23,7 +21,7 @@ Configuration sample:
         "bridge": {
             ...
         },
-        
+
         "description": "...",
 
         "accessories": [

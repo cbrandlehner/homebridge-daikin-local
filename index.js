@@ -1,5 +1,6 @@
 var Service, Characteristic;
 var request = require("request");
+var URL = require('url').URL;
 
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
