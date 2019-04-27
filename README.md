@@ -1,12 +1,14 @@
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on HomeBridge by connecting to the optional WIFI controller like the [Daikin Wifi Controller Split BRP069B42](https://amzn.to/2vqERVX).
+Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
 
 
 # Installation
 
-The following will install HomeBridge-Daikin-local. It retrieves sensor and mode data from Daikin Systems in your local network and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo).
+This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https://amzn.to/2UM0Gtr) in your local network and allows you to set operation modes and target temperatures. As it is a plugin for [HomeBridge](https://github.com/nfarina/homebridge) you will have access to this features using Apple Home.
+
+The install may require you to run as an administrator (using a different login or sudo).
 It is recommended to configure your DHCP server to reserve an IP for the wifi controller.
 This plugin can be installed using the [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme) or manually by following these steps:
 
