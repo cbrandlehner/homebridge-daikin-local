@@ -51,3 +51,6 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 # Credit
 
 This remake is based on homebridge-daikin. Since it's no longer maintained, I forked the project.
+
+# Changelog
+2019.17.4 Added config.schema.json to allow UI based configuration using [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme)

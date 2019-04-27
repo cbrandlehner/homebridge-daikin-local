@@ -1,0 +1,22 @@
+{
+  "pluginAlias": "Daikin-Local",
+  "pluginType": "accessory",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Daikin Livingroom"
+      },
+      "apiroute": {
+        "title": "URI of the WIFI controller.",
+        "type": "string",
+        "required": true,
+        "default": "http://192.168.1.33",
+        "format": "uri"
+      }
+    }
+  }
+}
