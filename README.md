@@ -1,11 +1,14 @@
+[![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on HomeBridge
+Supports Daikin Air Conditioners on HomeBridge by connecting to the optional WIFI controller like the [Daikin Wifi Controller Split BRP069B42](https://amzn.to/2vqERVX).
 
 
 # Installation
 
-The following will install HomeBridge-Daikin-local. It retrieves sensor and mode data from Daikin Systems in your local network and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo)
+The following will install HomeBridge-Daikin-local. It retrieves sensor and mode data from Daikin Systems in your local network and allows you to set modes and target temperatures. The install may require you to run as an administrator (using a different login or sudo).
+It is recommended to configure your DHCP server to reserve an IP for the wifi controller.
+This plugin can be installed using the [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme) or manually by following these steps:
 
 1. Install homebridge using: npm install -g homebridge
 2. Install this plugin using: npm install -g homebridge-daikin-local
