@@ -35,7 +35,8 @@ Configuration sample:
             {
                 "accessory": "Daikin-Local",
                 "name": "Living room",
-                "apiroute": "http://192.168.1.50"
+                "apiroute": "http://192.168.1.50",
+                "system": "default"
             }
         ],
 

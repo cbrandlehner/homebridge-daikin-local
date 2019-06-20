@@ -1,13 +1,13 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.25.2",
+  "version": "2019.25.3",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
     "homebridge-plugin"
   ],
   "engines": {
-    "node": ">=4.3.2",
+    "node": ">=8.15.1",
     "homebridge": ">=0.4.46"
   },
   "author": "Christian Brandlehner",
