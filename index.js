@@ -1,96 +1,93 @@
 var Service, Characteristic;
-var request = require("request");
+var request = require('request');
 var URL = require('url').URL;
-const packageFile = require("./package.json");
+const packageFile = require('./package.json');
 
-
-module.exports = function(homebridge){
+module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   homebridge.registerAccessory("homebridge-daikin-local", "Daikin-Local", Daikin);
 };
 
 function Daikin(log, config) {
-	this.log = log;
+  this.log = log;
   if (null == config.name) {
-      this.log.error("ERROR: your configuration is missing the parameter 'name'");
-      this.name = "Unnamed Daikin";
+    this.log.error("ERROR: your configuration is missing the parameter 'name'");
+    this.name = "Unnamed Daikin";
   } else {
     this.name = config.name;
   }
+
   if (null == config.apiroute) {
-      this.log.error("ERROR: your configuration is missing the parameter 'apiroute'");
-      this.apiroute = "http://192.168.1.88";
-      this.apiIP = "192.168.1.88";
+    this.log.error("ERROR: your configuration is missing the parameter 'apiroute'");
+    this.apiroute = "http://192.168.1.88";
+    this.apiIP = "192.168.1.88";
   } else {
     const myURL = new URL(config.apiroute);
     this.apiroute = myURL.origin;
     this.apiIP = myURL.hostname;
   }
+
   if (null == config.system) {
-      this.log.error("ERROR: your configuration is missing the parameter 'system'");
-      this.system = "Default";
+    this.log.error("ERROR: your configuration is missing the parameter 'system'");
+    this.system = "Default";
   } else {
     this.system = config.system;
   }
-  switch(this.system) {
+
+  switch (this.system) {
     case "Default":
-    this.get_sensor_info = this.apiroute+"/aircon/get_sensor_info";
-    this.get_control_info = this.apiroute+"/aircon/get_control_info";
-    this.get_model_info = this.apiroute+"/aircon/get_model_info";
-    this.set_control_info = this.apiroute + "/aircon/set_control_info";
-    this.basic_info = this.apiroute+"/common/basic_info";
-    break;
+      this.get_sensor_info = this.apiroute+"/aircon/get_sensor_info";
+      this.get_control_info = this.apiroute+"/aircon/get_control_info";
+      this.get_model_info = this.apiroute+"/aircon/get_model_info";
+      this.set_control_info = this.apiroute + "/aircon/set_control_info";
+      this.basic_info = this.apiroute+"/common/basic_info";
+      break;
 
     case "Skyfi":
-    this.get_sensor_info = this.apiroute+"/skyfi/aircon/get_sensor_info";
-    this.get_control_info = this.apiroute+"/skyfi/aircon/get_control_info";
-    this.get_model_info = this.apiroute+"/skyfi/aircon/get_model_info";
-    this.set_control_info = this.apiroute + "/skyfi/aircon/set_control_info";
-    this.basic_info = this.apiroute+"/skyfi/common/basic_info";
-    break;
+      this.get_sensor_info = this.apiroute+"/skyfi/aircon/get_sensor_info";
+      this.get_control_info = this.apiroute+"/skyfi/aircon/get_control_info";
+      this.get_model_info = this.apiroute+"/skyfi/aircon/get_model_info";
+      this.set_control_info = this.apiroute + "/skyfi/aircon/set_control_info";
+      this.basic_info = this.apiroute+"/skyfi/common/basic_info";
+      break;
 
     default:
-    this.get_sensor_info = this.apiroute+"/aircon/get_sensor_info";
-    this.get_control_info = this.apiroute+"/aircon/get_control_info";
-    this.get_model_info = this.apiroute+"/aircon/get_model_info";
-    this.set_control_info = this.apiroute + "/aircon/set_control_info";
-    this.basic_info = this.apiroute+"/common/basic_info";
-    break;
+      this.get_sensor_info = this.apiroute+"/aircon/get_sensor_info";
+      this.get_control_info = this.apiroute+"/aircon/get_control_info";
+      this.get_model_info = this.apiroute+"/aircon/get_model_info";
+      this.set_control_info = this.apiroute + "/aircon/set_control_info";
+      this.basic_info = this.apiroute+"/common/basic_info";
+      break;
   }
+
   this.log.debug("Get sensor info %s", this.get_sensor_info);
   this.log.debug("Get control %s", this.get_control_info);
   this.log.debug("Get model info %s", this.get_model_info);
   this.log.debug("Get basic info %s", this.basic_info);
 
+  this.firmwareRevision = packageFile.version;
 
-
-  // TODO: Might need some check if config.apiroute actually IS a valid hostname.
-
-  // ??
-	// this.model = config.model || "HTTP Model";
-	this.firmwareRevision = packageFile.version;
-
-	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
-	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
-	this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-	this.temperature = 19;
-	// this.relativeHumidity = 0.70;
-	// The value property of CurrentHeatingCoolingState must be one of the following:
-	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
-	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
-	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
-	this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
-	this.targetTemperature = 21;
-	// this.targetRelativeHumidity = 0.5;
-	// this.heatingThresholdTemperature = 25;
-	// this.coolingThresholdTemperature = 18;
-	// The value property of TargetHeatingCoolingState must be one of the following:
-	//Characteristic.TargetHeatingCoolingState.OFF = 0;
-	//Characteristic.TargetHeatingCoolingState.HEAT = 1;
-	//Characteristic.TargetHeatingCoolingState.COOL = 2;
-	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
-	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+  //Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
+  //Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
+  this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+  this.temperature = 19;
+  // this.relativeHumidity = 0.70;
+  // The value property of CurrentHeatingCoolingState must be one of the following:
+  //Characteristic.CurrentHeatingCoolingState.OFF = 0;
+  //Characteristic.CurrentHeatingCoolingState.HEAT = 1;
+  //Characteristic.CurrentHeatingCoolingState.COOL = 2;
+  this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
+  this.targetTemperature = 21;
+  // this.targetRelativeHumidity = 0.5;
+  // this.heatingThresholdTemperature = 25;
+  // this.coolingThresholdTemperature = 18;
+  // The value property of TargetHeatingCoolingState must be one of the following:
+  //Characteristic.TargetHeatingCoolingState.OFF = 0;
+  //Characteristic.TargetHeatingCoolingState.HEAT = 1;
+  //Characteristic.TargetHeatingCoolingState.COOL = 2;
+  //Characteristic.TargetHeatingCoolingState.AUTO = 3;
+  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
   // ??
   this.getCurrentHeatingCoolingState(function (){});
