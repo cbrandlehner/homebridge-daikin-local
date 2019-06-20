@@ -260,8 +260,13 @@ Daikin.prototype = {
             this.log.error("Not connected to a supported Daikin wifi controller!")
           } else {
             var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
-            this.targetTemperature = parseFloat(json.stemp);
-            this.log.info("Target temperature is %s degrees", this.targetTemperature);
+            if (json.stemp =="M"){
+              // In mode DRY there is no target temperature set, instead the value is "M" as "Max".
+              this.log.debug("getTargetTemperature: Target temperature is set to MAX");
+            } else {
+              this.targetTemperature = parseFloat(json.stemp);
+              this.log.debug("getTargetTemperature: Target temperature is %s degrees", this.targetTemperature);
+            }
         }
 
 				callback(null, this.targetTemperature); // success
