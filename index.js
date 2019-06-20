@@ -1,6 +1,8 @@
 var Service, Characteristic;
 var request = require("request");
 var URL = require('url').URL;
+const packageFile = require("./package.json");
+
 
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
@@ -10,18 +12,26 @@ module.exports = function(homebridge){
 
 function Daikin(log, config) {
 	this.log = log;
+  if (null == config.name) {
+      this.log.error("ERROR: your configuration is missing the parameter 'name'");
+      this.name = "Unnamed Daikin";
+  } else {
+    this.name = config.name;
+  }
+  if (null == config.apiroute) {
+      this.log.error("ERROR: your configuration is missing the parameter 'apiroute'");
+      this.apiroute = "http://192.168.1.88";
+      this.apiIP = "192.168.1.88";
+  } else {
+    const myURL = new URL(config.apiroute);
+    this.apiroute = myURL.origin;
+    this.apiIP = myURL.hostname;
+  }
+  // TODO: Might need some check if config.apiroute actually IS a valid hostname.
 
-	this.name = config.name;
-	// this.apiroute = config.apiroute || "apiroute";
-	// TODO: Might need some check if config.apiroute actually IS configured and a valid hostname.
-  const myURL = new URL(config.apiroute);
-	this.apiroute = myURL.origin;
-	this.apiIP = myURL.hostname;
-
-	this.log(this.name, this.apiroute);
-
-	this.model = config.model || "HTTP Model";
-	this.firmwareRevision = "HTTP Version";
+  // ??
+	// this.model = config.model || "HTTP Model";
+	this.firmwareRevision = packageFile.version;
 
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
 	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
@@ -46,6 +56,14 @@ function Daikin(log, config) {
 
   // ??
   this.getCurrentHeatingCoolingState(function (){});
+  this.log.info("**************************************************************");
+  this.log.info("  homebridge-daikin-local version "+packageFile.version);
+  this.log.info("  GitHub: https://github.com/cbrandlehner/homebridge-daikin-local ");
+  this.log.info("**************************************************************");
+  this.log.info("start success...");
+  this.log.info("accessory name: " + this.name);
+  this.log.info("accessory ip: " + this.apiIP);
+
   this.ThermostatService = new Service.Thermostat(this.name);
 }
 
@@ -90,7 +108,7 @@ Daikin.prototype = {
 	},
 	//Start
 	identify: function(callback) {
-		this.log("Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!");
+		this.log.info("Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!");
 		callback(null);
 	},
 	// Required
@@ -103,49 +121,55 @@ Daikin.prototype = {
                 },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				// this.log("response success");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
-				this.log("Operation mode is %s power is %s", json.mode, json.pow);
-				if (json.pow == "0"){
-					// The Daikin is off
-					this.state = Characteristic.CurrentHeatingCoolingState.OFF;
-					this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
-				} else if (json.pow == "1") {
-					// The Daikin is on
-					switch(json.mode) {
-						// Commented cases exist for the Daikin, but not for HomeKit.
-						// Keeping for reference while I try come up with a way to include them
-						/*
-						case "2":
-						this.state = Characteristic.TargetHeatingCoolingState.DRY;
-						break;
-						*/
-						case "3":
-            this.log("Operation mode is: COOL");
-						this.state = Characteristic.CurrentHeatingCoolingState.COOL;
-						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
-						break;
+        this.log.debug("Body %s", body);
+        if (body.indexOf("ret=OK")==-1){
+            this.log.error("Not connected to a supported Daikin wifi controller!")
+          } else {
+            var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+    				this.log.info("Operation mode is %s power is %s", json.mode, json.pow);
+            if (json.pow == "0"){
+              // The Daikin is off
+              this.state = Characteristic.CurrentHeatingCoolingState.OFF;
+              this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
+            } else if (json.pow == "1") {
+              // The Daikin is on
+              switch(json.mode) {
+                // Commented cases exist for the Daikin, but not for HomeKit.
+                // Keeping for reference while I try come up with a way to include them
+                /*
+                case "2":
+                this.state = Characteristic.TargetHeatingCoolingState.DRY;
+                break;
+                */
+                case "3":
+                this.log("Operation mode is: COOL");
+                this.state = Characteristic.CurrentHeatingCoolingState.COOL;
+                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
+                break;
 
-						case "4":
-            this.log("Operation mode is: HEAT");
-						this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
-						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-						break;
-						/*
-						case "6":
-						this.state = Characteristic.TargetHeatingCoolingState.FAN;
-						break;
-						*/
-						default:
-						this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
-						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-						this.log("Auto (if 0, 1 or 5), or not handled case:", json.mode);
-						break;
-					}
-				}
-				callback(null, this.state); // success
+                case "4":
+                this.log("Operation mode is: HEAT");
+                this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
+                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
+                break;
+                /*
+                case "6":
+                this.state = Characteristic.TargetHeatingCoolingState.FAN;
+                break;
+                */
+                default:
+                this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
+                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+                this.log("Auto (if 0, 1 or 5), or not handled case:", json.mode);
+                break;
+              }
+            }
+
+          }
+
+								callback(null, this.state); // success
 			} else {
-				this.log("Error getting operation mode: %s", err);
+				this.log.error("Error getting operation mode: %s", err);
 				callback(err);
 			}
 		}.bind(this));
@@ -170,13 +194,16 @@ Daikin.prototype = {
                 },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				// this.log("response success");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
-				this.log("Daikin operation mode is %s, currently %s degrees", this.currentHeatingCoolingState, json.htemp);
-				this.temperature = parseFloat(json.htemp);
+        if (body.indexOf("ret=OK")==-1){
+            this.log.error("Not connected to a supported Daikin wifi controller!")
+          } else {
+            var json = JSON.parse(convertDaikinToJSON(body)); //{"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
+    				this.log("Daikin operation mode is %s, currently %s degrees", this.currentHeatingCoolingState, json.htemp);
+            this.temperature = parseFloat(json.htemp);
+          }
 				callback(null, this.temperature); // success
 			} else {
-				this.log("Error reading temperature: %s", err);
+				this.log.error("Error reading temperature: %s", err);
 				callback(err);
 			}
 		}.bind(this));
@@ -190,13 +217,17 @@ Daikin.prototype = {
                 },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				// this.log("response success");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
-				this.targetTemperature = parseFloat(json.stemp);
-				this.log("Target temperature is %s degrees", this.targetTemperature);
+        if (body.indexOf("ret=OK")==-1){
+            this.log.error("Not connected to a supported Daikin wifi controller!")
+          } else {
+            var json = JSON.parse(convertDaikinToJSON(body)); //{"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+            this.targetTemperature = parseFloat(json.stemp);
+            this.log("Target temperature is %s degrees", this.targetTemperature);
+        }
+
 				callback(null, this.targetTemperature); // success
 			} else {
-				this.log("Error reading target temperature: %s", err);
+				this.log.error("Error reading target temperature: %s", err);
 				callback(err);
 			}
 		}.bind(this));
@@ -407,15 +438,17 @@ Daikin.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.log("Successfully established connection.");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
-				// this.log("Your Daikin WIFI controllers model: " + json.model);
-
-				if (json.model != "NOTSUPPORT") {
-					this.model = json.model;
-          this.log("Your Daikin WIFI controllers model: " + json.model);
-				}
+        if (body.indexOf("ret=OK")==-1){
+            this.log.error("Not connected to a supported Daikin wifi controller!")
+          } else {
+            var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+            if (json.model != "NOTSUPPORT") {
+    					this.model = json.model;
+              this.log.info("Your Daikin WIFI controllers model: " + json.model);
+    				}
+          }
 			} else {
-				this.log("Error getting model info: %s", err);
+				this.log.error("Error getting model info: %s", err);
 			}
 		}.bind(this));
 
@@ -426,17 +459,21 @@ Daikin.prototype = {
                 },
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				// this.log("response success for /basic_info");
-				var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+        this.log.debug("Body: %s", body);
+        if (body.indexOf("ret=OK")==-1){
+          this.log.error("Not connected to a supported Daikin wifi controller!")
+        } else {
+          var json = JSON.parse(convertDaikinToJSON(body)); //{"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+          this.firmwareRevision = replaceAll(json.ver, "_", ".");
+  				this.log("The firmware version is " + this.firmwareRevision);
+        }
 
-				if (this.name == "Default Daikin") {
-					// Need to convert a series of Hexadecimal values to ASCII characters here
-				}
-				this.firmwareRevision = replaceAll(json.ver, "_", ".");
-				this.log("The firmware version is " + this.firmwareRevision);
+				// if (this.name == "Default Daikin") {
+					 // Need to convert a series of Hexadecimal values to ASCII characters here
+				// }
 
 			} else {
-				this.log("Error getting firmware info: %s", err);
+				this.log.error("Error getting firmware info: %s", err);
 			}
 		}.bind(this));
 	},
