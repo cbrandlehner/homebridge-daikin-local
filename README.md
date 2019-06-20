@@ -36,7 +36,7 @@ Configuration sample:
                 "accessory": "Daikin-Local",
                 "name": "Living room",
                 "apiroute": "http://192.168.1.50",
-                "system": "default"
+                "system": "Default"
             }
         ],
 
@@ -54,6 +54,7 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 # Supported devices
 
 Currently this plugin supports Daikin wifi controllers supporting the "aircon" URLs.
+
 To test, use your browser to connect to your device using this URL:
  ```
 http://192.168.1.88/aircon/get_model_info
