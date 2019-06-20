@@ -8,7 +8,7 @@ Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/home
 
 # Installation
 
-This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https://amzn.to/2UM0Gtr) in your local network and allows you to set operation modes and target temperatures. As it is a plugin for [HomeBridge](https://github.com/nfarina/homebridge) you will have access to this features using Apple Home.
+This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https://amzn.to/2MZDQjg) in your local network and allows you to set operation modes and target temperatures. As it is a plugin for [HomeBridge](https://github.com/nfarina/homebridge) you will have access to this features using Apple Home.
 
 The install may require you to run as an administrator (using a different login or sudo).
 It is recommended to configure your DHCP server to reserve an IP for the wifi controller.
@@ -69,9 +69,9 @@ If it does not, your device is not yet supported.
 
 Tested devices:
 
-0AB9, Firmware 1.2.51
+BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
-0ABB, Firmware 3.3.6
+BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
 
 If you have other devices working, please let me know so I can update the list of tested devices.

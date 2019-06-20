@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.25.5",
+  "version": "2019.25.7",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -23,8 +23,38 @@
   },
   "homepage": "https://github.com/cbrandlehner/homebridge-daikin-local#readme",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "xo"
+  },
+  "devDependencies": {
+    "xo": "^0.24.0"
+  },
+  "xo": {
+    "space": 2,
+    "rules": {
+      "camelcase": "warn",
+      "no-mixed-spaces-and-tabs": "warn",
+      "no-useless-escape": "warn",
+      "indent": "warn",
+      "quotes": "warn",
+      "capitalized-comments": "warn",
+      "no-var": "warn",
+      "prefer-destructuring": "warn",
+      "prefer-arrow-callback": "warn",
+      "object-shorthand": "warn",
+      "quote-props": "warn",
+      "no-unused-vars": "warn",
+      "curly": [
+        "error",
+        "multi-or-nest",
+        "consistent"
+      ],
+      "no-use-before-define": [
+        "error",
+        {
+          "classes": false
+        }
+      ]
+    }
   }
 }
