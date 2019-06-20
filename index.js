@@ -451,7 +451,8 @@ Daikin.prototype = {
 		sTemp = "&stemp=" + this.targetTemperature;
 
 		// Finally, we send the command
-		// this.log("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp);
+		this.log.debug("setDaikinMode: setting pow to " + pow + ", mode to " + mode + " and stemp to " + sTemp);
+    this.log.debug("setDaikinMode: URL is: " + this.set_control_info + pow + mode + sTemp + "&shum=0");
     request.get({
 			url: this.set_control_info + pow + mode + sTemp + "&shum=0",
       headers: {
@@ -462,7 +463,7 @@ Daikin.prototype = {
 				// this.log("response success");
 				result = null; // success
 			} else {
-				this.log("Error getting state: %s", err);
+				this.log.error("setDaikinMode: Error setting state: %s", err);
 				result = err;
 			}
 		}.bind(this));
