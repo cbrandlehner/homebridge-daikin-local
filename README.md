@@ -73,8 +73,12 @@ BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
 BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
+Devices awaiting confirmation:
 
-If you have other devices working, please let me know so I can update the list of tested devices.
+FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
+
+
+If you have other devices or firmware versions working, please let me know so I can update the list of tested devices.
 
 # Credit
 
