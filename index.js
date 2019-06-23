@@ -417,10 +417,10 @@ Daikin.prototype = {
       if (this.model === 'FDXM35F3V1B') {
         mode = '';
         this.log.debug('Special handling for FDXM35F3V1B applied.');
-        this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s', this.targetTemperature);
+        this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
       } else {
         mode = '&mode=0';
-        this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s', this.targetTemperature);
+        this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
       }
 
       break;
@@ -428,25 +428,31 @@ Daikin.prototype = {
 			case Characteristic.TargetHeatingCoolingState.HEAT: // "4"
 			pow = '?pow=1';
 			mode = '&mode=4';
-      this.log('Setting POWER to ON, MODE to HEAT and TARGET TEMPERATURE to %s', this.targetTemperature);
+      this.log('Setting POWER to ON, MODE to HEAT and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
 			break;
 
 			case Characteristic.TargetHeatingCoolingState.AUTO: // "0, 1, 5 or 7"
 			pow = '?pow=1';
-			mode = '&mode=0';
-      this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s', this.targetTemperature);
+			if (this.model === 'FDXM35F3V1B') {
+        mode = '&mode=1';
+        this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+      } else {
+        mode = '&mode=0';
+        this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+      }
+
 			break;
 
 			case Characteristic.TargetHeatingCoolingState.COOL: // "3"
 			pow = '?pow=1';
 			mode = '&mode=3';
-      this.log('Setting POWER to ON, MODE to COOL and TARGET TEMPERATURE to %s', this.targetTemperature);
+      this.log('Setting POWER to ON, MODE to COOL and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
 			break;
 
 			default:
 			pow = '?pow=0';
 			mode = '&mode=0';
-			this.log('Not handled case:', this.targetHeatingCoolingState);
+			this.log.warn('Not handled case: %s (%s)', this.targetHeatingCoolingState, this.model);
 			break;
 		}
 
@@ -472,7 +478,7 @@ Daikin.prototype = {
 				// this.log("response success");
 				result = null; // success
 			} else {
-				this.log.error('DaikinMode: Error setting state: %s', err);
+				this.log.error('setDaikinMode: Error setting state: %s', err);
         this.log.debug('Response is %s', body);
 				result = err;
 			}
