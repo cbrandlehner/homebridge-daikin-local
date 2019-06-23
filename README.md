@@ -1,6 +1,7 @@
 [![node](https://img.shields.io/node/v/gh-badges.svg)](https://img.shields.io/npm/dm/homebridge-daikin-local.svg?style=flat)
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
+[![Build Status](https://travis-ci.com/cbrandlehner/homebridge-daikin-local.svg?branch=master)](https://travis-ci.com/cbrandlehner/homebridge-daikin-local)
 # homebridge-daikin-local
 
 Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
@@ -69,13 +70,15 @@ If it does not, your device is not yet supported.
 
 Tested devices:
 
-BRP069B41, Model: 0AB9, Firmware: 1.2.51
+Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
-BRP069A41, Model: 0ABB, Firmware: 3.3.6
+Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
-Devices awaiting confirmation:
+Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
-FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
+Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
+
+
 
 
 If you have other devices or firmware versions working, please let me know so I can update the list of tested devices.
