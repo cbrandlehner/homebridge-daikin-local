@@ -1,7 +1,7 @@
 var Service;
 var Characteristic;
-var URL = require('url').URL;
-var request = require('request');
+const URL = require('url').URL;
+const request = require('request');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
@@ -112,8 +112,8 @@ function replaceAll(str, find, replace) {
 function convertDaikinToJSON(input) {
   // Daikin systems respond with HTTP response strings, not JSON objects. JSON is much easier to
   // parse, so we convert it with some RegExp here.
-  var stageOne;
-  var stageTwo;
+  let stageOne = '';
+  let stageTwo = '';
   stageOne = replaceAll(input, '\=', '\":\"');
   stageTwo = replaceAll(stageOne, ',', '\",\"');
   return '{\"' + stageTwo + '\"}';
@@ -155,7 +155,7 @@ Daikin.prototype = {
         if (body.indexOf('ret=OK') === -1) {
             this.log.error('getCurrentHeatngCoolingState: Not connected to a supported Daikin wifi controller!');
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
             this.log.debug('getCurrentHeatingCoolingState: Operation mode is %s power is %s', json.mode, json.pow);
             if (json.pow === '0') {
               // The Daikin is off
@@ -207,7 +207,7 @@ Daikin.prototype = {
 	},
 	getTargetHeatingCoolingState: function (callback) {
 		this.log.info('getTargetHeatingCoolingState:', this.targetHeatingCoolingState);
-		var error = null;
+		const error = null;
 		callback(error, this.targetHeatingCoolingState);
 	},
 	setTargetHeatingCoolingState: function (value, callback) {
@@ -229,7 +229,7 @@ Daikin.prototype = {
             this.log.error('getCurrentTemperature: Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
             this.log.debug('getCurrentTemperature: Daikin operation mode is %s, currently %s degrees', this.currentHeatingCoolingState, json.htemp);
             this.temperature = parseFloat(json.htemp);
           }
@@ -254,7 +254,7 @@ Daikin.prototype = {
             this.log.error('Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
             if (json.stemp === 'M') {
               // In mode DRY there is no target temperature , instead the value is "M" as "Max".
               this.log.debug('getTargetTemperature: Target temperature is set to MAX');
@@ -281,13 +281,13 @@ Daikin.prototype = {
 	},
 	getTemperatureDisplayUnits: function (callback) {
 		this.log('Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
-		var error = null;
+		const error = null;
 		callback(error, this.temperatureDisplayUnits);
 	},
 	setTemperatureDisplayUnits: function (value, callback) {
 		this.log('Changing temperature unit from %s to %s', this.temperatureDisplayUnits, value);
 		this.temperatureDisplayUnits = value;
-		var error = null;
+		const error = null;
 		callback(error);
 	},
 
@@ -335,7 +335,7 @@ Daikin.prototype = {
 
 	getName: function (callback) {
 		this.log('getName :', this.name);
-		var error = null;
+		const error = null;
 		callback(error, this.name);
 	},
 
@@ -405,10 +405,10 @@ Daikin.prototype = {
 
 	setDaikinMode: function () {
 		// The Daikin doesn't always respond when you only send one parameter, so this is a catchall to send everything at once
-		var pow; // 0 or 1
-		var mode; // 0, 1, 2, 3, 4, 6 or 7
-		var sTemp; // Int for degrees in Celcius
-		var result;
+		let pow = ''; // 0 or 1
+		let mode = ''; // 0, 1, 2, 3, 4, 6 or 7
+		let sTemp = ''; // Int for degrees in Celcius
+		let result = '';
 
 		// This s up the Power and Mode parameters
 		switch (this.targetHeatingCoolingState) {
@@ -503,7 +503,7 @@ Daikin.prototype = {
             this.log.error('Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
             if (json.model !== 'NOTSUPPORT') {
               this.model = json.model;
               this.log.info('Your Daikin WIFI controllers model: ' + json.model);
@@ -526,7 +526,7 @@ Daikin.prototype = {
           this.log.error('Not connected to a supported Daikin wifi controller!');
           this.log.debug('Response is %s', body);
         } else {
-          var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+          const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
           this.firmwareRevision = replaceAll(json.ver, '_', '.');
           this.log('The firmware version is ' + this.firmwareRevision);
         }
