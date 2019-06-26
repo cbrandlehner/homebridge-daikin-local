@@ -573,6 +573,10 @@ Daikin.prototype = {
           mode = '';
           this.log.debug('Special handling for FDXM35F3V1B applied.');
           this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+        } else if (this.model === 'FDXM25F3V1B') {
+          mode = '';
+          this.log.debug('Special handling for FDXM25F3V1B applied.');
+          this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
         } else {
           mode = '&mode=0';
           this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
@@ -591,6 +595,9 @@ Daikin.prototype = {
 				if (this.model === 'FDXM35F3V1B') {
 					mode = '&mode=1';
 					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+				} else if (this.model === 'FDXM25F3V1B') {
+					mode = '&mode=1';
+					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (FDXM25F3V1B special condition)', this.targetTemperature);
 				} else {
 					mode = '&mode=0';
 					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
