@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.25.9",
+  "version": "2019.26.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -45,6 +45,7 @@
       "object-shorthand": ["off", "always", { "ignoreConstructors": true }],
       "quote-props": "error",
       "no-unused-vars": "warn",
+      "complexity": "off",
       "curly": [
         "error",
         "multi-or-nest",

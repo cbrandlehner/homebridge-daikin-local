@@ -86,10 +86,6 @@ function Daikin(log, config) {
 
   // ??
   this.getCurrentHeatingCoolingState(function () {});
-  
-  
-  
-
 
   this.fanStatus = true;
   this.rawFanSpeed = 0;
@@ -123,8 +119,8 @@ function replaceAll(str, find, replace) {
 function convertDaikinToJSON(input) {
   // Daikin systems respond with HTTP response strings, not JSON objects. JSON is much easier to
   // parse, so we convert it with some RegExp here.
-  var stageOne;
-  var stageTwo;
+  let stageOne = '';
+  let stageTwo = '';
   stageOne = replaceAll(input, '\=', '\":\"');
   stageTwo = replaceAll(stageOne, ',', '\",\"');
   return '{\"' + stageTwo + '\"}';
@@ -151,91 +147,91 @@ Daikin.prototype = {
 		this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
 		callback(null);
 	},
-	daikinSpeedToRaw: function(daikinSpeed){
-		var raw = 0;
+	daikinSpeedToRaw: function (daikinSpeed) {
+		let raw = 0;
 		this.log('daikinSpeed:' + daikinSpeed);
 
-		switch (daikinSpeed){
-			case "A":
+		switch (daikinSpeed) {
+			case 'A':
 				raw = 0;
 			break;
-			case "B":
+			case 'B':
 				raw = 0;
 			break;
-			case "3":
+			case '3':
 				raw = 20;
 			break;
-			case "4":
-				raw = 40;			
+			case '4':
+				raw = 40;
 			break;
-			case "5":
-				raw = 60;			
+			case '5':
+				raw = 60;
 			break;
-			case "6":
-				raw = 80;			
-			break;										
-			case "7":
+			case '6':
+				raw = 80;
+			break;
+			case '7':
 				raw = 100;
 			break;
+      default:
+        raw = 100;
+      break;
 		}
+
 		return raw;
 	},
 	getFanStatus: function (callback) {
 		this.log.info('get fan status');
 		callback(null, this.fanStatus); // success
-
-	},
-	setFanStatus: function (value,callback) {
+    },
+	setFanStatus: function (value, callback) {
 		this.log.info('set fan status');
 		this.log.info(value);
 		this.fanStatus = value;
 		this.log.debug('set fanstatus %b', this.fanStatus);
 		var cBack = this.setDaikinMode();
 		callback(null);
-	},		
+	},
 	getFanSpeed: function (callback) {
 		this.log.info('get fan speed');
 		callback(null, this.rawFanSpeed); // success
-	},	
-	setFanSpeed: function (value,callback) {
+	},
+	setFanSpeed: function (value, callback) {
 		this.log.info('set fan speed');
 		this.log.info(value);
 		this.rawFanSpeed = value;
 		this.log.debug('set fan speed %b', this.rawFanSpeed);
 		var cBack = this.setDaikinMode();
 		callback(null);
-	},	
-	getCoolingThresholdTemperature: function(callback) {
-		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
-		var error = null;
+	},
+	getCoolingThresholdTemperature: function (callback) {
+		this.log.debug('getCoolingThresholdTemperature: %s', this.coolingThresholdTemperature);
+		const error = null;
 		callback(error, this.coolingThresholdTemperature);
 	},
-	getHeatingThresholdTemperature: function(callback) {
-		this.log("getHeatingThresholdTemperature :" , this.heatingThresholdTemperature);
-		var error = null;
+	getHeatingThresholdTemperature: function (callback) {
+		this.log('getHeatingThresholdTemperature: %s', this.heatingThresholdTemperature);
+		const error = null;
 		callback(error, this.heatingThresholdTemperature);
 	},
-	setCoolingThresholdTemperature: function(value,callback) {
+	setCoolingThresholdTemperature: function (value, callback) {
 		this.coolingThresholdTemperature = Math.round(value * 2) / 2;
-		var middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
+		let middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
 		middleValue = Math.round(middleValue);
-	    this.targetTemperature = middleValue;
-		this.log.info('set Threshold Temp: ', this.targetTemperature);
-	    
+    this.targetTemperature = middleValue;
+		this.log.info('set Threshold Temp: %s', this.targetTemperature);
 		var cBack = this.setDaikinMode();
 		callback(null);
 	},
-	setHeatingThresholdTemperature: function(value,callback) {
+	setHeatingThresholdTemperature: function (value, callback) {
 		this.heatingThresholdTemperature = Math.round(value * 2) / 2;
-		var middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
+		let middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
 		middleValue = Math.round(middleValue);
-	    this.targetTemperature = middleValue;
-		this.log.info('set Threshold Temp: ', this.targetTemperature);
-
+    this.targetTemperature = middleValue;
+		this.log.info('set Threshold Temp: %s', this.targetTemperature);
 		var cBack = this.setDaikinMode();
 		callback(null);
-	},	
-
+	},
   // Required
 	getCurrentHeatingCoolingState: function (callback) {
 		this.log.debug('getCurrentHeatingCoolingState: reading from: ', this.get_control_info);
@@ -243,16 +239,16 @@ Daikin.prototype = {
 			{
 				url: this.get_control_info,
 				headers: {
-            	     'User-Agent': 'request', Host: this.apiIP
-            	}
-			}, 
+          'User-Agent': 'request', Host: this.apiIP
+        }
+			},
 			function (err, response, body) {
 			if (!err && response.statusCode === 200) {
 				this.log.debug('Body %s', body);
 				if (body.indexOf('ret=OK') === -1) {
 					this.log.error('getCurrentHeatngCoolingState: Not connected to a supported Daikin wifi controller!');
 				} else {
-					var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+					const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
 					this.log.debug('getCurrentHeatingCoolingState: Operation mode is %s power is %s', json.mode, json.pow);
 					if (json.pow === '0') {
 						// The Daikin is off
@@ -262,49 +258,52 @@ Daikin.prototype = {
 					} else if (json.pow === '1') {
 						// The Daikin is on
 						switch (json.mode) {
-						  // Commented cases exist for the Daikin, but not for HomeKit.
-						  // Keeping for reference while I try come up with a way to include them
-						  case '2':
-						  this.log('Operation mode is: DRY');
-						  this.state = Characteristic.TargetHeatingCoolingState.DRY;
-						  break;
-						
-						  case '3':
-						  this.log('Operation mode is: COOL');
-						  this.state = Characteristic.CurrentHeatingCoolingState.COOL;
-						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
-						  break;
-						
-						  case '4':
-						  this.log('Operation mode is: HEAT');
-						  this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
-						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-						  break;
-						
-						  case '6':
-						  this.log('Operation mode is: FAN');
-						  this.state = Characteristic.TargetHeatingCoolingState.FAN;
-						  break;
-						
-						  default:
-						  this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
-						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-						  this.log('Auto (if 0, 1 or 5), or not handled case:', json.mode);
-						  break;
-						}
-						switch (json.f_rate) {
-							case 'A':
-								this.log('Fan speed is: auto');
-								this.fanStatus = false;
-							break;
-							default:
-								this.fanStatus = true;
-							break;
-						}
-						this.rawFanSpeed = this.daikinSpeedToRaw(json.f_rate);
+              // Commented cases exist for the Daikin, but not for HomeKit.
+              // Keeping for reference while I try come up with a way to include them
+              case '2':
+              this.log('Operation mode is: DRY');
+              this.state = Characteristic.TargetHeatingCoolingState.DRY;
+              break;
 
+              case '3':
+              this.log('Operation mode is: COOL');
+              this.state = Characteristic.CurrentHeatingCoolingState.COOL;
+              this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
+              break;
+
+              case '4':
+              this.log('Operation mode is: HEAT');
+              this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
+              this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
+              break;
+
+              case '6':
+              this.log('Operation mode is: FAN');
+              this.state = Characteristic.TargetHeatingCoolingState.FAN;
+              break;
+
+              default:
+              this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
+              this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+              this.log('Auto (if 0, 1 or 5), or not handled case:', json.mode);
+              break;
+						}
+
+						switch (json.f_rate) {
+              case 'A':
+              this.log('Fan speed is: auto');
+              this.fanStatus = false;
+							break;
+
+							default:
+							this.fanStatus = true;
+							break;
+						}
+
+						this.rawFanSpeed = this.daikinSpeedToRaw(json.f_rate);
 					}
 				}
+
 				callback(null, this.state); // success
 			} else {
 				this.log.error('getCurrentHeatingCoolingState: Error getting operation mode: %s', err);
@@ -314,7 +313,7 @@ Daikin.prototype = {
 	},
 	getTargetHeatingCoolingState: function (callback) {
 		this.log.info('getTargetHeatingCoolingState:', this.targetHeatingCoolingState);
-		var error = null;
+		const error = null;
 		callback(error, this.targetHeatingCoolingState);
 	},
 	setTargetHeatingCoolingState: function (value, callback) {
@@ -336,7 +335,7 @@ Daikin.prototype = {
             this.log.error('getCurrentTemperature: Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"ret":"OK","htemp":"24.0","hhum""-","otemp":"-","err":"0","cmpfreq":"0"}
             this.log.debug('getCurrentTemperature: Daikin operation mode is %s, currently %s degrees', this.currentHeatingCoolingState, json.htemp);
             this.temperature = parseFloat(json.htemp);
           }
@@ -361,7 +360,7 @@ Daikin.prototype = {
             this.log.error('Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"state":"OFF","stateCode":5,"temperature":"18.10","humidity":"34.10"}
             if (json.stemp === 'M') {
               // In mode DRY there is no target temperature , instead the value is "M" as "Max".
               this.log.debug('getTargetTemperature: Target temperature is set to MAX');
@@ -370,9 +369,8 @@ Daikin.prototype = {
               this.coolingThresholdTemperature = this.targetTemperature + 5;
               this.heatingThresholdTemperature = this.targetTemperature - 5;
               this.log.debug('getTargetTemperature: Target temperature is %s degrees', this.targetTemperature);
-			  this.log.info('getTargetCoolingThreshold: Target temperature is %s degrees', this.coolingThresholdTemperature);
-			  this.log.info('getTargetHeatingThreshold: Target temperature is %s degrees', this.heatingThresholdTemperature);
-
+              this.log.info('getTargetCoolingThreshold: Target temperature is %s degrees', this.coolingThresholdTemperature);
+              this.log.info('getTargetHeatingThreshold: Target temperature is %s degrees', this.heatingThresholdTemperature);
             }
         }
 
@@ -393,13 +391,13 @@ Daikin.prototype = {
 	},
 	getTemperatureDisplayUnits: function (callback) {
 		this.log('Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
-		var error = null;
+		const error = null;
 		callback(error, this.temperatureDisplayUnits);
 	},
 	setTemperatureDisplayUnits: function (value, callback) {
 		this.log('Changing temperature unit from %s to %s', this.temperatureDisplayUnits, value);
 		this.temperatureDisplayUnits = value;
-		var error = null;
+		const error = null;
 		callback(error);
 	},
 
@@ -447,11 +445,11 @@ Daikin.prototype = {
 
 	getName: function (callback) {
 		this.log('getName :', this.name);
-		var error = null;
+		const error = null;
 		callback(error, this.name);
 	},
 	getFanName: function (callback) {
-		var error = null;
+		const error = null;
 		callback(error, "Daikin FAN");
 	},
 	getServices: function () {
@@ -512,7 +510,7 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.on('get', this.getHeatingThresholdTemperature.bind(this))
 			.on('set', this.setHeatingThresholdTemperature.bind(this));
-		
+
 		this.ThermostatService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
@@ -525,43 +523,45 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.On)
 			.on('get', this.getFanStatus.bind(this))
 			.on('set', this.setFanStatus.bind(this));
-			
+
 		this.FanService
 			.getCharacteristic(Characteristic.RotationSpeed)
 			.on('get', this.getFanSpeed.bind(this))
 			.on('set', this.setFanSpeed.bind(this));
-						
+
 		return [informationService, this.ThermostatService, this.FanService];
 	},
 
 	setDaikinMode: function () {
 		// The Daikin doesn't always respond when you only send one parameter, so this is a catchall to send everything at once
-		var pow; // 0 or 1
-		var mode; // 0, 1, 2, 3, 4, 6 or 7
-		var sTemp; // Int for degrees in Celcius
-		var result;
-		var f_rate; //"A","B",3,4,5,6,7
+		let pow = ''; // 0 or 1
+		let mode = ''; // 0, 1, 2, 3, 4, 6 or 7
+		let sTemp = ''; // Int for degrees in Celcius
+		// var result;
+		let f_rate = ''; // "A","B",3,4,5,6,7
 
 		// This s up the Power FAN
-		if (!this.fanStatus){  //if set to off, we activate the AUTO mode for fan
-			f_rate = "A";
-		}else{
-			if (this.rawFanSpeed > 0 && this.rawFanSpeed <=5){  //from 1% to 5%, we set the SILENT mode
-				f_rate="B";
-			}else if (this.rawFanSpeed > 5 && this.rawFanSpeed <20){
-				f_rate="3";
-			}else if (this.rawFanSpeed >= 20 && this.rawFanSpeed <40){
-				f_rate="4";				
-			}else if (this.rawFanSpeed >= 40 && this.rawFanSpeed <60){
-				f_rate="5";				
-			}else if (this.rawFanSpeed >= 60 && this.rawFanSpeed <80){
-				f_rate="6";				
-			}else if (this.rawFanSpeed >= 8 && this.rawFanSpeed <= 100){
-				f_rate="7";
+		if (this.fanStatus) {
+			if (this.rawFanSpeed > 0 && this.rawFanSpeed <= 5) {// from 1% to 5%, we set the SILENT mode
+				f_rate = 'B';
+			} else if (this.rawFanSpeed > 5 && this.rawFanSpeed < 20) {
+				f_rate = '3';
+			} else if (this.rawFanSpeed >= 20 && this.rawFanSpeed < 40) {
+				f_rate = '4';
+			} else if (this.rawFanSpeed >= 40 && this.rawFanSpeed < 60) {
+				f_rate = '5';
+			} else if (this.rawFanSpeed >= 60 && this.rawFanSpeed < 80) {
+				f_rate = '6';
+			} else if (this.rawFanSpeed >= 8 && this.rawFanSpeed <= 100) {
+				f_rate = '7';
 			}
+		} else {
+      // if set to off, we activate the AUTO mode for fan
+			f_rate = 'A';
 		}
-		if(typeof f_rate == "undefined"){
-			f_rate = "A";
+
+		if (typeof f_rate === 'undefined') {
+			f_rate = 'A';
 			this.fanStatus = false;
 		}
 
@@ -569,16 +569,16 @@ Daikin.prototype = {
 		switch (this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
 				pow = '?pow=0';
-      			if (this.model === 'FDXM35F3V1B') {
-      			  mode = '';
-      			  this.log.debug('Special handling for FDXM35F3V1B applied.');
-      			  this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
-      			} else {
-      			  mode = '&mode=0';
-      			  this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
-      			}
+        if (this.model === 'FDXM35F3V1B') {
+          mode = '';
+          this.log.debug('Special handling for FDXM35F3V1B applied.');
+          this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+        } else {
+          mode = '&mode=0';
+          this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+        }
 
-	  		break;
+        break;
 
 			case Characteristic.TargetHeatingCoolingState.HEAT: // "4"
 				pow = '?pow=1';
@@ -594,7 +594,7 @@ Daikin.prototype = {
 				} else {
 					mode = '&mode=0';
 					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
-      			}
+        }
 
 			break;
 
@@ -622,25 +622,26 @@ Daikin.prototype = {
 
 		// Finally, we send the command
 		this.log.debug('DaikinMode: Setting pow to ' + pow + ', mode to ' + mode + ' and stemp to ' + sTemp);
-    this.log.debug('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate);
-	this.log('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate);
+    this.log.debug('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0&f_rate=' + f_rate);
+    this.log('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0&f_rate=' + f_rate);
 
     request.get({
-			url: this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate,
+			url: this.set_control_info + pow + mode + sTemp + '&shum=0&f_rate=' + f_rate,
       headers: {
                  'User-Agent': 'request', Host: this.apiIP
                 }
 		}, function (err, response, body) {
 			if (!err && response.statusCode === 200) {
 				// this.log("response success");
-				result = null; // success
+				// const result = null; // success // result never used in function
 			} else {
 				this.log.error('setDaikinMode: Error setting state: %s', err);
         this.log.debug('Response is %s', body);
-				result = err;
+				// result = err; // result never used in function
 			}
 		}.bind(this));
-		return result;
+		// return result; // FIXME: both results some lines above do never reach this line of code
+    return (null);
 	},
 
 	getModelInfo: function () {
@@ -660,7 +661,7 @@ Daikin.prototype = {
             this.log.error('Not connected to a supported Daikin wifi controller!');
             this.log.debug('Response is %s', body);
           } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+            const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
             if (json.model !== 'NOTSUPPORT') {
               this.model = json.model;
               this.log.info('Your Daikin WIFI controllers model: ' + json.model);
@@ -683,7 +684,7 @@ Daikin.prototype = {
           this.log.error('Not connected to a supported Daikin wifi controller!');
           this.log.debug('Response is %s', body);
         } else {
-          var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+          const json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
           this.firmwareRevision = replaceAll(json.ver, '_', '.');
           this.log('The firmware version is ' + this.firmwareRevision);
         }
