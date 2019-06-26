@@ -86,6 +86,17 @@ function Daikin(log, config) {
 
   // ??
   this.getCurrentHeatingCoolingState(function () {});
+  
+  
+  
+
+
+  this.fanStatus = true;
+  this.rawFanSpeed = 0;
+  
+  this.getFanStatus(function () {});
+//   this.getFanSpeed(function () {});
+
   this.log.info('**************************************************************');
   this.log.info('  homebridge-daikin-local version ' + packageFile.version);
   this.log.info('  GitHub: https://github.com/cbrandlehner/homebridge-daikin-local ');
@@ -97,6 +108,7 @@ function Daikin(log, config) {
   this.log.debug('Debug mode enabled');
 
   this.ThermostatService = new Service.Thermostat(this.name);
+  this.FanService = new Service.Fan(this.nameFan);
 }
 
 function escapeRegExp(str) {
@@ -135,70 +147,135 @@ Daikin.prototype = {
 				callback(error, response, body);
 			});
 	},
-
 	// Start
 	identify: function (callback) {
 		this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
 		callback(null);
 	},
+	daikinSpeedToRaw: function(daikinSpeed){
+		var raw = 0;
+		this.log('daikinSpeed:' + daikinSpeed);
+
+		switch (daikinSpeed){
+			case "A":
+				raw = 0;
+			break;
+			case "B":
+				raw = 0;
+			break;
+			case "3":
+				raw = 20;
+			break;
+			case "4":
+				raw = 40;			
+			break;
+			case "5":
+				raw = 60;			
+			break;
+			case "6":
+				raw = 80;			
+			break;										
+			case "7":
+				raw = 100;
+			break;
+		}
+		return raw;
+	},
+	getFanStatus: function (callback) {
+		this.log.info('get fan status');
+		callback(null, this.fanStatus); // success
+
+	},
+	setFanStatus: function (value,callback) {
+		this.log.info('set fan status');
+		this.log.info(value);
+		this.fanStatus = value;
+		this.log.debug('set fanstatus %b', this.fanStatus);
+		var cBack = this.setDaikinMode();
+		callback(null);
+	},		
+	getFanSpeed: function (callback) {
+		this.log.info('get fan speed');
+		callback(null, this.rawFanSpeed); // success
+	},	
+	setFanSpeed: function (value,callback) {
+		this.log.info('set fan speed');
+		this.log.info(value);
+		this.rawFanSpeed = value;
+		this.log.debug('set fan speed %b', this.rawFanSpeed);
+		var cBack = this.setDaikinMode();
+		callback(null);
+	},	
 	// Required
 	getCurrentHeatingCoolingState: function (callback) {
 		this.log.debug('getCurrentHeatingCoolingState: reading from: ', this.get_control_info);
-		request.get({
-			url: this.get_control_info,
-      headers: {
-                 'User-Agent': 'request', Host: this.apiIP
-                }
-		}, function (err, response, body) {
+		request.get(
+			{
+				url: this.get_control_info,
+				headers: {
+            	     'User-Agent': 'request', Host: this.apiIP
+            	}
+			}, 
+			function (err, response, body) {
 			if (!err && response.statusCode === 200) {
-        this.log.debug('Body %s', body);
-        if (body.indexOf('ret=OK') === -1) {
-            this.log.error('getCurrentHeatngCoolingState: Not connected to a supported Daikin wifi controller!');
-          } else {
-            var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
-            this.log.debug('getCurrentHeatingCoolingState: Operation mode is %s power is %s', json.mode, json.pow);
-            if (json.pow === '0') {
-              // The Daikin is off
-              this.log.info('getCurrentHeatingCoolingState: Daikin is OFF');
-              this.state = Characteristic.CurrentHeatingCoolingState.OFF;
-              this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
-            } else if (json.pow === '1') {
-              // The Daikin is on
-              switch (json.mode) {
-                // Commented cases exist for the Daikin, but not for HomeKit.
-                // Keeping for reference while I try come up with a way to include them
-                case '2':
-                this.log('Operation mode is: DRY');
-                this.state = Characteristic.TargetHeatingCoolingState.DRY;
-                break;
+				this.log.debug('Body %s', body);
+				if (body.indexOf('ret=OK') === -1) {
+					this.log.error('getCurrentHeatngCoolingState: Not connected to a supported Daikin wifi controller!');
+				} else {
+					var json = JSON.parse(convertDaikinToJSON(body)); // {"pow":"1","mode":3,"stemp":"21","shum":"34.10"}
+					this.log.debug('getCurrentHeatingCoolingState: Operation mode is %s power is %s', json.mode, json.pow);
+					if (json.pow === '0') {
+						// The Daikin is off
+						this.log.info('getCurrentHeatingCoolingState: Daikin is OFF');
+						this.state = Characteristic.CurrentHeatingCoolingState.OFF;
+						this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
+					} else if (json.pow === '1') {
+						// The Daikin is on
+						switch (json.mode) {
+						  // Commented cases exist for the Daikin, but not for HomeKit.
+						  // Keeping for reference while I try come up with a way to include them
+						  case '2':
+						  this.log('Operation mode is: DRY');
+						  this.state = Characteristic.TargetHeatingCoolingState.DRY;
+						  break;
+						
+						  case '3':
+						  this.log('Operation mode is: COOL');
+						  this.state = Characteristic.CurrentHeatingCoolingState.COOL;
+						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
+						  break;
+						
+						  case '4':
+						  this.log('Operation mode is: HEAT');
+						  this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
+						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
+						  break;
+						
+						  case '6':
+						  this.log('Operation mode is: FAN');
+						  this.state = Characteristic.TargetHeatingCoolingState.FAN;
+						  break;
+						
+						  default:
+						  this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
+						  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+						  this.log('Auto (if 0, 1 or 5), or not handled case:', json.mode);
+						  break;
+						}
+						switch (json.f_rate) {
+							case 'A':
+								this.log('Fan speed is: auto');
+								this.fanStatus = false;
+							break;
+							default:
+								this.fanStatus = true;
+							break;
+						}
+						this.rawFanSpeed = this.daikinSpeedToRaw(json.f_rate);
 
-                case '3':
-                this.log('Operation mode is: COOL');
-                this.state = Characteristic.CurrentHeatingCoolingState.COOL;
-                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
-                break;
-
-                case '4':
-                this.log('Operation mode is: HEAT');
-                this.state = Characteristic.CurrentHeatingCoolingState.HEAT;
-                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-                break;
-
-                case '6':
-                this.log('Operation mode is: FAN');
-                this.state = Characteristic.TargetHeatingCoolingState.FAN;
-                break;
-
-                default:
-                this.state = Characteristic.CurrentHeatingCoolingState.AUTO;
-                this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-                this.log('Auto (if 0, 1 or 5), or not handled case:', json.mode);
-                break;
-              }
-            }
-          }
-
-								callback(null, this.state); // success
+					}
+				}
+				callback(null, this.state); // success
 			} else {
 				this.log.error('getCurrentHeatingCoolingState: Error getting operation mode: %s', err);
 				callback(err);
@@ -338,7 +415,10 @@ Daikin.prototype = {
 		var error = null;
 		callback(error, this.name);
 	},
-
+	getFanName: function (callback) {
+		var error = null;
+		callback(error, "Daikin FAN");
+	},
 	getServices: function () {
 		// you can OPTIONALLY create an information service if you wish to override
 		// the default values for things like serial number, model, etc.
@@ -400,7 +480,21 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
 
-		return [informationService, this.ThermostatService];
+		this.FanService
+			.getCharacteristic(Characteristic.Name)
+			.on('get', this.getFanName.bind(this));
+
+		this.FanService
+			.getCharacteristic(Characteristic.On)
+			.on('get', this.getFanStatus.bind(this))
+			.on('set', this.setFanStatus.bind(this));
+			
+		this.FanService
+			.getCharacteristic(Characteristic.RotationSpeed)
+			.on('get', this.getFanSpeed.bind(this))
+			.on('set', this.setFanSpeed.bind(this));
+						
+		return [informationService, this.ThermostatService, this.FanService];
 	},
 
 	setDaikinMode: function () {
@@ -409,50 +503,70 @@ Daikin.prototype = {
 		var mode; // 0, 1, 2, 3, 4, 6 or 7
 		var sTemp; // Int for degrees in Celcius
 		var result;
+		var f_rate; //"A","B",3,4,5,6,7
+
+		// This s up the Power FAN
+		if (!this.fanStatus){  //if set to off, we activate the AUTO mode for fan
+			f_rate = "A";
+		}else{
+			if (this.rawFanSpeed > 0 && this.rawFanSpeed <=5){  //from 1% to 5%, we set the SILENT mode
+				f_rate="B";
+			}else if (this.rawFanSpeed > 5 && this.rawFanSpeed <20){
+				f_rate="3";
+			}else if (this.rawFanSpeed >= 20 && this.rawFanSpeed <40){
+				f_rate="4";				
+			}else if (this.rawFanSpeed >= 40 && this.rawFanSpeed <60){
+				f_rate="5";				
+			}else if (this.rawFanSpeed >= 60 && this.rawFanSpeed <80){
+				f_rate="6";				
+			}else if (this.rawFanSpeed >= 8 && this.rawFanSpeed <= 100){
+				f_rate="7";
+			}
+		}
 
 		// This s up the Power and Mode parameters
 		switch (this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
-			pow = '?pow=0';
-      if (this.model === 'FDXM35F3V1B') {
-        mode = '';
-        this.log.debug('Special handling for FDXM35F3V1B applied.');
-        this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
-      } else {
-        mode = '&mode=0';
-        this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
-      }
+				pow = '?pow=0';
+      			if (this.model === 'FDXM35F3V1B') {
+      			  mode = '';
+      			  this.log.debug('Special handling for FDXM35F3V1B applied.');
+      			  this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+      			} else {
+      			  mode = '&mode=0';
+      			  this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+      			}
 
-      break;
+	  		break;
 
 			case Characteristic.TargetHeatingCoolingState.HEAT: // "4"
-			pow = '?pow=1';
-			mode = '&mode=4';
-      this.log('Setting POWER to ON, MODE to HEAT and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+				pow = '?pow=1';
+				mode = '&mode=4';
+				this.log('Setting POWER to ON, MODE to HEAT and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
 			break;
 
 			case Characteristic.TargetHeatingCoolingState.AUTO: // "0, 1, 5 or 7"
-			pow = '?pow=1';
-			if (this.model === 'FDXM35F3V1B') {
-        mode = '&mode=1';
-        this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
-      } else {
-        mode = '&mode=0';
-        this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
-      }
+				pow = '?pow=1';
+				if (this.model === 'FDXM35F3V1B') {
+					mode = '&mode=1';
+					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
+				} else {
+					mode = '&mode=0';
+					this.log('Setting POWER to ON, MODE to AUTO and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+      			}
 
 			break;
 
 			case Characteristic.TargetHeatingCoolingState.COOL: // "3"
-			pow = '?pow=1';
-			mode = '&mode=3';
-      this.log('Setting POWER to ON, MODE to COOL and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
+				pow = '?pow=1';
+				mode = '&mode=3';
+				this.log('Setting POWER to ON, MODE to COOL and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
 			break;
 
 			default:
-			pow = '?pow=0';
-			mode = '&mode=0';
-			this.log.warn('Not handled case: %s (%s)', this.targetHeatingCoolingState, this.model);
+				pow = '?pow=0';
+				mode = '&mode=0';
+				this.log.warn('Not handled case: %s (%s)', this.targetHeatingCoolingState, this.model);
 			break;
 		}
 
@@ -467,9 +581,11 @@ Daikin.prototype = {
 
 		// Finally, we send the command
 		this.log.debug('DaikinMode: Setting pow to ' + pow + ', mode to ' + mode + ' and stemp to ' + sTemp);
-    this.log.debug('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0');
+    this.log.debug('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate);
+	this.log('DaikinMode: URL is: ' + this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate);
+
     request.get({
-			url: this.set_control_info + pow + mode + sTemp + '&shum=0',
+			url: this.set_control_info + pow + mode + sTemp + '&shum=0' + '&f_rate=' + f_rate,
       headers: {
                  'User-Agent': 'request', Host: this.apiIP
                 }
