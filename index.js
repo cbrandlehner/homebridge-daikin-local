@@ -235,7 +235,8 @@ Daikin.prototype = {
 		var cBack = this.setDaikinMode();
 		callback(null);
 	},	
-	// Required
+
+  // Required
 	getCurrentHeatingCoolingState: function (callback) {
 		this.log.debug('getCurrentHeatingCoolingState: reading from: ', this.get_control_info);
 		request.get(
@@ -563,6 +564,7 @@ Daikin.prototype = {
 			f_rate = "A";
 			this.fanStatus = false;
 		}
+
 		// This s up the Power and Mode parameters
 		switch (this.targetHeatingCoolingState) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
