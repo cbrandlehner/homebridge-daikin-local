@@ -75,8 +75,8 @@ function Daikin(log, config) {
   this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
   this.targetTemperature = 21;
   // this.targetRelativeHumidity = 0.5;
-  // this.heatingThresholdTemperature = 25;
-  // this.coolingThresholdTemperature = 18;
+  this.heatingThresholdTemperature = 19;
+  this.coolingThresholdTemperature = 22;
   // The value property of TargetHeatingCoolingState must be one of the following:
   // Characteristic.TargetHeatingCoolingState.OFF = 0;
   // Characteristic.TargetHeatingCoolingState.HEAT = 1;
@@ -93,7 +93,6 @@ function Daikin(log, config) {
 
   this.fanStatus = true;
   this.rawFanSpeed = 0;
-  
   this.getFanStatus(function () {});
 //   this.getFanSpeed(function () {});
 
@@ -206,7 +205,38 @@ Daikin.prototype = {
 		var cBack = this.setDaikinMode();
 		callback(null);
 	},	
-	// Required
+	getCoolingThresholdTemperature: function(callback) {
+		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
+		var error = null;
+		callback(error, this.coolingThresholdTemperature);
+	},
+	getHeatingThresholdTemperature: function(callback) {
+		this.log("getHeatingThresholdTemperature :" , this.heatingThresholdTemperature);
+		var error = null;
+		callback(error, this.heatingThresholdTemperature);
+	},
+	setCoolingThresholdTemperature: function(value,callback) {
+		this.coolingThresholdTemperature = Math.round(value * 2) / 2;
+		var middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
+		middleValue = Math.round(middleValue);
+	    this.targetTemperature = middleValue;
+		this.log.info('set Threshold Temp: ', this.targetTemperature);
+	    
+		var cBack = this.setDaikinMode();
+		callback(null);
+	},
+	setHeatingThresholdTemperature: function(value,callback) {
+		this.heatingThresholdTemperature = Math.round(value * 2) / 2;
+		var middleValue = this.coolingThresholdTemperature + ((this.heatingThresholdTemperature - this.coolingThresholdTemperature) / 2);
+		middleValue = Math.round(middleValue);
+	    this.targetTemperature = middleValue;
+		this.log.info('set Threshold Temp: ', this.targetTemperature);
+
+		var cBack = this.setDaikinMode();
+		callback(null);
+	},	
+
+  // Required
 	getCurrentHeatingCoolingState: function (callback) {
 		this.log.debug('getCurrentHeatingCoolingState: reading from: ', this.get_control_info);
 		request.get(
@@ -337,7 +367,12 @@ Daikin.prototype = {
               this.log.debug('getTargetTemperature: Target temperature is set to MAX');
             } else {
               this.targetTemperature = parseFloat(json.stemp);
+              this.coolingThresholdTemperature = this.targetTemperature + 5;
+              this.heatingThresholdTemperature = this.targetTemperature - 5;
               this.log.debug('getTargetTemperature: Target temperature is %s degrees', this.targetTemperature);
+			  this.log.info('getTargetCoolingThreshold: Target temperature is %s degrees', this.coolingThresholdTemperature);
+			  this.log.info('getTargetHeatingThreshold: Target temperature is %s degrees', this.heatingThresholdTemperature);
+
             }
         }
 
@@ -466,16 +501,18 @@ Daikin.prototype = {
 			.getCharacteristic(Characteristic.TargetRelativeHumidity)
 			.on('get', this.getTargetRelativeHumidity.bind(this))
 			.on('', this.TargetRelativeHumidity.bind(this));
+		*/
 
 		this.ThermostatService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
-			.on('get', this.getCoolingThresholdTemperature.bind(this));
+			.on('get', this.getCoolingThresholdTemperature.bind(this))
+			.on('set', this.setCoolingThresholdTemperature.bind(this));
 
 		this.ThermostatService
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
-			.on('get', this.getHeatingThresholdTemperature.bind(this));
-		*/
-
+			.on('get', this.getHeatingThresholdTemperature.bind(this))
+			.on('set', this.setHeatingThresholdTemperature.bind(this));
+		
 		this.ThermostatService
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
@@ -522,6 +559,10 @@ Daikin.prototype = {
 			}else if (this.rawFanSpeed >= 8 && this.rawFanSpeed <= 100){
 				f_rate="7";
 			}
+		}
+		if(typeof f_rate == "undefined"){
+			f_rate = "A";
+			this.fanStatus = false;
 		}
 
 		// This s up the Power and Mode parameters
