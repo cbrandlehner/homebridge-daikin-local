@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.com/cbrandlehner/homebridge-daikin-local.svg?branch=master)](https://travis-ci.com/cbrandlehner/homebridge-daikin-local)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
+Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
 
 
 # Installation
@@ -76,7 +76,7 @@ Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
-Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
+Daikin Siesta ATXP-K3, MM6K11S20VA, Firmware 3.3.6
 
 
 
