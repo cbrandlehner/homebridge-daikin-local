@@ -2,9 +2,10 @@
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![Build Status](https://travis-ci.com/cbrandlehner/homebridge-daikin-local.svg?branch=master)](https://travis-ci.com/cbrandlehner/homebridge-daikin-local)
+[![Paypal](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.me/CBrandlehner)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
+Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
 
 
 # Installation
@@ -76,7 +77,9 @@ Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
-Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
+Daikin Siesta ATXP-K3, MM6K11S20VA, Firmware 3.3.6
+
+Daikin P-Series FTXM95PVMA, BRP072A42, Firmware 3.4.3
 
 
 
