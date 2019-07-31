@@ -578,7 +578,7 @@ Daikin.prototype = {
           this.log.debug('Special handling for FDXM25F3V1B applied.');
           this.log('Setting POWER to OFF and TARGET TEMPERATURE to %s (FDXM35F3V1B special condition)', this.targetTemperature);
         } else {
-          mode = '&mode=0';
+          mode = '';
           this.log('Setting POWER to OFF, MODE to OFF and TARGET TEMPERATURE to %s (%s)', this.targetTemperature, this.model);
         }
 
