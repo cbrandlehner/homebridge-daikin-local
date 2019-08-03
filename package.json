@@ -16,8 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-local/issues"
   },
