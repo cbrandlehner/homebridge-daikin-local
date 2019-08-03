@@ -2,10 +2,9 @@
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![Build Status](https://travis-ci.com/cbrandlehner/homebridge-daikin-local.svg?branch=master)](https://travis-ci.com/cbrandlehner/homebridge-daikin-local)
-[![Paypal](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.me/CBrandlehner)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
+Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
 
 
 # Installation
@@ -38,13 +37,33 @@ Configuration sample:
                 "accessory": "Daikin-Local",
                 "name": "Living room",
                 "apiroute": "http://192.168.1.50",
-                "system": "Default"
+                "system": "Default",
+                "swingMode": "2"
             }
         ],
 
         "platforms":[]
     }
 ```
+
+# Features
+
+The FAN:
+The FAN allows you to turn on the fan of your Daikin AC.
+You can also set the speed of the fan. Apple HomeKit allows you to set a speed percentage from 0% to 100%.
+This plugin translates this percentage value as follows:
+0% to 9%: SILENT mode
+10% to 20%: AUTO mode
+21% to 30%: Level 3
+31% to 40%: Level 4
+41% to 60%: Level 5
+61% to 80%: Level 6
+81% to 100%: Level 7 (max)
+
+The AC:
+Apple HomeKit settings allow you to enable or disable the swing aka oscillation mode. As HomeKit is limited to a true or false value, the plugins configuration allows you to configure the type of swing mode. Available modes are: horizontal swing, vertical swing and 3D.
+
+
 # API Expectations
 
 The `apiroute` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
@@ -55,11 +74,12 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 
 # Supported devices
 
-Currently this plugin supports Daikin wifi controllers supporting the "aircon" URLs.
+Currently this plugin supports Daikin wifi controllers supporting the "aircon" URLs (System: Default) and "skyfi" URLs (System: Skyfi).
 
-To test, use your browser to connect to your device using this URL:
+To test, use your browser to connect to your device using one of this URLs:
  ```
 http://192.168.1.88/aircon/get_model_info
+http://192.168.1.88/skyfi/aircon/get_model_info
  ```
 replace the IP (192.168.1.88) with the IP of your device.
 
@@ -69,6 +89,11 @@ ret=OK,model=0AB9,type=N,pv=2,cpv=2,cpv_minor=00,mid=NA,humd=0,s_humd=0,acled=0,
  ```
 If it does not, your device is not yet supported.
 
+The response of an usupported device will look like this:
+ ```
+ret=PARAM NG,msg=404 Not Found
+ ```
+
 Tested devices:
 
 Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
@@ -77,9 +102,7 @@ Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
-Daikin Siesta ATXP-K3, MM6K11S20VA, Firmware 3.3.6
-
-Daikin P-Series FTXM95PVMA, BRP072A42, Firmware 3.4.3
+Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
 
 
 

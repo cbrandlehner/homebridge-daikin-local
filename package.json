@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.28.1",
+  "version": "2019.31.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -9,7 +9,7 @@
   ],
   "engines": {
     "node": ">=8.15.1",
-    "homebridge": ">=0.4.46"
+    "homebridge": ">=0.4.50"
   },
   "author": "Christian Brandlehner",
   "repository": {
@@ -17,7 +17,6 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
   "dependencies": {
-    "request": "^2.88.0"
   },
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-local/issues"
@@ -35,17 +34,22 @@
     "rules": {
       "camelcase": "off",
       "no-mixed-spaces-and-tabs": "warn",
-      "no-useless-escape": "off",
+      "no-useless-escape": "warn",
       "indent": "off",
       "quotes": "warn",
       "capitalized-comments": "off",
-      "no-var": "off",
+      "no-var": "warn",
       "prefer-destructuring": "off",
-      "prefer-arrow-callback": "off",
-      "object-shorthand": ["off", "always", { "ignoreConstructors": true }],
+      "prefer-arrow-callback": "warn",
+      "object-shorthand": [
+        "off",
+        "always",
+        {
+          "ignoreConstructors": true
+        }
+      ],
       "quote-props": "error",
       "no-unused-vars": "warn",
-      "complexity": "off",
       "curly": [
         "error",
         "multi-or-nest",

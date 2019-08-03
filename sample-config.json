@@ -5,19 +5,21 @@
         "port": 51826,
         "pin": "000-00-000"
     },
-    
+
     "description": "This is an example configuration file. Make sure to adapt it to list the IP of your Daikin Controller(s).",
 
     "accessories": [
         {
             "accessory": "Daikin-Local",
             "name": "Living room",
-            "apiroute": "http://192.168.1.50"
-        }, 
+            "apiroute": "http://192.168.1.50",
+            "swingMode": "3"
+        },
         {
             "accessory": "Daikin-Local",
             "name": "Master bedroom",
-            "apiroute": "http://192.168.1.51"
+            "apiroute": "http://192.168.1.51",
+            "swingMode": "0"
         }
     ],
     "platforms":[]

@@ -12,6 +12,7 @@
       },
       "apiroute": {
         "title": "URI of the WIFI controller.",
+        "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
         "type": "string",
         "required": true,
         "default": "http://192.168.1.33",
@@ -21,6 +22,16 @@
         "type": "string",
         "title": "Daikin default or Skyfi",
         "enum": [ "Default", "Skyfi" ]
+      },
+      "swingMode": {
+        "title": "Swing mode",
+        "description": "Some Daikin ACs support different swing modes.",
+        "type": "string",
+        "oneOf": [
+          { "title": "Vertical Swing (default)", "enum": ["1"] },
+          { "title": "Horizontal Swing", "enum": ["2"] },
+          { "title": "3D Swing", "enum": ["3"] }
+        ]
       }
     }
   }
