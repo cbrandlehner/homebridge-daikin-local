@@ -432,7 +432,7 @@ getFanSpeed: function (callback) {
         let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${value}`);
         this.log.debug('setFanSatus: query stage 1 is: %s', query);
         // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
-        if (responseValues.pow === '0') query = query.replace(/,/g, '&').replace(/mode=[01]/, 'mode=6');
+        if (responseValues.pow === '0') query = query.replace(/,/g, '&').replace(/mode=[0123456789]/, 'mode=6');
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
