@@ -2,7 +2,8 @@
 let Service;
 let Characteristic;
 const URL = require('url').URL;
-const http = require('http');
+// const http = require('http');
+const request = require('request');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
@@ -130,24 +131,14 @@ Daikin.prototype = {
   },
 
   sendGetRequest(path, callback) {
-    const request = http.get(
-              path,
-              response => {
-                  let body = '';
-                  response.setEncoding('utf8');
-
-                  response.on('data', chunk => {
-                      body += chunk;
-                  });
-
-                  response.on('end', () => {
-                      callback(body);
-                  });
-              }
-          ).on('error', error => {
-              this.log(error.message);
-              callback();
-          });
+    this.log.debug('sendGetRequest: path: %s', path);
+    const options = {url: path, headers: {'User-Agent': 'request', Host: this.apiIP}};
+    this.log.debug('sendGetRequest: options: %s', JSON.stringify(options));
+    request(options, (err, res, body) => {
+      if (err) return console.log('sendGetRequest %s', err);
+      this.log.debug('sendGetRequest: returned body: %s', body);
+      callback(body);
+    });
   },
 
   getActive(callback) {
@@ -412,7 +403,7 @@ getFanSpeed: function (callback) {
           this.log.debug('getFanSpeed: body is %s', body);
           this.log.warn('getFanSpeed: f_rate is %s', responseValues.f_rate);
           const HomeKitFanSpeed = this.daikinSpeedToRaw(responseValues.f_rate);
-          this.log.warn('getFanSpeed: I think the speed is %s', HomeKitFanSpeed);
+          this.log.warn('getFanSpeed: The current speed is %s', HomeKitFanSpeed);
           callback(null, HomeKitFanSpeed);
       });
 },

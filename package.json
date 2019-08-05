@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.31.3",
+  "version": "2019.31.4",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -16,7 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
-  "dependencies": {},
+  "dependencies": {
+    "request": "^2.88.0"
+  },
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-local/issues"
   },
