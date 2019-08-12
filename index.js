@@ -2,15 +2,8 @@
 let Service;
 let Characteristic;
 const URL = require('url').URL;
-
-// const limit = require('simple-rate-limiter');
-// const request = limit(require('request')).to(1).per(100);
-
 const superagent = require('superagent');
-const Throttle = require('superagent-throttle')
-
-// const request = require('request');
-
+const Throttle = require('superagent-throttle');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
@@ -83,28 +76,8 @@ function Daikin(log, config) {
 
   this.firmwareRevision = packageFile.version;
 
-  // Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
-  // Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
-
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-/*
-  this.temperature = 19;
-*/
-  // The value property of CurrentHeatingCoolingState must be one of the following:
-  // Characteristic.CurrentHeatingCoolingState.OFF = 0;
-  // Characteristic.CurrentHeatingCoolingState.HEAT = 1;
-  // Characteristic.CurrentHeatingCoolingState.COOL = 2;
-/*
-  this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
-  this.targetTemperature = 21;
-  this.heatingThresholdTemperature = 19;
-  this.coolingThresholdTemperature = 22;
-*/
-  // The value property of TargetHeatingCoolingState must be one of the following:
-  // Characteristic.TargetHeatingCoolingState.OFF = 0;
-  // Characteristic.TargetHeatingCoolingState.HEAT = 1;
-  // Characteristic.TargetHeatingCoolingState.COOL = 2;
-  // Characteristic.TargetHeatingCoolingState.AUTO = 3;
+
   this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
   this.log.info('**************************************************************');
@@ -151,38 +124,19 @@ sendGetRequest(path, callback) {
     .get(path)
     .retry(5)
     .timeout({
-      response: 2000, // Wait 1 seconds for the server to start sending,
-      deadline: 60000 // but allow 1 minute for the file to finish loading.
+      response: 2000, // Wait 2 seconds for the server to start sending,
+      deadline: 60000 // but allow 1 minute for the request to finish loading.
     })
     .use(throttle.plugin())
     .set('User-Agent', 'superagent')
     .set('Host', this.apiIP)
-    // .set('accept', 'json')
     .end((err, res) => {
       if (err) return console.log('ERROR: The URL %s returned error %s', path, err);
-      // this.log.warn('sendGetRequest: returned body: %s', JSON.stringify(res));
-      this.log.warn('sendGetRequest: returned body: %s', JSON.stringify(res.text));
+      this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
       callback(res.text);
       // Calling the end function will send the request
     });
-},
-
-/*
-  sendGetRequest(path, callback) {
-    this.log.debug('sendGetRequest: path: %s', path);
-    // const options = {url: path, timeout: 3100, headers: {'Host': this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
-    // const options = {url: path, timeout: 100, headers: {Host: this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
-    // agent: false, pool: {maxSockets: 100}
-    const options = {url: path, timeout: 2000, headers: {Host: this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
-    this.log.warn('sendGetRequest: options: %s', JSON.stringify(options));
-    // require('request').debug = true;
-    request(options, (err, res, body) => {
-      if (err) return console.log('ERROR: The URL %s returened error %s', path, err);
-      this.log.debug('sendGetRequest: returned body: %s', body);
-      callback(body);
-    });
   },
-*/
 
   getActive(callback) {
         this.sendGetRequest(this.get_control_info, body => {
@@ -336,7 +290,6 @@ sendGetRequest(path, callback) {
 
   setCoolingTemperature(temp, callback) {
           this.sendGetRequest(this.get_control_info, body => {
-          // const currentValues = this.parseResponse(body);
           const query = body
             .replace(/,/g, '&')
             .replace(/stemp=[0-9.]+/, `stemp=${temp}`)
@@ -356,7 +309,6 @@ sendGetRequest(path, callback) {
 
   setHeatingTemperature(temp, callback) {
           this.sendGetRequest(this.get_control_info, body => {
-            // const currentValues = this.parseResponse(body);
             const query = body
               .replace(/,/g, '&')
               .replace(/stemp=[0-9.]+/, `stemp=${temp}`)
@@ -372,7 +324,6 @@ sendGetRequest(path, callback) {
     callback(null);
   },
 
-// Code for Fan
   daikinSpeedToRaw: function (daikinSpeed) {
     let raw = 0;
     this.log.debug('daikinSpeedtoRaw: got vaule %s', daikinSpeed);
@@ -411,7 +362,7 @@ rawToDaikinSpeed: function (rawFanSpeed) {
   this.log.debug('rawToDaikinSpeed: got value %s', rawFanSpeed);
   let f_rate = 'A';
   rawFanSpeed = Number(rawFanSpeed);
-  this.log.warn('rawToDaikinSpeed: numberized value %s', rawFanSpeed);
+  this.log.debug('rawToDaikinSpeed: numberized value %s', rawFanSpeed);
   if ((rawFanSpeed > 0) && (rawFanSpeed <= 9)) {// from 1% to 5%, we set the SILENT mode
     f_rate = 'B';
   } else if ((rawFanSpeed > 9) && (rawFanSpeed < 20)) {
@@ -428,7 +379,7 @@ rawToDaikinSpeed: function (rawFanSpeed) {
     f_rate = '7';
   }
 
-  this.log.warn('rawToDaikinSpeed: Daikin Speed is %s', f_rate);
+  this.log.debug('rawToDaikinSpeed: Daikin Speed is %s', f_rate);
   return f_rate;
 },
 
@@ -479,10 +430,9 @@ getFanSpeed: function (callback) {
     value = this.rawToDaikinSpeed(value);
     this.log.debug('setFanSpeed f_rate value: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
-      // const responseValues = this.parseResponse(body);
       let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${value}`);
       query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${value}`);
-      this.log.warn('setFanSpeed: Query is: %s', query);
+      this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
       }, false);
@@ -575,8 +525,7 @@ getFanSpeed: function (callback) {
     .on('get', this.getTemperatureDisplayUnits.bind(this))
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-    return [informationService, this.heaterCoolerService, this.FanService];
-//    return [informationService, this.heaterCoolerService];
+  return [informationService, this.heaterCoolerService, this.FanService];
   },
 
   getModelInfo: function () {

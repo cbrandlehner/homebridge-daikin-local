@@ -104,10 +104,33 @@ Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
 Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
 
+Daikin Cora BRP072A42, Model 0C87, Firmware 3.4.3
 
+Daikin Cora BRP072A42, Model 0C89, Firmware 3.4.3
+
+Daikin Cora BRP072A42, Model 0C8A, Firmware 3.4.3
+
+Daikin Cora BRP072A42, Model 0C8B, Firmware 3.4.3
+
+Daikin Cora BRP072A42, Model 0EB0, Firmware 3.4.3
 
 
 If you have other devices or firmware versions working, please let me know so I can update the list of tested devices.
+
+# Debugging and Testing
+
+This plugins code makes heavy use of debug output. Normally, this debug output is not visible on the [homebridge](https://github.com/nfarina/homebridge) console.
+As explained in the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) you should start [homebridge](https://github.com/nfarina/homebridge) like this to see the debug output:
+
+```
+homebridge -D
+```
+
+For even more debug, use this:
+
+```
+DEBUG=* homebridge -D
+```
 
 # Credit
 
