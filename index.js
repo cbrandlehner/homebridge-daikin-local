@@ -2,8 +2,12 @@
 let Service;
 let Characteristic;
 const URL = require('url').URL;
-// const http = require('http');
-const request = require('request');
+
+const limit = require('simple-rate-limiter');
+const request = limit(require('request')).to(1).per(100);
+
+// const request = require('request');
+
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
@@ -78,8 +82,9 @@ function Daikin(log, config) {
 
   // Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
   // Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
-/*
+
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+/*
   this.temperature = 19;
 */
   // The value property of CurrentHeatingCoolingState must be one of the following:
@@ -132,10 +137,14 @@ Daikin.prototype = {
 
   sendGetRequest(path, callback) {
     this.log.debug('sendGetRequest: path: %s', path);
-    const options = {url: path, headers: {'User-Agent': 'request', Host: this.apiIP}};
-    this.log.debug('sendGetRequest: options: %s', JSON.stringify(options));
+    // const options = {url: path, timeout: 3100, headers: {'Host': this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
+    // const options = {url: path, timeout: 100, headers: {Host: this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
+    // agent: false, pool: {maxSockets: 100}
+    const options = {url: path, timeout: 2000, headers: {Host: this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
+    this.log.warn('sendGetRequest: options: %s', JSON.stringify(options));
+    // require('request').debug = true;
     request(options, (err, res, body) => {
-      if (err) return console.log('sendGetRequest %s', err);
+      if (err) return console.log('ERROR: The URL %s returened error %s', path, err);
       this.log.debug('sendGetRequest: returned body: %s', body);
       callback(body);
     });
@@ -149,7 +158,7 @@ Daikin.prototype = {
           if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-Mode, or an Humidity mode then show AC OFF in HomeKit
             HomeKitState = '0';
           else
-            HomeKitState = responseValues.pow;
+            HomeKitState = '1'; // responseValues.pow;
           callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
               });
     },
@@ -174,9 +183,9 @@ Daikin.prototype = {
       2 - Horizontal swing
       3 - 3D swing
       */
-      this.log.debug('getSwingMode: swing mode is: %s', responseValues.f_dir);
-      this.log.debug('getSwingMode: swing mode is: %s', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
-      callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+      this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
+      this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+      callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
     });
   },
 
@@ -401,9 +410,9 @@ getFanSpeed: function (callback) {
   this.sendGetRequest(this.get_control_info, body => {
           const responseValues = this.parseResponse(body);
           this.log.debug('getFanSpeed: body is %s', body);
-          this.log.warn('getFanSpeed: f_rate is %s', responseValues.f_rate);
+          this.log.debug('getFanSpeed: f_rate is %s', responseValues.f_rate);
           const HomeKitFanSpeed = this.daikinSpeedToRaw(responseValues.f_rate);
-          this.log.warn('getFanSpeed: The current speed is %s', HomeKitFanSpeed);
+          this.log.debug('getFanSpeed: The current speed for HomeKit is %s', HomeKitFanSpeed);
           callback(null, HomeKitFanSpeed);
       });
 },
@@ -533,7 +542,8 @@ getFanSpeed: function (callback) {
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
     return [informationService, this.heaterCoolerService, this.FanService];
-	},
+//    return [informationService, this.heaterCoolerService];
+  },
 
   getModelInfo: function () {
 		// A function to prompt the model information and the firmware revision
