@@ -3,8 +3,11 @@ let Service;
 let Characteristic;
 const URL = require('url').URL;
 
-const limit = require('simple-rate-limiter');
-const request = limit(require('request')).to(1).per(100);
+// const limit = require('simple-rate-limiter');
+// const request = limit(require('request')).to(1).per(100);
+
+const superagent = require('superagent');
+const Throttle = require('superagent-throttle')
 
 // const request = require('request');
 
@@ -135,6 +138,36 @@ Daikin.prototype = {
     return vals;
   },
 
+sendGetRequest(path, callback) {
+  const throttle = new Throttle({
+    active: true, // set false to pause queue
+    rate: 1, // how many requests can be sent every `ratePer`
+    ratePer: 1000, // number of ms in which `rate` requests may be sent
+    concurrent: 1 // how many requests can be sent concurrently
+  });
+
+  this.log.debug('sendGetRequest: path: %s', path);
+  superagent
+    .get(path)
+    .retry(5)
+    .timeout({
+      response: 2000, // Wait 1 seconds for the server to start sending,
+      deadline: 60000 // but allow 1 minute for the file to finish loading.
+    })
+    .use(throttle.plugin())
+    .set('User-Agent', 'superagent')
+    .set('Host', this.apiIP)
+    // .set('accept', 'json')
+    .end((err, res) => {
+      if (err) return console.log('ERROR: The URL %s returned error %s', path, err);
+      // this.log.warn('sendGetRequest: returned body: %s', JSON.stringify(res));
+      this.log.warn('sendGetRequest: returned body: %s', JSON.stringify(res.text));
+      callback(res.text);
+      // Calling the end function will send the request
+    });
+},
+
+/*
   sendGetRequest(path, callback) {
     this.log.debug('sendGetRequest: path: %s', path);
     // const options = {url: path, timeout: 3100, headers: {'Host': this.apiIP, 'User-Agent': 'request'}}; // {timeout: 1500}
@@ -149,6 +182,7 @@ Daikin.prototype = {
       callback(body);
     });
   },
+*/
 
   getActive(callback) {
         this.sendGetRequest(this.get_control_info, body => {
