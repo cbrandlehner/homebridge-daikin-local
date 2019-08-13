@@ -143,10 +143,13 @@ sendGetRequest(path, callback) {
           const responseValues = this.parseResponse(body);
           this.log.debug('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
           let HomeKitState = '0';
-          if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-Mode, or an Humidity mode then show AC OFF in HomeKit
+          if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or an Humidity-mode then show AC OFF in HomeKit
             HomeKitState = '0';
           else
-            HomeKitState = '1'; // responseValues.pow;
+            if (responseValues.pow === '1')
+              HomeKitState = '1'; // Power is ON and the device is neither in Fan-mode nor Humidity-mode
+            else
+              HomeKitState = '0'; // Power is OFF
           callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
               });
     },
