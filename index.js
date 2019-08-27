@@ -35,6 +35,14 @@ function Daikin(log, config) {
     this.swingMode = config.swingMode;
   }
 
+  if (config.defaultMode === undefined) {
+    this.log.error('ERROR: your configuration is missing the parameter "defaultMode"');
+    this.defaultMode = '0';
+  } else {
+    this.log.debug('Config: defaultMode is %s', config.defaultMode);
+    this.defaultMode = config.defaultMode;
+  }
+
   if (config.system === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "system"');
     this.system = 'Default';
@@ -115,7 +123,7 @@ sendGetRequest(path, callback) {
   const throttle = new Throttle({
     active: true, // set false to pause queue
     rate: 1, // how many requests can be sent every `ratePer`
-    ratePer: 1000, // number of ms in which `rate` requests may be sent
+    ratePer: 500, // number of ms in which `rate` requests may be sent
     concurrent: 1 // how many requests can be sent concurrently
   });
 
@@ -157,8 +165,42 @@ sendGetRequest(path, callback) {
   setActive(power, callback) {
       this.sendGetRequest(this.get_control_info, body => {
         const responseValues = this.parseResponse(body);
-        this.log.info('setActive: Power is %s, Mode is %s', responseValues.pow, responseValues.mode);
-        const query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${power}`);
+        this.log.info('setActive: Power is %s, Mode is %s. Going to change power to %s.', responseValues.pow, responseValues.mode, power);
+        let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${power}`);
+        if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') {// If AC is in Fan-mode, or an Humidity-mode then use the default mode.
+          switch (this.defaultMode) {
+            case '0': // Auto
+              query = query
+                .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
+                .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
+                .replace(/shum=--/, `shum=${'0'}`);
+                break;
+            case '3': // COOL
+              query = query
+                .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
+                .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
+                .replace(/shum=--/, `shum=${'0'}`);
+                break;
+                case '4': // HEAT
+                  query = query
+                    .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                    .replace(/stemp=--/, `stemp=${responseValues.dt5}`)
+                    .replace(/dt3=--/, `dt3=${responseValues.dt5}`)
+                    .replace(/shum=--/, `shum=${'0'}`);
+                    break;
+
+                default:
+          }
+
+          query = query
+            .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+            .replace(/stemp=--/, `stemp=${'25.0'}`)
+            .replace(/dt3=--/, `dt3=${'25.0'}`)
+            .replace(/shum=--/, `shum=${'0'}`);
+        }
+
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
         }, false);
@@ -293,6 +335,8 @@ sendGetRequest(path, callback) {
 
   setCoolingTemperature(temp, callback) {
           this.sendGetRequest(this.get_control_info, body => {
+          temp = Math.round(temp * 2) / 2; // Daikin only supports steps of 0.5 degree
+          temp = temp.toFixed(1); // Daikin always expects a precision of 1
           const query = body
             .replace(/,/g, '&')
             .replace(/stemp=[0-9.]+/, `stemp=${temp}`)
@@ -312,6 +356,8 @@ sendGetRequest(path, callback) {
 
   setHeatingTemperature(temp, callback) {
           this.sendGetRequest(this.get_control_info, body => {
+            temp = Math.round(temp * 2) / 2; // Daikin only supports steps of 0.5 degree
+            temp = temp.toFixed(1); // Daikin always expects a precision of 1
             const query = body
               .replace(/,/g, '&')
               .replace(/stemp=[0-9.]+/, `stemp=${temp}`)

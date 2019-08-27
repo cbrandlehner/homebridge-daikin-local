@@ -38,7 +38,8 @@ Configuration sample:
                 "name": "Living room",
                 "apiroute": "http://192.168.1.50",
                 "system": "Default",
-                "swingMode": "2"
+                "swingMode": "2",
+                "defaultMode": "0"
             }
         ],
 
@@ -101,6 +102,8 @@ Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
 Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
+
+Daikin FKXS20, Model: BRP069A43, Firmware 1.2.51
 
 Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
 

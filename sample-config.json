@@ -13,13 +13,15 @@
             "accessory": "Daikin-Local",
             "name": "Living room",
             "apiroute": "http://192.168.1.50",
-            "swingMode": "3"
+            "swingMode": "3",
+            "defaultMode": "3"
         },
         {
             "accessory": "Daikin-Local",
             "name": "Master bedroom",
             "apiroute": "http://192.168.1.51",
-            "swingMode": "0"
+            "swingMode": "0",
+            "defaultMode": "0"
         }
     ],
     "platforms":[]

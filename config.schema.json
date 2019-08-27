@@ -32,6 +32,16 @@
           { "title": "Horizontal Swing", "enum": ["2"] },
           { "title": "3D Swing", "enum": ["3"] }
         ]
+      },
+      "defaultMode": {
+        "title": "Default operation mode",
+        "description": "When turning on the Daikin device in HomeBridge using a single-tap, the default operation mode will be applied.",
+        "type": "string",
+        "oneOf": [
+          { "title": "Auto (default)", "enum": ["0"] },
+          { "title": "Cool", "enum": ["3"] },
+          { "title": "Heat", "enum": ["4"] }
+        ]
       }
     }
   }
