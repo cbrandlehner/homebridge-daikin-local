@@ -83,6 +83,11 @@ function Daikin(log, config) {
     this.system = config.system;
   }
 
+  if (config.disableFan === undefined || config.disableFan === false)
+      this.disableFan = false;
+  else
+      this.disableFan = true;
+
   switch (this.system) {
     case 'Default':
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
@@ -598,7 +603,12 @@ getFanSpeed: function (callback) {
     .on('get', this.getTemperatureDisplayUnits.bind(this))
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-  return [informationService, this.heaterCoolerService, this.FanService];
+    let services;
+    if (this.disableFan === true)
+        services = [informationService, this.heaterCoolerService];
+    else
+        services = [informationService, this.heaterCoolerService, this.FanService];
+    return services;
   },
 
   getModelInfo: function () {

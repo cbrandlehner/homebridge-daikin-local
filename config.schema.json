@@ -38,6 +38,11 @@
         "description": "Choose between normal fan and dry mode",
         "enum": [ "FAN", "DRY" ]
       },
+      "disableFan": {
+        "title": "Fan disabled",
+        "description": "Wether to have both AC and Fan or only AC",
+        "type": "bool"
+      },
       "defaultMode": {
         "title": "Default operation mode",
         "description": "When turning on the Daikin device in HomeBridge using a single-tap, the default operation mode will be applied.",
