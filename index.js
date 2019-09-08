@@ -16,11 +16,11 @@ function Daikin(log, config) {
     this.log.debug('Config: AC name is %s', config.name);
   }
 
-  if (config.nameFan == undefined && config.fanMode == undefined) {
+  if (config.nameFan === undefined && config.fanMode === undefined) {
       this.log.warn('your configuration is missing the parameter "nameFan", using default');
       this.nameFan = this.name.concat(' FAN');
       this.log.debug('Config: Fan name is %s', this.nameFan);
-  } else if (config.nameFan == undefined) {
+  } else if (config.nameFan === undefined) {
       this.log.warn('your configuration is missing the parameter "nameFan", using default');
       this.nameFan = this.name.concat(' ', config.fanMode);
       this.log.debug('Config: Fan name is %s', this.nameFan);
@@ -58,10 +58,10 @@ function Daikin(log, config) {
     this.defaultMode = config.defaultMode;
   }
 
-  if (config.fanMode === "FAN") {
+  if (config.fanMode === 'FAN') {
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
-  } else if (config.fanMode === "DRY") {
+  } else if (config.fanMode === 'DRY') {
       this.fanMode = '2';
       this.log.debug('Config: fanMode is %s', this.fanMode);
   } else if (config.fanMode === undefined) {
@@ -498,11 +498,11 @@ getFanSpeed: function (callback) {
         if (responseValues.pow === '0') value = 1;
 
         // turn power on
-        if (this.fanMode === 2) {
+        let query;
+        if (this.fanMode === 2)
             query = `pow=${value}&mode=${this.fanMode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
-        } else {
+        else
             query = `pow=${value}&mode=${this.fanMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
-        }
 
         this.log.debug('setFanSatus: query stage 1 is: %s', query);
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
