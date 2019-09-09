@@ -31,9 +31,12 @@
   "homepage": "https://github.com/cbrandlehner/homebridge-daikin-local#readme",
   "main": "index.js",
   "scripts": {
+    "pretest": "eslint --ignore-path .gitignore package.json config.schema.json sample-config.json",
     "test": "xo"
   },
   "devDependencies": {
+    "eslint": "^6.3.0",
+    "eslint-plugin-json": "^1.4.0",
     "xo": "^0.24.0"
   },
   "xo": {
