@@ -40,7 +40,9 @@ Configuration sample:
                 "apiroute": "http://192.168.1.50",
                 "system": "Default",
                 "swingMode": "2",
-                "defaultMode": "0"
+                "defaultMode": "0",
+                "fanMode": "FAN",
+                "fanName": "Living room FAN"
             }
         ],
 
