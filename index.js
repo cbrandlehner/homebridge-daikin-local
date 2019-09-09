@@ -16,16 +16,16 @@ function Daikin(log, config) {
     this.log.debug('Config: AC name is %s', config.name);
   }
 
-  if (config.nameFan === undefined && config.fanMode === undefined) {
-      this.log.warn('your configuration is missing the parameter "nameFan", using default');
+  if (config.fanName === undefined && config.fanMode === undefined) {
+      this.log.warn('your configuration is missing the parameter "fanName", using default');
       this.nameFan = this.name.concat(' FAN');
-      this.log.debug('Config: Fan name is %s', this.nameFan);
-  } else if (config.nameFan === undefined) {
-      this.log.warn('your configuration is missing the parameter "nameFan", using default');
+      this.log.warn('Config: Fan name is %s', this.nameFan);
+  } else if (config.fanName === undefined) {
+      this.log.warn('your configuration is missing the parameter "fanName", using default');
       this.nameFan = this.name.concat(' ', config.fanMode);
-      this.log.debug('Config: Fan name is %s', this.nameFan);
+      this.log.warn('Config: Fan name is %s', this.nameFan);
   } else {
-      this.nameFan = config.nameFan;
+      this.nameFan = config.fanName;
       this.log.debug('Config: Fan name is %s', config.nameFan);
   }
 

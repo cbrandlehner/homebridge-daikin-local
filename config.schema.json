@@ -33,15 +33,23 @@
           { "title": "3D Swing", "enum": ["3"] }
         ]
       },
-      "fanMode": {
-        "title": "Fan mode",
-        "description": "Choose between normal fan and dry mode",
-        "enum": [ "FAN", "DRY" ]
-      },
       "disableFan": {
         "title": "Fan disabled",
         "description": "Wether to have both AC and Fan or only AC",
-        "type": "bool"
+        "type": "boolean"
+      },
+      "fanMode": {
+        "title": "Fan mode",
+        "description": "Choose between normal fan or dry mode",
+        "type": "string",
+        "enum": [ "FAN", "DRY" ]
+      },
+      "fanName": {
+          "title": "FAN name",
+          "description": "The name of the fan. Only applies if the FAN has not been disabled.",
+          "type": "string",
+          "required": true,
+          "default": "Livingroom FAN"
       },
       "defaultMode": {
         "title": "Default operation mode",
