@@ -9,7 +9,7 @@
         "type": "string",
         "required": true,
         "default": "Daikin Livingroom"
-      },
+      }
       "apiroute": {
         "title": "URI of the WIFI controller.",
         "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
@@ -32,6 +32,16 @@
           { "title": "Horizontal Swing", "enum": ["2"] },
           { "title": "3D Swing", "enum": ["3"] }
         ]
+      },
+      "fanMode": {
+        "title": "Fan mode",
+        "description": "Choose between normal fan and dry mode",
+        "enum": [ "FAN", "DRY" ]
+      },
+      "disableFan": {
+        "title": "Fan disabled",
+        "description": "Wether to have both AC and Fan or only AC",
+        "type": "bool"
       },
       "defaultMode": {
         "title": "Default operation mode",

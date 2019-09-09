@@ -13,7 +13,20 @@ function Daikin(log, config) {
     this.name = 'Unnamed Daikin';
   } else {
     this.name = config.name;
-    this.log.debug('Config: name is %s', config.name);
+    this.log.debug('Config: AC name is %s', config.name);
+  }
+
+  if (config.nameFan === undefined && config.fanMode === undefined) {
+      this.log.warn('your configuration is missing the parameter "nameFan", using default');
+      this.nameFan = this.name.concat(' FAN');
+      this.log.debug('Config: Fan name is %s', this.nameFan);
+  } else if (config.nameFan === undefined) {
+      this.log.warn('your configuration is missing the parameter "nameFan", using default');
+      this.nameFan = this.name.concat(' ', config.fanMode);
+      this.log.debug('Config: Fan name is %s', this.nameFan);
+  } else {
+      this.nameFan = config.nameFan;
+      this.log.debug('Config: Fan name is %s', config.nameFan);
   }
 
   if (config.apiroute === undefined) {
@@ -28,28 +41,52 @@ function Daikin(log, config) {
   }
 
   if (config.swingMode === undefined) {
-    this.log.error('ERROR: your configuration is missing the parameter "swingMode"');
+    this.log.warn('WARNING: your configuration is missing the parameter "swingMode", using default');
     this.swingMode = '1';
+    this.log.debug('Config: swingMode is %s', this.swingMode);
   } else {
     this.log.debug('Config: swingMode is %s', config.swingMode);
     this.swingMode = config.swingMode;
   }
 
   if (config.defaultMode === undefined) {
-    this.log.error('ERROR: your configuration is missing the parameter "defaultMode"');
+    this.log.warn('ERROR: your configuration is missing the parameter "defaultMode", using default');
     this.defaultMode = '0';
+    this.log.debug('Config: defaultMode is %s', this.defaultMode);
   } else {
     this.log.debug('Config: defaultMode is %s', config.defaultMode);
     this.defaultMode = config.defaultMode;
   }
 
+  if (config.fanMode === 'FAN') {
+      this.fanMode = '6';
+      this.log.debug('Config: fanMode is %s', this.fanMode);
+  } else if (config.fanMode === 'DRY') {
+      this.fanMode = '2';
+      this.log.debug('Config: fanMode is %s', this.fanMode);
+  } else if (config.fanMode === undefined) {
+      this.log.warn('ERROR: your configuration is missing the parameter "fanMode", using default');
+      this.fanMode = '6';
+      this.log.debug('Config: fanMode is %s', this.fanMode);
+  } else {
+      this.log.warn('ERROR: your configuration has an invalid value for parameter "fanMode", using default');
+      this.fanMode = '6';
+      this.log.debug('Config: fanMode is %s', this.fanMode);
+  }
+
   if (config.system === undefined) {
-    this.log.error('ERROR: your configuration is missing the parameter "system"');
+    this.log.warn('ERROR: your configuration is missing the parameter "system", using default');
     this.system = 'Default';
+    this.log.debug('Config: system is %s', this.system);
   } else {
     this.log.debug('Config: system is %s', config.system);
     this.system = config.system;
   }
+
+  if (config.disableFan === undefined || config.disableFan === false)
+      this.disableFan = false;
+  else
+      this.disableFan = true;
 
   switch (this.system) {
     case 'Default':
@@ -98,7 +135,6 @@ function Daikin(log, config) {
   this.log.info('system: ' + this.system);
   this.log.debug('Debug mode enabled');
 
-  this.ThermostatService = new Service.Thermostat(this.name);
   this.FanService = new Service.Fan(this.nameFan);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
 }
@@ -452,21 +488,28 @@ getFanSpeed: function (callback) {
 },
 
   setFanStatus: function (value, callback) {
-    this.log.debug('setFanSatus received value: %s', value);
+    this.log('setFanSatus received value: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
       if (value === true)
         value = 1;
         else
         value = 0;
-        this.log.debug('setFanSatus: new value: %s', value);
+
+        this.log('setFanSatus: new value: %s', value);
         const responseValues = this.parseResponse(body);
-        this.log.debug('setFanSatus: Power is: %s', responseValues.pow);
-        this.log.debug('setFanSatus: Mode is: %s', responseValues.mode);
-        // turn power on
-        let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${value}`);
-        this.log.debug('setFanSatus: query stage 1 is: %s', query);
+        this.log('setFanSatus: Power is: %s', responseValues.pow);
+        this.log('setFanSatus: Mode is: %s', responseValues.mode);
         // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
-        if (responseValues.pow === '0') query = query.replace(/,/g, '&').replace(/mode=[0123456789]/, 'mode=6');
+        if (responseValues.pow === '0') value = 1;
+
+        // turn power on
+        let query;
+        if (this.fanMode === 2)
+            query = `pow=${value}&mode=${this.fanMode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+        else
+            query = `pow=${value}&mode=${this.fanMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+
+        this.log.debug('setFanSatus: query stage 1 is: %s', query);
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
@@ -501,16 +544,6 @@ getFanSpeed: function (callback) {
     callback(error);
   },
 
-	getName: function (callback) {
-		this.log('getName :', this.name);
-		const error = null;
-		callback(error, this.name);
-	},
-	getFanName: function (callback) {
-    this.log('getFanName :', this.name + '-FAN');
-		const error = null;
-		callback(error, this.name + '-FAN');
-	},
 	getServices: function () {
     const informationService = new Service.AccessoryInformation();
 
@@ -521,10 +554,6 @@ getFanSpeed: function (callback) {
 			.setCharacteristic(Characteristic.Model, this.model)
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
 			.setCharacteristic(Characteristic.SerialNumber, this.firmwareRevision);
-
-		this.FanService
-			.getCharacteristic(Characteristic.Name)
-			.on('get', this.getFanName.bind(this));
 
 		this.FanService
 			.getCharacteristic(Characteristic.On)
@@ -574,7 +603,12 @@ getFanSpeed: function (callback) {
     .on('get', this.getTemperatureDisplayUnits.bind(this))
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-  return [informationService, this.heaterCoolerService, this.FanService];
+    let services;
+    if (this.disableFan === true)
+        services = [informationService, this.heaterCoolerService];
+    else
+        services = [informationService, this.heaterCoolerService, this.FanService];
+    return services;
   },
 
   getModelInfo: function () {
