@@ -9,7 +9,7 @@
         "type": "string",
         "required": true,
         "default": "Daikin Livingroom"
-      }
+      },
       "apiroute": {
         "title": "URI of the WIFI controller.",
         "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
