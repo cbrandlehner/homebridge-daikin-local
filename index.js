@@ -18,15 +18,15 @@ function Daikin(log, config) {
 
   if (config.fanName === undefined && config.fanMode === undefined) {
       this.log.warn('your configuration is missing the parameter "fanName", using default');
-      this.nameFan = this.name.concat(' FAN');
-      this.log.warn('Config: Fan name is %s', this.nameFan);
+      this.fanName = this.name.concat(' FAN');
+      this.log.warn('Config: Fan name is %s', this.fanName);
   } else if (config.fanName === undefined) {
       this.log.warn('your configuration is missing the parameter "fanName", using default');
-      this.nameFan = this.name.concat(' ', config.fanMode);
-      this.log.warn('Config: Fan name is %s', this.nameFan);
+      this.fanName = this.name.concat(' ', config.fanMode);
+      this.log.warn('Config: Fan name is %s', this.fanName);
   } else {
-      this.nameFan = config.fanName;
-      this.log.debug('Config: Fan name is %s', config.fanName);
+      this.fanName = config.fanName;
+      this.log.debug('Config: Fan name is %s', this.fanName);
   }
 
   if (config.apiroute === undefined) {
@@ -135,7 +135,7 @@ function Daikin(log, config) {
   this.log.info('system: ' + this.system);
   this.log.debug('Debug mode enabled');
 
-  this.FanService = new Service.Fan(this.nameFan);
+  this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
 }
 
