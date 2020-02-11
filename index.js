@@ -26,7 +26,7 @@ function Daikin(log, config) {
       this.log.warn('Config: Fan name is %s', this.nameFan);
   } else {
       this.nameFan = config.fanName;
-      this.log.debug('Config: Fan name is %s', config.nameFan);
+      this.log.debug('Config: Fan name is %s', config.fanName);
   }
 
   if (config.apiroute === undefined) {
