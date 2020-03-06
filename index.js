@@ -1,7 +1,7 @@
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
-const URL = require('url').URL;
+// const URL = require('url').URL;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
 const packageFile = require('./package.json');

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2019.36.5",
+  "version": "2020.10.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -8,8 +8,8 @@
     "daikin"
   ],
   "engines": {
-    "node": ">=8.15.1",
-    "homebridge": ">=0.4.50"
+    "node": ">=10.19.0",
+    "homebridge": ">=0.4.52"
   },
   "author": "Christian Brandlehner",
   "contributors": [
@@ -22,7 +22,7 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
   "dependencies": {
-    "superagent": "^5.1",
+    "superagent": "^5.2.2",
     "superagent-throttle": "^1.0.1"
   },
   "bugs": {
@@ -35,9 +35,9 @@
     "test": "xo"
   },
   "devDependencies": {
-    "eslint": "^6.3.0",
+    "eslint": "^6.8.0",
     "eslint-plugin-json": "^1.4.0",
-    "xo": "^0.24.0"
+    "xo": "^0.27.2"
   },
   "xo": {
     "space": false,
