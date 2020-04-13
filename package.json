@@ -35,9 +35,10 @@
     "test": "xo"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
+    "eslint": ">=6.8.0",
     "eslint-plugin-json": "^1.4.0",
-    "xo": "^0.27.2"
+    "xo": "^0.27.2",
+    "minimist": ">=0.2.1"
   },
   "xo": {
     "space": false,
