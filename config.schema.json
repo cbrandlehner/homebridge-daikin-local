@@ -21,12 +21,14 @@
       "system": {
         "type": "string",
         "title": "Daikin default or Skyfi",
-        "enum": [ "Default", "Skyfi" ]
+        "enum": [ "Default", "Skyfi" ],
+        "default": "Default"
       },
       "swingMode": {
         "title": "Swing mode",
         "description": "Some Daikin ACs support different swing modes.",
         "type": "string",
+                "default": "1",
         "oneOf": [
           { "title": "Vertical Swing (default)", "enum": ["1"] },
           { "title": "Horizontal Swing", "enum": ["2"] },
@@ -36,13 +38,15 @@
       "disableFan": {
         "title": "Fan disabled",
         "description": "Wether to have both AC and Fan or only AC",
-        "type": "boolean"
+        "type": "boolean",
+        "default": false
       },
       "fanMode": {
         "title": "Fan mode",
         "description": "Choose between normal fan or dry mode",
         "type": "string",
-        "enum": [ "FAN", "DRY" ]
+        "enum": [ "FAN", "DRY" ],
+        "default": "FAN"
       },
       "fanName": {
           "title": "FAN name",
@@ -59,7 +63,8 @@
           { "title": "Auto (default)", "enum": ["0"] },
           { "title": "Cool", "enum": ["3"] },
           { "title": "Heat", "enum": ["4"] }
-        ]
+        ],
+        "default": "0"
       }
     }
   }

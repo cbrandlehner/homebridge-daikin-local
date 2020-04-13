@@ -504,10 +504,10 @@ getFanSpeed: function (callback) {
 
         // turn power on
         let query;
-        if (this.fanMode === 2)
-            query = `pow=${value}&mode=${this.fanMode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+        if (responseValues.mode === 2)
+            query = `pow=${value}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
         else
-            query = `pow=${value}&mode=${this.fanMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+            query = `pow=${value}&mode=${responseValues.mode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
 
         this.log.debug('setFanSatus: query stage 1 is: %s', query);
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
