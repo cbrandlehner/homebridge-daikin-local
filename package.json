@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2020.16.3",
+  "version": "2020.16.4",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -9,7 +9,7 @@
   ],
   "engines": {
     "node": ">=12.16.1",
-    "homebridge": ">=0.4.52"
+    "homebridge": ">=0.4.50"
   },
   "author": "Christian Brandlehner",
   "contributors": [
