@@ -175,7 +175,7 @@ sendGetRequest(path, callback) {
     .set('User-Agent', 'superagent')
     .set('Host', this.apiIP)
     .end((err, res) => {
-      if (err) return console.log('ERROR: The URL %s returned error %s', path, err);
+      if (err) return this.log.error('ERROR: The URL %s returned error %s', path, err);
       this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
       callback(res.text);
       // Calling the end function will send the request
