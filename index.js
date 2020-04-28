@@ -49,6 +49,24 @@ function Daikin(log, config) {
     this.swingMode = config.swingMode;
   }
 
+  if (config.response === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "response", using default');
+    this.response = 2000;
+    this.log.debug('Config: response is %s', this.response);
+  } else {
+    this.log.debug('Config: response is %s', config.response);
+    this.response = config.response;
+  }
+
+  if (config.deadline === undefined) {
+      this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
+      this.response = 60000;
+      this.log.debug('Config: deadline is %s', this.deadline);
+    } else {
+      this.log.debug('Config: deadline is %s', config.deadline);
+      this.deadline = config.deadline;
+    }
+
   if (config.defaultMode === undefined) {
     this.log.warn('ERROR: your configuration is missing the parameter "defaultMode", using default');
     this.defaultMode = '0';
@@ -168,8 +186,8 @@ sendGetRequest(path, callback) {
     .get(path)
     .retry(5)
     .timeout({
-      response: 2000, // Wait 2 seconds for the server to start sending,
-      deadline: 60000 // but allow 1 minute for the request to finish loading.
+      response: this.response, // 2000, // Wait 2 seconds for the server to start sending,
+      deadline: this.deadline // 60000 // but allow 1 minute for the request to finish loading.
     })
     .use(throttle.plugin())
     .set('User-Agent', 'superagent')

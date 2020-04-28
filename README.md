@@ -5,7 +5,7 @@
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/Node.js%20CI/badge.svg)
 # homebridge-daikin-local
 
-Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2UM0Gtr).
+Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
 
 
 # Installation
@@ -49,6 +49,11 @@ Configuration sample:
         "platforms":[]
     }
 ```
+
+This screenshot shows the configuration in [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme):
+
+<img src="https://user-images.githubusercontent.com/10800971/80524996-daf4e580-8990-11ea-9e13-3328a65f20af.png" align="center" alt="configuration">
+
 
 # Features
 

@@ -15,6 +15,8 @@
             "apiroute": "http://192.168.1.50",
             "swingMode": "3",
             "defaultMode": "3",
+            "response": 2000,
+            "deadline": 60000,
             "fanMode": "DRY",
             "fanName": "Living room dehumidifier"
         },
@@ -24,6 +26,8 @@
             "apiroute": "http://192.168.1.51",
             "swingMode": "0",
             "defaultMode": "0",
+            "response": 2000,
+            "deadline": 60000,
             "fanMode": "FAN"
         }
     ],

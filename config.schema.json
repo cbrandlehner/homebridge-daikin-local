@@ -65,6 +65,22 @@
           { "title": "Heat", "enum": ["4"] }
         ],
         "default": "0"
+      },
+      "response": {
+        "title": "Response",
+	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
+        "type": "integer",
+        "default": 2000,
+        "minimum": 2000,
+        "maximum": 8000
+      },
+      "deadline": {
+        "title": "Deadline",
+	      "description": "Timeout in milliseconds for the device to complete a response.  Default: 60000 (one minute).",
+        "type": "integer",
+        "default": 60000,
+        "minimum": 10000,
+        "maximum": 60000
       }
     }
   }
