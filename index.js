@@ -67,6 +67,15 @@ function Daikin(log, config) {
       this.deadline = config.deadline;
     }
 
+  if (config.retries === undefined) {
+      this.log.warn('WARNING: your configuration is missing the parameter "retries", using default');
+      this.retries = 0;
+      this.log.debug('Config: retries is %s', this.retries);
+    } else {
+      this.log.debug('Config: retries is %s', config.retries);
+      this.retries = config.retries;
+    }
+
   if (config.defaultMode === undefined) {
     this.log.warn('ERROR: your configuration is missing the parameter "defaultMode", using default');
     this.defaultMode = '0';
@@ -184,7 +193,7 @@ sendGetRequest(path, callback) {
   this.log.debug('sendGetRequest: path: %s', path);
   superagent
     .get(path)
-    .retry(5)
+    .retry(this.retries) // 5 // retry 5 times
     .timeout({
       response: this.response, // 2000, // Wait 2 seconds for the server to start sending,
       deadline: this.deadline // 60000 // but allow 1 minute for the request to finish loading.

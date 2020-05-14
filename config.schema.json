@@ -81,6 +81,14 @@
         "default": 60000,
         "minimum": 10000,
         "maximum": 60000
+      },
+      "retries": {
+        "title": "Retries",
+	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 0 (no retry).",
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 5
       }
     }
   }
