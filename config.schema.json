@@ -84,11 +84,11 @@
       },
       "retries": {
         "title": "Retries",
-	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 0 (no retry).",
+	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 5.",
         "type": "integer",
-        "default": 0,
+        "default": 5,
         "minimum": 0,
-        "maximum": 5
+        "maximum": 10
       }
     }
   }

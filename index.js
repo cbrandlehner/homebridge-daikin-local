@@ -68,8 +68,8 @@ function Daikin(log, config) {
     }
 
   if (config.retries === undefined) {
-      this.log.warn('WARNING: your configuration is missing the parameter "retries", using default');
-      this.retries = 0;
+      this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
+      this.retries = 5;
       this.log.debug('Config: retries is %s', this.retries);
     } else {
       this.log.debug('Config: retries is %s', config.retries);

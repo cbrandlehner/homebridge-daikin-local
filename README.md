@@ -114,9 +114,11 @@ ret=PARAM NG,msg=404 Not Found
 
 Tested devices:
 
+Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
+
 Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
-Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
+Daikin BRP069B45, Model: 0000, Firmware: 1.2.51
 
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
