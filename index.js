@@ -4,10 +4,14 @@ let Characteristic;
 // const URL = require('url').URL;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
+const queue = require("function-queue");
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
+
+  this.cache = {};
+  this.queue = queue();
 
   this.throttle = new Throttle({
     active: true, // set false to pause queue
@@ -190,24 +194,88 @@ Daikin.prototype = {
     return vals;
   },
 
-sendGetRequest(path, callback) {
-  this.log.debug('sendGetRequest: path: %s', path);
-  superagent
-    .get(path)
-    .retry(this.retries) // 5 // retry 5 times
-    .timeout({
-      response: this.response, // 2000, // Wait 2 seconds for the server to start sending,
-      deadline: this.deadline // 60000 // but allow 1 minute for the request to finish loading.
-    })
-    .use(this.throttle.plugin())
-    .set('User-Agent', 'superagent')
-    .set('Host', this.apiIP)
-    .end((err, res) => {
-      if (err) return this.log.error('ERROR: The URL %s returned error %s', path, err);
-      this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
-      callback(res.text);
-      // Calling the end function will send the request
+  respondFromCache(path, callback, bypassCache) {
+    if (bypassCache) {
+      return false;
+    }
+
+    if (!this.cache[path]) {
+      return false;
+    }
+
+    const cachedTimestamp = this.cache[path].timestamp;
+    const delta = Math.abs(cachedTimestamp - Date.now()) / 1000;
+    const seconds = delta % 60;
+
+    if (seconds <= 5) {
+      const cachedResponse = this.cache[path].response;
+      this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(cachedResponse));
+      callback(cachedResponse);
+      return true;
+    }
+
+    delete this.cache[path];
+    return false;
+  },
+
+  sendGetRequest(path, callback, bypassCache) {
+    if (this.respondFromCache(path, callback, bypassCache)) {
+      this.log.debug('served from cache: path: %s', path);
+      return;
+    }
+ 
+    this.log.debug('queue sendGetRequest: path: %s', path);
+
+    this.queue.push(done => {
+      this.log.debug('execute sendGetRequest: path: %s', path);
+        this.doSendGetRequest(path, response => {
+          if (response instanceof Error) {
+            done();
+            return;
+          }
+
+          if (!bypassCache) {
+            this.log.debug('set cache: path: %s', path)
+
+            this.cache[path] = {
+              response: response,
+              timestamp: Date.now()
+            };
+          }
+
+          callback(response);
+          done();
+        }, bypassCache);
     });
+  },
+
+  doSendGetRequest(path, callback, bypassCache) {
+    if (this.respondFromCache(path, callback, bypassCache)) {
+      this.log.debug('serving from cache: path: %s', path);
+      return;
+    }
+
+    this.log.debug('sendGetRequest: path: %s', path);
+    superagent
+      .get(path)
+      .retry(this.retries) // 5 // retry 5 times
+      .timeout({
+        response: 2000, // 2000, // Wait 2 seconds for the server to start sending,
+        deadline: 5000 // 60000 // but allow 1 minute for the request to finish loading.
+      })
+      .use(this.throttle.plugin())
+      .set('User-Agent', 'superagent')
+      .set('Host', this.apiIP)
+      .end((err, res) => {
+        if (err) {
+          callback(new Error(err));
+          return this.log.error('ERROR: The URL %s returned error %s', path, err);
+        }
+
+        this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
+        callback(res.text);
+        // Calling the end function will send the request
+      });
   },
 
   getActive(callback) {
@@ -267,7 +335,7 @@ sendGetRequest(path, callback) {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, false);
+        }, true /* bypassCache */);
     });
   },
 
@@ -295,7 +363,7 @@ sendGetRequest(path, callback) {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, false);
+      }, true /* bypassCache */);
     });
   },
 
@@ -378,7 +446,7 @@ sendGetRequest(path, callback) {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, false);
+                  }, true /* bypassCache */);
               });
         },
 
@@ -407,7 +475,7 @@ sendGetRequest(path, callback) {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, false);
+                }, true /* bypassCache */);
             });
         },
 
@@ -428,7 +496,7 @@ sendGetRequest(path, callback) {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, false);
+                  }, true /* bypassCache */);
               });
           },
 
@@ -520,7 +588,7 @@ getFanSpeed: function (callback) {
     this.sendGetRequest(this.get_control_info, body => {
       if (value === true)
         value = 1;
-        else
+      else
         value = 0;
 
         this.log('setFanSatus: new value: %s', value);
@@ -541,7 +609,7 @@ getFanSpeed: function (callback) {
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, false);
+        }, true /* bypassCache */);
       });
   },
 
@@ -555,7 +623,7 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, false);
+      }, true /* bypassCache */);
     });
   },
 
