@@ -336,7 +336,7 @@ Daikin.prototype = {
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
         }, true /* bypassCache */);
-    });
+    }, true /* bypassCache */);
   },
 
   getSwingMode(callback) {
@@ -364,7 +364,7 @@ Daikin.prototype = {
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
       }, true /* bypassCache */);
-    });
+    }, true /* bypassCache */);
   },
 
   getHeaterCoolerState(callback) {
@@ -447,7 +447,7 @@ Daikin.prototype = {
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
                   }, true /* bypassCache */);
-              });
+              }, true /* bypassCache */);
         },
 
   getCurrentTemperature(callback) {
@@ -476,7 +476,7 @@ Daikin.prototype = {
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
                 }, true /* bypassCache */);
-            });
+            }, true /* bypassCache */);
         },
 
   getHeatingTemperature(callback) {
@@ -497,7 +497,7 @@ Daikin.prototype = {
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
                   }, true /* bypassCache */);
-              });
+              }, true /* bypassCache */);
           },
 
   identify: function (callback) {
@@ -610,7 +610,7 @@ getFanSpeed: function (callback) {
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
         }, true /* bypassCache */);
-      });
+      }, true /* bypassCache */);
   },
 
   setFanSpeed: function (value, callback) {
@@ -624,7 +624,7 @@ getFanSpeed: function (callback) {
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
       }, true /* bypassCache */);
-    });
+    }, true /* bypassCache */);
   },
 
   getTemperatureDisplayUnits: function (callback) {
