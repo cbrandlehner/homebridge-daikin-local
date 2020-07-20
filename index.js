@@ -8,6 +8,14 @@ const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
+
+  this.throttle = new Throttle({
+    active: true, // set false to pause queue
+    rate: 1, // how many requests can be sent every `ratePer`
+    ratePer: 1000, // number of ms in which `rate` requests may be sent
+    concurrent: 1 // how many requests can be sent concurrently
+  });
+
   if (config.name === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "name"');
     this.name = 'Unnamed Daikin';
@@ -198,7 +206,7 @@ sendGetRequest(path, callback) {
       response: this.response, // 2000, // Wait 2 seconds for the server to start sending,
       deadline: this.deadline // 60000 // but allow 1 minute for the request to finish loading.
     })
-    .use(throttle.plugin())
+    .use(this.throttle.plugin())
     .set('User-Agent', 'superagent')
     .set('Host', this.apiIP)
     .end((err, res) => {
