@@ -191,13 +191,6 @@ Daikin.prototype = {
   },
 
 sendGetRequest(path, callback) {
-  const throttle = new Throttle({
-    active: true, // set false to pause queue
-    rate: 1, // how many requests can be sent every `ratePer`
-    ratePer: 500, // number of ms in which `rate` requests may be sent
-    concurrent: 1 // how many requests can be sent concurrently
-  });
-
   this.log.debug('sendGetRequest: path: %s', path);
   superagent
     .get(path)
