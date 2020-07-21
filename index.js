@@ -200,43 +200,51 @@ Daikin.prototype = {
       return;
     }
  
-    this.log.debug('queue sendGetRequest: path: %s', path);
     this._queueGetRequest(path, callback, bypassCache);
   },
 
   _serveFromCache(path, callback, bypassCache) {
+    this.log.debug('requesting from cache: path: %s', path);
+
     if (bypassCache) {
+      this.log.debug('cache SKIP: path: %s', path);
       return false;
     }
 
     if (!this.cache.has(path)) {
+      this.log.debug('cache MISS: path: %s', path);
       return false;
     }
 
     if (this.cache.expired(path)) {
+      this.log.debug('cache EXPIRED: path: %s', path);
       return false;
     }
 
-    this.log.debug('serving from cache: path: %s', path);
+    this.log.debug('cache HIT: path: %s', path);
 
     const cachedResponse = this.cache.get(path);
 
-    this.log.debug('serveFromCache: returned body: %s', JSON.stringify(cachedResponse));
+    this.log.debug('responding from cache: %s', JSON.stringify(cachedResponse));
 
     callback(null, cachedResponse);
     return true;
   },
 
   _queueGetRequest(path, callback, bypassCache) {
+    this.log.debug('queue request: path: %s', path);
+
     this.queue.add(done => {
-      this.log.debug('execute sendGetRequest: path: %s', path);
+      this.log.debug('execute queued request: path: %s', path);
 
         this._doSendGetRequest(path, (err, res) => {
           if (err) {
-            this.log.error('ERROR: Cache %s returned error %s', path, err)
+            this.log.error('ERROR: Queued request to %s returned error %s', path, err)
             done();
             return;
           }
+
+          this.log.debug('queued request finished: path: %s', path);
 
           callback(res);
           done();
@@ -249,7 +257,7 @@ Daikin.prototype = {
       return;
     }
 
-    this.log.debug('sendGetRequest: path: %s', path);
+    this.log.debug('requesting from API: path: %s', path);
     superagent
       .get(path)
       .retry(this.retries) // 5 // retry 5 times
@@ -263,7 +271,7 @@ Daikin.prototype = {
       .end((err, res) => {
         if (err) {
           callback(err);
-          return this.log.error('ERROR: The URL %s returned error %s', path, err);
+          return this.log.error('ERROR: API request to %s returned error %s', path, err);
         }
 
         if (!bypassCache) {
@@ -271,7 +279,7 @@ Daikin.prototype = {
           this.cache.set(path, res.text);
         }
 
-        this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
+        this.log.debug('responding from API: %s', JSON.stringify(res.text));
         callback(err, res.text);
         // Calling the end function will send the request
       });
