@@ -196,15 +196,15 @@ Daikin.prototype = {
   },
 
   sendGetRequest(path, callback, bypassCache) {
-    if (this.serveFromCache(path, callback, bypassCache)) {
+    if (this._serveFromCache(path, callback, bypassCache)) {
       return;
     }
  
     this.log.debug('queue sendGetRequest: path: %s', path);
-    this.queueGetRequest(path, callback, bypassCache);
+    this._queueGetRequest(path, callback, bypassCache);
   },
 
-  serveFromCache(path, callback, bypassCache) {
+  _serveFromCache(path, callback, bypassCache) {
     if (bypassCache) {
       return false;
     }
@@ -227,11 +227,11 @@ Daikin.prototype = {
     return true;
   },
 
-  queueGetRequest(path, callback, bypassCache) {
+  _queueGetRequest(path, callback, bypassCache) {
     this.queue.add(done => {
       this.log.debug('execute sendGetRequest: path: %s', path);
 
-        this.doSendGetRequest(path, (err, res) => {
+        this._doSendGetRequest(path, (err, res) => {
           if (err) {
             this.log.error('ERROR: Cache %s returned error %s', path, err)
             done();
@@ -244,8 +244,8 @@ Daikin.prototype = {
     });
   },
 
-  doSendGetRequest(path, callback, bypassCache) {
-    if (this.serveFromCache(path, callback, bypassCache)) {
+  _doSendGetRequest(path, callback, bypassCache) {
+    if (this._serveFromCache(path, callback, bypassCache)) {
       return;
     }
 
