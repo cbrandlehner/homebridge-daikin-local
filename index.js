@@ -195,6 +195,15 @@ Daikin.prototype = {
     return vals;
   },
 
+  sendGetRequest(path, callback, bypassCache) {
+    if (this.serveFromCache(path, callback, bypassCache)) {
+      return;
+    }
+ 
+    this.log.debug('queue sendGetRequest: path: %s', path);
+    this.queueGetRequest(path, callback, bypassCache);
+  },
+
   serveFromCache(path, callback, bypassCache) {
     if (bypassCache) {
       return false;
@@ -233,15 +242,6 @@ Daikin.prototype = {
           done();
         }, bypassCache);
     });
-  },
-
-  sendGetRequest(path, callback, bypassCache) {
-    if (this.serveFromCache(path, callback, bypassCache)) {
-      return;
-    }
- 
-    this.log.debug('queue sendGetRequest: path: %s', path);
-    this.queueGetRequest(path, callback, bypassCache);
   },
 
   doSendGetRequest(path, callback, bypassCache) {
