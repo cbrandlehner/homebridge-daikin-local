@@ -232,10 +232,10 @@ Daikin.prototype = {
   },
 
   _queueGetRequest(path, callback, bypassCache) {
-    this.log.debug('queue request: path: %s', path);
+    this.log.debug('queuing request: path: %s', path);
 
     this.queue.add(done => {
-      this.log.debug('execute queued request: path: %s', path);
+      this.log.debug('executing queued request: path: %s', path);
 
         this._doSendGetRequest(path, (err, res) => {
           if (err) {
