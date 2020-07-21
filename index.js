@@ -196,10 +196,9 @@ Daikin.prototype = {
   },
 
   sendGetRequest(path, callback, bypassCache) {
-    if (this._serveFromCache(path, callback, bypassCache)) {
+    if (this._serveFromCache(path, callback, bypassCache))
       return;
-    }
- 
+
     this._queueGetRequest(path, callback, bypassCache);
   },
 
@@ -239,7 +238,7 @@ Daikin.prototype = {
 
         this._doSendGetRequest(path, (err, res) => {
           if (err) {
-            this.log.error('ERROR: Queued request to %s returned error %s', path, err)
+            this.log.error('ERROR: Queued request to %s returned error %s', path, err);
             done();
             return;
           }
@@ -253,9 +252,8 @@ Daikin.prototype = {
   },
 
   _doSendGetRequest(path, callback, bypassCache) {
-    if (this._serveFromCache(path, callback, bypassCache)) {
+    if (this._serveFromCache(path, callback, bypassCache))
       return;
-    }
 
     this.log.debug('requesting from API: path: %s', path);
     superagent
@@ -275,7 +273,7 @@ Daikin.prototype = {
         }
 
         if (!bypassCache) {
-          this.log.debug('set cache: path: %s', path)
+          this.log.debug('set cache: path: %s', path);
           this.cache.set(path, res.text);
         }
 

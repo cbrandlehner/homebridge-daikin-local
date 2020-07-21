@@ -2,22 +2,20 @@ function Cache(expiration /* seconds */) {
   this.entries = {};
   this.expiration = 5;
 
-  if (expiration != null) {
+  if (expiration)
     this.expiration = expiration;
-  }
 }
 
-Cache.prototype.get = function(key) {
+Cache.prototype.get = function (key) {
   const entry = this.entries[key];
 
-  if (entry != null) {
+  if (entry)
     return entry.value;
-  }
 
   return undefined;
-}
+};
 
-Cache.prototype.set = function(key, value) {
+Cache.prototype.set = function (key, value) {
   const timestamp = Date.now();
 
   this.entries[key] = {
@@ -25,20 +23,19 @@ Cache.prototype.set = function(key, value) {
     value,
     timestamp
   };
-}
+};
 
-Cache.prototype.has = function(key) {
-  return this.entries[key] != null;
-}
+Cache.prototype.has = function (key) {
+  return this.entries[key] !== undefined;
+};
 
-Cache.prototype.remove = function(key) {
+Cache.prototype.remove = function (key) {
   delete this.entries[key];
-}
+};
 
-Cache.prototype.expired = function(key) {
-  if (!this.has(key)) {
+Cache.prototype.expired = function (key) {
+  if (!this.has(key))
     return true;
-  }
 
   const entry = this.entries[key];
   const delta = Math.abs(entry.timestamp - Date.now()) / 1000;
@@ -50,6 +47,6 @@ Cache.prototype.expired = function(key) {
   }
 
   return false;
-}
+};
 
 module.exports = Cache;

@@ -3,27 +3,26 @@ function Queue() {
   this.running = false;
 }
 
-Queue.prototype.add = function(callback) { 
-    this.queue.push(() => {
-      const next = this.next.bind(this);
-      callback(next);
-    });
+Queue.prototype.add = function (callback) {
+  this.queue.push(() => {
+    const next = this.next.bind(this);
+    callback(next);
+  });
 
-    if (!this.running) {
-      this.next();
-    }
+  if (!this.running)
+    this.next();
 
-    return this;
-}
+  return this;
+};
 
-Queue.prototype.next = function(){
-    this.running = false;
+Queue.prototype.next = function () {
+  this.running = false;
 
-    const shift = this.queue.shift(); 
-    if(shift) { 
-      this.running = true;
-      shift(); 
-    }
-}
+  const shift = this.queue.shift();
+  if (shift) {
+    this.running = true;
+    shift();
+  }
+};
 
 module.exports = Queue;
