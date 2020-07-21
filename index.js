@@ -4,14 +4,15 @@ let Characteristic;
 // const URL = require('url').URL;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
-const queue = require("function-queue");
+const Cache = require('./cache');
+const Queue = require('./queue');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
 
-  this.cache = {};
-  this.queue = queue();
+  this.cache = new Cache();
+  this.queue = new Queue();
 
   this.throttle = new Throttle({
     active: true, // set false to pause queue
@@ -194,64 +195,57 @@ Daikin.prototype = {
     return vals;
   },
 
-  respondFromCache(path, callback, bypassCache) {
+  serveFromCache(path, callback, bypassCache) {
     if (bypassCache) {
       return false;
     }
 
-    if (!this.cache[path]) {
+    if (!this.cache.has(path)) {
       return false;
     }
 
-    const cachedTimestamp = this.cache[path].timestamp;
-    const delta = Math.abs(cachedTimestamp - Date.now()) / 1000;
-    const seconds = delta % 60;
-
-    if (seconds <= 5) {
-      const cachedResponse = this.cache[path].response;
-      this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(cachedResponse));
-      callback(cachedResponse);
-      return true;
+    if (this.cache.expired(path)) {
+      return false;
     }
 
-    delete this.cache[path];
-    return false;
+    this.log.debug('serving from cache: path: %s', path);
+
+    const cachedResponse = this.cache.get(path);
+
+    this.log.debug('serveFromCache: returned body: %s', JSON.stringify(cachedResponse));
+
+    callback(null, cachedResponse);
+    return true;
   },
 
-  sendGetRequest(path, callback, bypassCache) {
-    if (this.respondFromCache(path, callback, bypassCache)) {
-      this.log.debug('served from cache: path: %s', path);
-      return;
-    }
- 
-    this.log.debug('queue sendGetRequest: path: %s', path);
-
-    this.queue.push(done => {
+  queueGetRequest(path, callback, bypassCache) {
+    this.queue.add(done => {
       this.log.debug('execute sendGetRequest: path: %s', path);
-        this.doSendGetRequest(path, response => {
-          if (response instanceof Error) {
+
+        this.doSendGetRequest(path, (err, res) => {
+          if (err) {
+            this.log.error('ERROR: Cache %s returned error %s', path, err)
             done();
             return;
           }
 
-          if (!bypassCache) {
-            this.log.debug('set cache: path: %s', path)
-
-            this.cache[path] = {
-              response: response,
-              timestamp: Date.now()
-            };
-          }
-
-          callback(response);
+          callback(res);
           done();
         }, bypassCache);
     });
   },
 
+  sendGetRequest(path, callback, bypassCache) {
+    if (this.serveFromCache(path, callback, bypassCache)) {
+      return;
+    }
+ 
+    this.log.debug('queue sendGetRequest: path: %s', path);
+    this.queueGetRequest(path, callback, bypassCache);
+  },
+
   doSendGetRequest(path, callback, bypassCache) {
-    if (this.respondFromCache(path, callback, bypassCache)) {
-      this.log.debug('serving from cache: path: %s', path);
+    if (this.serveFromCache(path, callback, bypassCache)) {
       return;
     }
 
@@ -268,12 +262,17 @@ Daikin.prototype = {
       .set('Host', this.apiIP)
       .end((err, res) => {
         if (err) {
-          callback(new Error(err));
+          callback(err);
           return this.log.error('ERROR: The URL %s returned error %s', path, err);
         }
 
+        if (!bypassCache) {
+          this.log.debug('set cache: path: %s', path)
+          this.cache.set(path, res.text);
+        }
+
         this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
-        callback(res.text);
+        callback(err, res.text);
         // Calling the end function will send the request
       });
   },
