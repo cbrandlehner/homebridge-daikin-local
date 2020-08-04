@@ -18,10 +18,10 @@ Queue.prototype.add = function (callback) {
 Queue.prototype.next = function () {
   this.running = false;
 
-  const shift = this.queue.shift();
-  if (shift) {
+  const next = this.queue.shift();
+  if (next) {
     this.running = true;
-    shift();
+    next();
   }
 };
 
