@@ -272,10 +272,8 @@ Daikin.prototype = {
           return this.log.error('ERROR: API request to %s returned error %s', path, err);
         }
 
-        if (!bypassCache) {
-          this.log.debug('set cache: path: %s', path);
-          this.cache.set(path, res.text);
-        }
+        this.log.debug('set cache: path: %s', path);
+        this.cache.set(path, res.text);
 
         this.log.debug('responding from API: %s', JSON.stringify(res.text));
         callback(err, res.text);
