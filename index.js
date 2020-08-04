@@ -220,10 +220,14 @@ Daikin.prototype = {
       return false;
     }
 
-    this.log.debug('cache HIT: path: %s', path);
-
     const cachedResponse = this.cache.get(path);
 
+    if (cachedResponse === undefined) {
+      this.log.debug('cache EMPTY: path: %s', path);
+      return false;
+    }
+
+    this.log.debug('cache HIT: path: %s', path);
     this.log.debug('responding from cache: %s', JSON.stringify(cachedResponse));
 
     callback(null, cachedResponse);
