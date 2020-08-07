@@ -199,38 +199,6 @@ Daikin.prototype = {
     this._queueGetRequest(path, callback, skipCache);
   },
 
-  _serveFromCache(path, callback, skipCache) {
-    this.log.debug('requesting from cache: path: %s', path);
-
-    if (skipCache) {
-      this.log.debug('cache SKIP: path: %s', path);
-      return false;
-    }
-
-    if (!this.cache.has(path)) {
-      this.log.debug('cache MISS: path: %s', path);
-      return false;
-    }
-
-    if (this.cache.expired(path)) {
-      this.log.debug('cache EXPIRED: path: %s', path);
-      return false;
-    }
-
-    const cachedResponse = this.cache.get(path);
-
-    if (cachedResponse === undefined) {
-      this.log.debug('cache EMPTY: path: %s', path);
-      return false;
-    }
-
-    this.log.debug('cache HIT: path: %s', path);
-    this.log.debug('responding from cache: %s', cachedResponse);
-
-    callback(null, cachedResponse);
-    return true;
-  },
-
   _queueGetRequest(path, callback, skipCache) {
     this.log.debug('queuing request: path: %s', path);
 
@@ -281,6 +249,38 @@ Daikin.prototype = {
         callback(err, res.text);
         // Calling the end function will send the request
       });
+  },
+
+  _serveFromCache(path, callback, skipCache) {
+    this.log.debug('requesting from cache: path: %s', path);
+
+    if (skipCache) {
+      this.log.debug('cache SKIP: path: %s', path);
+      return false;
+    }
+
+    if (!this.cache.has(path)) {
+      this.log.debug('cache MISS: path: %s', path);
+      return false;
+    }
+
+    if (this.cache.expired(path)) {
+      this.log.debug('cache EXPIRED: path: %s', path);
+      return false;
+    }
+
+    const cachedResponse = this.cache.get(path);
+
+    if (cachedResponse === undefined) {
+      this.log.debug('cache EMPTY: path: %s', path);
+      return false;
+    }
+
+    this.log.debug('cache HIT: path: %s', path);
+    this.log.debug('responding from cache: %s', cachedResponse);
+
+    callback(null, cachedResponse);
+    return true;
   },
 
   getActive(callback) {
