@@ -228,7 +228,7 @@ Daikin.prototype = {
     }
 
     this.log.debug('cache HIT: path: %s', path);
-    this.log.debug('responding from cache: %s', JSON.stringify(cachedResponse));
+    this.log.debug('responding from cache: %s', cachedResponse);
 
     callback(null, cachedResponse);
     return true;
@@ -279,7 +279,7 @@ Daikin.prototype = {
         this.log.debug('set cache: path: %s', path);
         this.cache.set(path, res.text);
 
-        this.log.debug('responding from API: %s', JSON.stringify(res.text));
+        this.log.debug('responding from API: %s', res.text);
         callback(err, res.text);
         // Calling the end function will send the request
       });
