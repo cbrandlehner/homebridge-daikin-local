@@ -246,6 +246,7 @@ Daikin.prototype = {
 
           this.log.debug('queued request finished: path: %s', path);
 
+          // actual response callback
           callback(res);
           done();
         }, skipCache);
