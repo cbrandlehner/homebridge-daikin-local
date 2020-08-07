@@ -196,9 +196,6 @@ Daikin.prototype = {
   },
 
   sendGetRequest(path, callback, skipCache) {
-    if (this._serveFromCache(path, callback, skipCache))
-      return;
-
     this._queueGetRequest(path, callback, skipCache);
   },
 
