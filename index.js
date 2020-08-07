@@ -195,17 +195,17 @@ Daikin.prototype = {
     return vals;
   },
 
-  sendGetRequest(path, callback, bypassCache) {
-    if (this._serveFromCache(path, callback, bypassCache))
+  sendGetRequest(path, callback, skipCache) {
+    if (this._serveFromCache(path, callback, skipCache))
       return;
 
-    this._queueGetRequest(path, callback, bypassCache);
+    this._queueGetRequest(path, callback, skipCache);
   },
 
-  _serveFromCache(path, callback, bypassCache) {
+  _serveFromCache(path, callback, skipCache) {
     this.log.debug('requesting from cache: path: %s', path);
 
-    if (bypassCache) {
+    if (skipCache) {
       this.log.debug('cache SKIP: path: %s', path);
       return false;
     }
@@ -234,7 +234,7 @@ Daikin.prototype = {
     return true;
   },
 
-  _queueGetRequest(path, callback, bypassCache) {
+  _queueGetRequest(path, callback, skipCache) {
     this.log.debug('queuing request: path: %s', path);
 
     this.queue.add(done => {
@@ -251,12 +251,12 @@ Daikin.prototype = {
 
           callback(res);
           done();
-        }, bypassCache);
+        }, skipCache);
     });
   },
 
-  _doSendGetRequest(path, callback, bypassCache) {
-    if (this._serveFromCache(path, callback, bypassCache))
+  _doSendGetRequest(path, callback, skipCache) {
+    if (this._serveFromCache(path, callback, skipCache))
       return;
 
     this.log.debug('requesting from API: path: %s', path);
@@ -342,8 +342,8 @@ Daikin.prototype = {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, true /* bypassCache */);
-    }, true /* bypassCache */);
+        }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getSwingMode(callback) {
@@ -370,8 +370,8 @@ Daikin.prototype = {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* bypassCache */);
-    }, true /* bypassCache */);
+      }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getHeaterCoolerState(callback) {
@@ -453,8 +453,8 @@ Daikin.prototype = {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* bypassCache */);
-              }, true /* bypassCache */);
+                  }, true /* skipCache */);
+              }, true /* skipCache */);
         },
 
   getCurrentTemperature(callback) {
@@ -482,8 +482,8 @@ Daikin.prototype = {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, true /* bypassCache */);
-            }, true /* bypassCache */);
+                }, true /* skipCache */);
+            }, true /* skipCache */);
         },
 
   getHeatingTemperature(callback) {
@@ -503,8 +503,8 @@ Daikin.prototype = {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* bypassCache */);
-              }, true /* bypassCache */);
+                  }, true /* skipCache */);
+              }, true /* skipCache */);
           },
 
   identify: function (callback) {
@@ -616,8 +616,8 @@ getFanSpeed: function (callback) {
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, true /* bypassCache */);
-      }, true /* bypassCache */);
+        }, true /* skipCache */);
+      }, true /* skipCache */);
   },
 
   setFanSpeed: function (value, callback) {
@@ -630,8 +630,8 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* bypassCache */);
-    }, true /* bypassCache */);
+      }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getTemperatureDisplayUnits: function (callback) {
