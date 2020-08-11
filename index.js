@@ -18,7 +18,7 @@ function Daikin(log, config) {
     active: true, // set false to pause queue
     rate: 1, // how many requests can be sent every `ratePer`
     ratePer: 500, // number of ms in which `rate` requests may be sent
-    concurrent: 1 // how many requests can be sent concurrently
+    concurrent: 1 // how many requests can fbe sent concurrently
   });
 
   if (config.name === undefined) {
@@ -73,7 +73,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.response = 60000;
+      this.deadline = 60000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
