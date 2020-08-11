@@ -4,10 +4,23 @@ let Characteristic;
 // const URL = require('url').URL;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
+const Cache = require('./cache');
+const Queue = require('./queue');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
+
+  this.cache = new Cache();
+  this.queue = new Queue();
+
+  this.throttle = new Throttle({
+    active: true, // set false to pause queue
+    rate: 1, // how many requests can be sent every `ratePer`
+    ratePer: 500, // number of ms in which `rate` requests may be sent
+    concurrent: 1 // how many requests can be sent concurrently
+  });
+
   if (config.name === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "name"');
     this.name = 'Unnamed Daikin';
@@ -182,31 +195,93 @@ Daikin.prototype = {
     return vals;
   },
 
-sendGetRequest(path, callback) {
-  const throttle = new Throttle({
-    active: true, // set false to pause queue
-    rate: 1, // how many requests can be sent every `ratePer`
-    ratePer: 500, // number of ms in which `rate` requests may be sent
-    concurrent: 1 // how many requests can be sent concurrently
-  });
+  sendGetRequest(path, callback, skipCache) {
+    this.log.debug('attempting request: path: %s', path);
+    this._queueGetRequest(path, callback, skipCache);
+  },
 
-  this.log.debug('sendGetRequest: path: %s', path);
-  superagent
-    .get(path)
-    .retry(this.retries) // 5 // retry 5 times
-    .timeout({
-      response: this.response, // 2000, // Wait 2 seconds for the server to start sending,
-      deadline: this.deadline // 60000 // but allow 1 minute for the request to finish loading.
-    })
-    .use(throttle.plugin())
-    .set('User-Agent', 'superagent')
-    .set('Host', this.apiIP)
-    .end((err, res) => {
-      if (err) return this.log.error('ERROR: The URL %s returned error %s', path, err);
-      this.log.debug('sendGetRequest: returned body: %s', JSON.stringify(res.text));
-      callback(res.text);
-      // Calling the end function will send the request
+  _queueGetRequest(path, callback, skipCache) {
+    this.log.debug('queuing request: path: %s', path);
+
+    this.queue.add(done => {
+      this.log.debug('executing queued request: path: %s', path);
+
+        this._doSendGetRequest(path, (err, res) => {
+          if (err) {
+            this.log.error('ERROR: Queued request to %s returned error %s', path, err);
+            done();
+            return;
+          }
+
+          this.log.debug('queued request finished: path: %s', path);
+
+          // actual response callback
+          callback(res);
+          done();
+        }, skipCache);
     });
+  },
+
+  _doSendGetRequest(path, callback, skipCache) {
+    if (this._serveFromCache(path, callback, skipCache))
+      return;
+
+    this.log.debug('requesting from API: path: %s', path);
+    superagent
+      .get(path)
+      .retry(this.retries) // 5 // retry 5 times
+      .timeout({
+        response: 2000, // 2000, // Wait 2 seconds for the server to start sending,
+        deadline: 5000 // 60000 // but allow 1 minute for the request to finish loading.
+      })
+      .use(this.throttle.plugin())
+      .set('User-Agent', 'superagent')
+      .set('Host', this.apiIP)
+      .end((err, res) => {
+        if (err) {
+          callback(err);
+          return this.log.error('ERROR: API request to %s returned error %s', path, err);
+        }
+
+        this.log.debug('set cache: path: %s', path);
+        this.cache.set(path, res.text);
+
+        this.log.debug('responding from API: %s', res.text);
+        callback(err, res.text);
+        // Calling the end function will send the request
+      });
+  },
+
+  _serveFromCache(path, callback, skipCache) {
+    this.log.debug('requesting from cache: path: %s', path);
+
+    if (skipCache) {
+      this.log.debug('cache SKIP: path: %s', path);
+      return false;
+    }
+
+    if (!this.cache.has(path)) {
+      this.log.debug('cache MISS: path: %s', path);
+      return false;
+    }
+
+    if (this.cache.expired(path)) {
+      this.log.debug('cache EXPIRED: path: %s', path);
+      return false;
+    }
+
+    const cachedResponse = this.cache.get(path);
+
+    if (cachedResponse === undefined) {
+      this.log.debug('cache EMPTY: path: %s', path);
+      return false;
+    }
+
+    this.log.debug('cache HIT: path: %s', path);
+    this.log.debug('responding from cache: %s', cachedResponse);
+
+    callback(null, cachedResponse);
+    return true;
   },
 
   getActive(callback) {
@@ -266,8 +341,8 @@ sendGetRequest(path, callback) {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, false);
-    });
+        }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getSwingMode(callback) {
@@ -294,8 +369,8 @@ sendGetRequest(path, callback) {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, false);
-    });
+      }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getHeaterCoolerState(callback) {
@@ -377,8 +452,8 @@ sendGetRequest(path, callback) {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, false);
-              });
+                  }, true /* skipCache */);
+              }, true /* skipCache */);
         },
 
   getCurrentTemperature(callback) {
@@ -406,8 +481,8 @@ sendGetRequest(path, callback) {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, false);
-            });
+                }, true /* skipCache */);
+            }, true /* skipCache */);
         },
 
   getHeatingTemperature(callback) {
@@ -427,8 +502,8 @@ sendGetRequest(path, callback) {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, false);
-              });
+                  }, true /* skipCache */);
+              }, true /* skipCache */);
           },
 
   identify: function (callback) {
@@ -519,7 +594,7 @@ getFanSpeed: function (callback) {
     this.sendGetRequest(this.get_control_info, body => {
       if (value === true)
         value = 1;
-        else
+      else
         value = 0;
 
         this.log('setFanSatus: new value: %s', value);
@@ -540,8 +615,8 @@ getFanSpeed: function (callback) {
         this.log.debug('setFanSatus: query stage 2 is: %s', query);
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, false);
-      });
+        }, true /* skipCache */);
+      }, true /* skipCache */);
   },
 
   setFanSpeed: function (value, callback) {
@@ -554,8 +629,8 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, false);
-    });
+      }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   getTemperatureDisplayUnits: function (callback) {
