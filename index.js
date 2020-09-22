@@ -305,9 +305,10 @@ Daikin.prototype = {
         const responseValues = this.parseResponse(body);
         this.log.info('setActive: Power is %s, Mode is %s. Going to change power to %s.', responseValues.pow, responseValues.mode, power);
         let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${power}`);
-        if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') {// If AC is in Fan-mode, or an Humidity-mode then use the default mode.
+        if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1' || responseValues.mode === '0') {// If AC is in Fan-mode, or an Humidity-mode then use the default mode.
           switch (this.defaultMode) {
-            case '0': // Auto
+            case '1': // Auto
+            this.log.warn('Auto');
               query = query
                 .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
@@ -590,33 +591,50 @@ getFanSpeed: function (callback) {
 },
 
   setFanStatus: function (value, callback) {
-    this.log('setFanSatus received value: %s', value);
+    this.log('setFanStatus received value: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
+      let targetPOW;
       if (value === true)
-        value = 1;
+        // value = 1;
+        targetPOW = '1';
       else
-        value = 0;
+        // value = 0;
+        targetPOW = '0';
 
-        this.log('setFanSatus: new value: %s', value);
-        const responseValues = this.parseResponse(body);
-        this.log('setFanSatus: Power is: %s', responseValues.pow);
-        this.log('setFanSatus: Mode is: %s', responseValues.mode);
-        // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
-        if (responseValues.pow === '0') value = 1;
+      this.log('setFanStatus: HomeKit requested a new state of: %s', value);
+      const responseValues = this.parseResponse(body);
+      this.log('setFanStatus: Current Power is: %s. 0=Off, 1=On', responseValues.pow);
+      this.log('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
+      let targetMode;
+      targetMode = responseValues.mode;
+      if (responseValues.pow === '0') {
+                targetMode = 6;
+                this.log('setFanStatus: AC is currently powered off.');
+      } // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
+       // if (responseValues.pow === '0') value = 1;
 
-        // turn power on
-        let query;
-        if (responseValues.mode === 2)
-            query = `pow=${value}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+      // turn power on
+      let query;
+
+      if (targetPOW === '1') {
+        if (responseValues.mode === 2) // Current Mode is Dehumidification. In this special case we keep the current state and do not switch to FAN mode.
+            query = `pow=${targetPOW}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
         else
-            query = `pow=${value}&mode=${responseValues.mode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+            query = `pow=${targetPOW}&mode=${targetMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+      } else {
+            query = body
+              .replace(/,/g, '&').replace(/pow=[01]/, `pow=${targetPOW}`)
+              .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+              .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
+              .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
+              .replace(/shum=--/, `shum=${'0'}`);
+      }
 
-        this.log.debug('setFanSatus: query stage 1 is: %s', query);
-        this.log.debug('setFanSatus: query stage 2 is: %s', query);
-        this.sendGetRequest(this.set_control_info + '?' + query, response => {
-          callback();
-        }, true /* skipCache */);
+      this.log.debug('setFanStatus: going to send this query: %s', query);
+      this.sendGetRequest(this.set_control_info + '?' + query, response => {
+        callback();
       }, true /* skipCache */);
+    }, true /* skipCache */);
   },
 
   setFanSpeed: function (value, callback) {

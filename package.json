@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2020.33.2",
+  "version": "2020.39.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -29,6 +29,16 @@
     "url": "https://github.com/cbrandlehner/homebridge-daikin-local/issues"
   },
   "homepage": "https://github.com/cbrandlehner/homebridge-daikin-local#readme",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/cbrandlehner"
+    },
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/CBrandlehner"
+    }
+  ],
   "main": "index.js",
   "scripts": {
     "pretest": "eslint --ignore-path .gitignore package.json config.schema.json sample-config.json",
@@ -38,7 +48,8 @@
     "eslint": ">=6.8.0",
     "eslint-plugin-json": "^1.4.0",
     "xo": ">=0.27.2",
-    "minimist": ">=0.2.1"
+    "minimist": ">=0.2.1",
+    "yargs-parser": ">=13.1.2"
   },
   "xo": {
     "space": false,
