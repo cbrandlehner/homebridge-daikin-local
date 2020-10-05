@@ -18,7 +18,7 @@ function Daikin(log, config) {
     active: true, // set false to pause queue
     rate: 1, // how many requests can be sent every `ratePer`
     ratePer: 500, // number of ms in which `rate` requests may be sent
-    concurrent: 1 // how many requests can fbe sent concurrently
+    concurrent: 1 // how many requests can be sent concurrently
   });
 
   if (config.name === undefined) {
@@ -91,11 +91,16 @@ function Daikin(log, config) {
 
   if (config.defaultMode === undefined) {
     this.log.warn('ERROR: your configuration is missing the parameter "defaultMode", using default');
-    this.defaultMode = '0';
+    this.defaultMode = '1';
     this.log.debug('Config: defaultMode is %s', this.defaultMode);
   } else {
     this.log.debug('Config: defaultMode is %s', config.defaultMode);
     this.defaultMode = config.defaultMode;
+  }
+
+  if (config.defaultMode === 0) {
+    this.log.error('ERROR: the parameter "defaultMode" is set to an illegal value of "0". Going to use a value of "1" (Auto) instead.');
+    this.defaultMode = '1';
   }
 
   if (config.fanMode === 'FAN') {
@@ -109,7 +114,7 @@ function Daikin(log, config) {
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
   } else {
-      this.log.warn('ERROR: your configuration has an invalid value for parameter "fanMode", using default');
+      this.log.error('ERROR: your configuration has an invalid value for parameter "fanMode", using default');
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
   }
@@ -165,14 +170,13 @@ function Daikin(log, config) {
 
   this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
-  this.log.info('**************************************************************');
+  this.log.info('*****************************************************************');
   this.log.info('  homebridge-daikin-local version ' + packageFile.version);
   this.log.info('  GitHub: https://github.com/cbrandlehner/homebridge-daikin-local ');
-  this.log.info('**************************************************************');
-  this.log.info('start success...');
+  this.log.info('*****************************************************************');
   this.log.info('accessory name: ' + this.name);
   this.log.info('accessory ip: ' + this.apiIP);
-  this.log.info('system: ' + this.system);
+  this.log.debug('system: ' + this.system);
   this.log.debug('Debug mode enabled');
 
   this.FanService = new Service.Fan(this.fanName);
@@ -197,6 +201,7 @@ Daikin.prototype = {
 
   sendGetRequest(path, callback, skipCache) {
     this.log.debug('attempting request: path: %s', path);
+    this.log.debug('skipping cache is set to %s', skipCache);
     this._queueGetRequest(path, callback, skipCache);
   },
 
@@ -229,12 +234,12 @@ Daikin.prototype = {
     this.log.debug('requesting from API: path: %s', path);
     superagent
       .get(path)
-      .retry(this.retries) // 5 // retry 5 times
+      // .retry(this.retries) // 5 // retry 5 times
       .timeout({
         response: 2000, // 2000, // Wait 2 seconds for the server to start sending,
         deadline: 5000 // 60000 // but allow 1 minute for the request to finish loading.
       })
-      .use(this.throttle.plugin())
+      // .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP)
       .end((err, res) => {
@@ -287,7 +292,7 @@ Daikin.prototype = {
   getActive(callback) {
         this.sendGetRequest(this.get_control_info, body => {
           const responseValues = this.parseResponse(body);
-          this.log.debug('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
+          this.log.info('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
           let HomeKitState = '0';
           if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or an Humidity-mode then show AC OFF in HomeKit
             HomeKitState = '0';
@@ -310,21 +315,21 @@ Daikin.prototype = {
             case '1': // Auto
             this.log.warn('Auto');
               query = query
-                .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
                 .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
                 .replace(/shum=--/, `shum=${'0'}`);
                 break;
             case '3': // COOL
               query = query
-                .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
                 .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
                 .replace(/shum=--/, `shum=${'0'}`);
                 break;
                 case '4': // HEAT
                   query = query
-                    .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+                    .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                     .replace(/stemp=--/, `stemp=${responseValues.dt5}`)
                     .replace(/dt3=--/, `dt3=${responseValues.dt5}`)
                     .replace(/shum=--/, `shum=${'0'}`);
@@ -334,7 +339,7 @@ Daikin.prototype = {
           }
 
           query = query
-            .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+            .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
             .replace(/stemp=--/, `stemp=${'25.0'}`)
             .replace(/dt3=--/, `dt3=${'25.0'}`)
             .replace(/shum=--/, `shum=${'0'}`);
@@ -356,14 +361,14 @@ Daikin.prototype = {
       3 - 3D swing
       */
       this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
-      this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+      this.log.info('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
       callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
     });
   },
 
   setSwingMode(swing, callback) {
     this.sendGetRequest(this.get_control_info, body => {
-      this.log.debug('setSwingMode: swing mode: %s', swing);
+      this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
       if (swing !== Characteristic.SwingMode.SWING_DISABLED) swing = this.swingMode;
       let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
       query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
@@ -437,19 +442,22 @@ Daikin.prototype = {
                   let mode = currentValues.mode;
                   switch (state) {
                       case Characteristic.TargetHeaterCoolerState.AUTO:
+                          this.log.info('HomeKit requested the AC to operate in AUTO mode.');
                           mode = 0;
                           break;
                       case Characteristic.TargetHeaterCoolerState.COOL:
+                          this.log.info('HomeKit requested the AC to operate in COOL mode.');
                           mode = 3;
                           break;
                       case Characteristic.TargetHeaterCoolerState.HEAT:
+                          this.log.info('HomeKit requested the AC to operate in HEAT mode.');
                           mode = 4;
                           break;
                       default:
                           break;
                   }
 
-                  const query = body.replace(/,/g, '&').replace(/mode=[0123456]/, `mode=${mode}`);
+                  const query = body.replace(/,/g, '&').replace(/mode=[01234567]/, `mode=${mode}`);
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
@@ -579,37 +587,39 @@ getFanStatus: function (callback) {
 },
 
 getFanSpeed: function (callback) {
-  this.log.debug('getFanSpeed');
   this.sendGetRequest(this.get_control_info, body => {
           const responseValues = this.parseResponse(body);
           this.log.debug('getFanSpeed: body is %s', body);
           this.log.debug('getFanSpeed: f_rate is %s', responseValues.f_rate);
           const HomeKitFanSpeed = this.daikinSpeedToRaw(responseValues.f_rate);
-          this.log.debug('getFanSpeed: The current speed for HomeKit is %s', HomeKitFanSpeed);
+          this.log('getFanSpeed: Reporting a current FAN speed of %s Percent to HomeKit.', HomeKitFanSpeed);
           callback(null, HomeKitFanSpeed);
       });
 },
 
   setFanStatus: function (value, callback) {
-    this.log('setFanStatus received value: %s', value);
+    this.log.debug('setFanStatus: HomeKit requested FAN operation state is: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
       let targetPOW;
-      if (value === true)
+      if (value === true) {
         // value = 1;
+        this.log.info('setFanStatus: HomeKit requested to turn the FAN on.');
         targetPOW = '1';
-      else
+      } else {
         // value = 0;
         targetPOW = '0';
+        this.log.info('setFanStatus: HomeKit requested to turn the FAN off.');
+      }
 
-      this.log('setFanStatus: HomeKit requested a new state of: %s', value);
+      this.log.debug('setFanStatus: HomeKit requested a new state of: %s', value);
       const responseValues = this.parseResponse(body);
-      this.log('setFanStatus: Current Power is: %s. 0=Off, 1=On', responseValues.pow);
-      this.log('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
+      this.log.debug('setFanStatus: Current Power is: %s. 0=Off, 1=On', responseValues.pow);
+      this.log.debug('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
       let targetMode;
       targetMode = responseValues.mode;
       if (responseValues.pow === '0') {
                 targetMode = 6;
-                this.log('setFanStatus: AC is currently powered off.');
+                this.log.debug('setFanStatus: AC is currently powered off.');
       } // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
        // if (responseValues.pow === '0') value = 1;
 
@@ -624,13 +634,13 @@ getFanSpeed: function (callback) {
       } else {
             query = body
               .replace(/,/g, '&').replace(/pow=[01]/, `pow=${targetPOW}`)
-              .replace(/mode=[0123456]/, `mode=${this.defaultMode}`)
+              .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
               .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
               .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
               .replace(/shum=--/, `shum=${'0'}`);
       }
 
-      this.log.debug('setFanStatus: going to send this query: %s', query);
+      this.log.warn('setFanStatus: going to send this query: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
       }, true /* skipCache */);
@@ -638,9 +648,9 @@ getFanSpeed: function (callback) {
   },
 
   setFanSpeed: function (value, callback) {
-    this.log.debug('setFanSpeed received value: %s', value);
+    this.log('setFanSpeed: HomeKit requested a FAN speed of %s Percent.', value);
     value = this.rawToDaikinSpeed(value);
-    this.log.debug('setFanSpeed f_rate value: %s', value);
+    this.log.debug('setFanSpeed: this translates to Daikin f_rate value: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
       let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${value}`);
       query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${value}`);
