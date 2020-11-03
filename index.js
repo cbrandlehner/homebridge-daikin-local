@@ -199,13 +199,34 @@ Daikin.prototype = {
     return vals;
   },
 
-  sendGetRequest(path, callback, skipCache) {
+  sendGetRequest(path, callback, skipCache, skipQueue) {
     this.log.debug('attempting request: path: %s', path);
     this.log.debug('skipping cache is set to %s', skipCache);
-    this._queueGetRequest(path, callback, skipCache);
+
+    if (skipQueue) {
+      this.log.debug('skipping queue: path: %s', path);
+      this._immediateGetRequest(path, callback, skipCache);
+      return;
+    }
+
+    this._queuedGetRequest(path, callback, skipCache);
   },
 
-  _queueGetRequest(path, callback, skipCache) {
+  _immediateGetRequest(path, callback, skipCache) {
+    this._doSendGetRequest(path, (err, res) => {
+      if (err) {
+        this.log.error('ERROR: request to %s returned error %s', path, err);
+        return;
+      }
+
+      this.log.debug('request finished: path: %s', path);
+
+      // actual response callback
+      callback(res);
+    }, skipCache);
+  },
+
+  _queuedGetRequest(path, callback, skipCache) {
     this.log.debug('queuing request: path: %s', path);
 
     this.queue.add(done => {
@@ -347,7 +368,7 @@ Daikin.prototype = {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, true /* skipCache */);
+        }, true /* skipCache */, true /* skipQueue */);
     }, true /* skipCache */);
   },
 
@@ -375,7 +396,7 @@ Daikin.prototype = {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
+      }, true /* skipCache */, true /* skipQueue */);
     }, true /* skipCache */);
   },
 
@@ -461,7 +482,7 @@ Daikin.prototype = {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */);
+                  }, true /* skipCache */, true /* skipQueue */);
               }, true /* skipCache */);
         },
 
@@ -490,7 +511,7 @@ Daikin.prototype = {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, true /* skipCache */);
+                }, true /* skipCache */, true /* skipQueue */);
             }, true /* skipCache */);
         },
 
@@ -511,7 +532,7 @@ Daikin.prototype = {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */);
+                  }, true /* skipCache */, true /* skipQueue */);
               }, true /* skipCache */);
           },
 
@@ -643,7 +664,7 @@ getFanSpeed: function (callback) {
       this.log.warn('setFanStatus: going to send this query: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
+      }, true /* skipCache */, true /* skipQueue */);
     }, true /* skipCache */);
   },
 
@@ -657,7 +678,7 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
+      }, true /* skipCache */, true /* skipQueue */);
     }, true /* skipCache */);
   },
 
