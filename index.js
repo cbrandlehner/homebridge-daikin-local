@@ -199,14 +199,14 @@ Daikin.prototype = {
     return vals;
   },
 
-  sendGetRequest(path, callback, skipCache, skipQueue) {
+  sendGetRequest(path, callback, options) {
     this.log.debug('attempting request: path: %s', path);
 
-    this._queueGetRequest(path, callback, skipCache, skipQueue);
+    this._queueGetRequest(path, callback, options);
   },
 
-  _queueGetRequest(path, callback, skipCache, skipQueue) {
-    const method = skipQueue ? 'prepend' : 'append';
+  _queueGetRequest(path, callback, options) {
+    const method = options.skipQueue ? 'prepend' : 'append';
 
     this.log.debug(`queuing (${method}) request: path: %s`, path);
 
@@ -225,12 +225,12 @@ Daikin.prototype = {
           // actual response callback
           callback(res);
           done();
-        }, skipCache);
+        }, options);
     });
   },
 
-  _doSendGetRequest(path, callback, skipCache) {
-    if (this._serveFromCache(path, callback, skipCache))
+  _doSendGetRequest(path, callback, options) {
+    if (this._serveFromCache(path, callback, options))
       return;
 
     this.log.debug('requesting from API: path: %s', path);
@@ -259,10 +259,10 @@ Daikin.prototype = {
       });
   },
 
-  _serveFromCache(path, callback, skipCache) {
+  _serveFromCache(path, callback, options) {
     this.log.debug('requesting from cache: path: %s', path);
 
-    if (skipCache) {
+    if (options.skipCache) {
       this.log.debug('cache SKIP: path: %s', path);
       return false;
     }
@@ -349,8 +349,8 @@ Daikin.prototype = {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, true /* skipCache */, true /* skipQueue */);
-    }, true /* skipCache */);
+        }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getSwingMode(callback) {
@@ -377,8 +377,8 @@ Daikin.prototype = {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */, true /* skipQueue */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getHeaterCoolerState(callback) {
@@ -463,8 +463,8 @@ Daikin.prototype = {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */, true /* skipQueue */);
-              }, true /* skipCache */);
+                  }, {skipCache: true, skipQueue: true});
+              }, {skipCache: true});
         },
 
   getCurrentTemperature(callback) {
@@ -492,8 +492,8 @@ Daikin.prototype = {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, true /* skipCache */, true /* skipQueue */);
-            }, true /* skipCache */);
+                }, {skipCache: true, skipQueue: true});
+            }, {skipCache: true});
         },
 
   getHeatingTemperature(callback) {
@@ -513,8 +513,8 @@ Daikin.prototype = {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */, true /* skipQueue */);
-              }, true /* skipCache */);
+                  }, {skipCache: true, skipQueue: true});
+              }, {skipCache: true});
           },
 
   identify: function (callback) {
@@ -645,8 +645,8 @@ getFanSpeed: function (callback) {
       this.log.warn('setFanStatus: going to send this query: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */, true /* skipQueue */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   setFanSpeed: function (value, callback) {
@@ -659,8 +659,8 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */, true /* skipQueue */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getTemperatureDisplayUnits: function (callback) {
