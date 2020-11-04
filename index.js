@@ -201,35 +201,16 @@ Daikin.prototype = {
 
   sendGetRequest(path, callback, skipCache, skipQueue) {
     this.log.debug('attempting request: path: %s', path);
-    this.log.debug('skipping cache is set to %s', skipCache);
 
-    if (skipQueue) {
-      this.log.debug('skipping queue: path: %s', path);
-      this._immediateGetRequest(path, callback, skipCache);
-      return;
-    }
-
-    this._queuedGetRequest(path, callback, skipCache);
+    this._queueGetRequest(path, callback, skipCache, skipQueue);
   },
 
-  _immediateGetRequest(path, callback, skipCache) {
-    this._doSendGetRequest(path, (err, res) => {
-      if (err) {
-        this.log.error('ERROR: request to %s returned error %s', path, err);
-        return;
-      }
+  _queueGetRequest(path, callback, skipCache, skipQueue) {
+    const method = skipQueue ? 'prepend' : 'append';
 
-      this.log.debug('request finished: path: %s', path);
+    this.log.debug(`queuing (${method}) request: path: %s`, path);
 
-      // actual response callback
-      callback(res);
-    }, skipCache);
-  },
-
-  _queuedGetRequest(path, callback, skipCache) {
-    this.log.debug('queuing request: path: %s', path);
-
-    this.queue.add(done => {
+    this.queue[method](done => {
       this.log.debug('executing queued request: path: %s', path);
 
         this._doSendGetRequest(path, (err, res) => {
