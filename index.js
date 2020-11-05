@@ -64,7 +64,7 @@ function Daikin(log, config) {
 
   if (config.response === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "response", using default');
-    this.response = 2000;
+    this.response = 5000;
     this.log.debug('Config: response is %s', this.response);
   } else {
     this.log.debug('Config: response is %s', config.response);
@@ -73,7 +73,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 60000;
+      this.deadline = 10000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
@@ -82,7 +82,7 @@ function Daikin(log, config) {
 
   if (config.retries === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
-      this.retries = 5;
+      this.retries = 3;
       this.log.debug('Config: retries is %s', this.retries);
     } else {
       this.log.debug('Config: retries is %s', config.retries);
@@ -202,7 +202,7 @@ Daikin.prototype = {
   sendGetRequest(path, callback, options) {
     this.log.debug('attempting request: path: %s', path);
 
-    this._queueGetRequest(path, callback, options);
+    this._queueGetRequest(path, callback, options || {});
   },
 
   _queueGetRequest(path, callback, options) {
@@ -236,12 +236,12 @@ Daikin.prototype = {
     this.log.debug('requesting from API: path: %s', path);
     superagent
       .get(path)
-      // .retry(this.retries) // 5 // retry 5 times
+      .retry(this.retries) // retry 3 (default) times
       .timeout({
-        response: 2000, // 2000, // Wait 2 seconds for the server to start sending,
-        deadline: 5000 // 60000 // but allow 1 minute for the request to finish loading.
+        response: this.response, // Wait 5 (default) seconds for the server to start sending,
+        deadline: this.deadline // but allow 10 (default) seconds for the request to finish loading.
       })
-      // .use(this.throttle.plugin())
+      .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP)
       .end((err, res) => {
