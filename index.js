@@ -64,7 +64,7 @@ function Daikin(log, config) {
 
   if (config.response === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "response", using default');
-    this.response = 2000;
+    this.response = 5000;
     this.log.debug('Config: response is %s', this.response);
   } else {
     this.log.debug('Config: response is %s', config.response);
@@ -73,7 +73,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 60000;
+      this.deadline = 10000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
@@ -82,7 +82,7 @@ function Daikin(log, config) {
 
   if (config.retries === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
-      this.retries = 5;
+      this.retries = 3;
       this.log.debug('Config: retries is %s', this.retries);
     } else {
       this.log.debug('Config: retries is %s', config.retries);
@@ -199,16 +199,18 @@ Daikin.prototype = {
     return vals;
   },
 
-  sendGetRequest(path, callback, skipCache) {
+  sendGetRequest(path, callback, options) {
     this.log.debug('attempting request: path: %s', path);
-    this.log.debug('skipping cache is set to %s', skipCache);
-    this._queueGetRequest(path, callback, skipCache);
+
+    this._queueGetRequest(path, callback, options || {});
   },
 
-  _queueGetRequest(path, callback, skipCache) {
-    this.log.debug('queuing request: path: %s', path);
+  _queueGetRequest(path, callback, options) {
+    const method = options.skipQueue ? 'prepend' : 'append';
 
-    this.queue.add(done => {
+    this.log.debug(`queuing (${method}) request: path: %s`, path);
+
+    this.queue[method](done => {
       this.log.debug('executing queued request: path: %s', path);
 
         this._doSendGetRequest(path, (err, res) => {
@@ -223,23 +225,23 @@ Daikin.prototype = {
           // actual response callback
           callback(res);
           done();
-        }, skipCache);
+        }, options);
     });
   },
 
-  _doSendGetRequest(path, callback, skipCache) {
-    if (this._serveFromCache(path, callback, skipCache))
+  _doSendGetRequest(path, callback, options) {
+    if (this._serveFromCache(path, callback, options))
       return;
 
     this.log.debug('requesting from API: path: %s', path);
     superagent
       .get(path)
-      // .retry(this.retries) // 5 // retry 5 times
+      .retry(this.retries) // retry 3 (default) times
       .timeout({
-        response: 2000, // 2000, // Wait 2 seconds for the server to start sending,
-        deadline: 5000 // 60000 // but allow 1 minute for the request to finish loading.
+        response: this.response, // Wait 5 (default) seconds for the server to start sending,
+        deadline: this.deadline // but allow 10 (default) seconds for the request to finish loading.
       })
-      // .use(this.throttle.plugin())
+      .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP)
       .end((err, res) => {
@@ -257,10 +259,10 @@ Daikin.prototype = {
       });
   },
 
-  _serveFromCache(path, callback, skipCache) {
+  _serveFromCache(path, callback, options) {
     this.log.debug('requesting from cache: path: %s', path);
 
-    if (skipCache) {
+    if (options.skipCache) {
       this.log.debug('cache SKIP: path: %s', path);
       return false;
     }
@@ -347,8 +349,8 @@ Daikin.prototype = {
 
         this.sendGetRequest(this.set_control_info + '?' + query, response => {
           callback();
-        }, true /* skipCache */);
-    }, true /* skipCache */);
+        }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getSwingMode(callback) {
@@ -375,8 +377,8 @@ Daikin.prototype = {
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getHeaterCoolerState(callback) {
@@ -461,8 +463,8 @@ Daikin.prototype = {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */);
-              }, true /* skipCache */);
+                  }, {skipCache: true, skipQueue: true});
+              }, {skipCache: true});
         },
 
   getCurrentTemperature(callback) {
@@ -490,8 +492,8 @@ Daikin.prototype = {
             .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
-                }, true /* skipCache */);
-            }, true /* skipCache */);
+                }, {skipCache: true, skipQueue: true});
+            }, {skipCache: true});
         },
 
   getHeatingTemperature(callback) {
@@ -511,8 +513,8 @@ Daikin.prototype = {
               .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
-                  }, true /* skipCache */);
-              }, true /* skipCache */);
+                  }, {skipCache: true, skipQueue: true});
+              }, {skipCache: true});
           },
 
   identify: function (callback) {
@@ -643,8 +645,8 @@ getFanSpeed: function (callback) {
       this.log.warn('setFanStatus: going to send this query: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   setFanSpeed: function (value, callback) {
@@ -657,8 +659,8 @@ getFanSpeed: function (callback) {
       this.log.debug('setFanSpeed: Query is: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback();
-      }, true /* skipCache */);
-    }, true /* skipCache */);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getTemperatureDisplayUnits: function (callback) {
