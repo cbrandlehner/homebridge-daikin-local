@@ -120,6 +120,10 @@ Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
 Daikin BRP069B45, Model: 0000, Firmware: 1.2.51
 
+Daikin Emura BRP072A43, model 10C8, firmware 2.9
+
+Daikin Emura BRP072A43, model 10C9, firmware 2.9
+
 Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
 
 Daikin FKXS20, Model: BRP069A43, Firmware 1.2.51
