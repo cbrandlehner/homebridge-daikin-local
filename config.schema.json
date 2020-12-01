@@ -18,6 +18,12 @@
         "default": "http://192.168.1.33",
         "format": "uri"
       },
+      "uuid": {
+        "title": "Client UUID token.",
+        "description": "Should be a 32 digit hex string",
+        "type": "string",
+        "required": false
+      },
       "system": {
         "type": "string",
         "title": "Daikin default or Skyfi",
@@ -37,7 +43,7 @@
       },
       "disableFan": {
         "title": "Fan disabled",
-        "description": "Wether to have both AC and Fan or only AC",
+        "description": "Whether to have both AC and Fan or only AC",
         "type": "boolean",
         "default": false
       },
