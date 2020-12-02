@@ -133,6 +133,12 @@ function Daikin(log, config) {
   else
       this.disableFan = true;
 
+  if (config.uuid === undefined) {
+      this.uuid = '';
+  } else {
+      this.uuid = config.uuid;
+  }
+
   switch (this.system) {
     case 'Default':
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
@@ -234,7 +240,7 @@ Daikin.prototype = {
       return;
 
     this.log.debug('requesting from API: path: %s', path);
-    superagent
+    let request = superagent
       .get(path)
       .retry(this.retries) // retry 3 (default) times
       .timeout({
@@ -243,20 +249,24 @@ Daikin.prototype = {
       })
       .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
-      .set('Host', this.apiIP)
-      .end((err, res) => {
-        if (err) {
-          callback(err);
-          return this.log.error('ERROR: API request to %s returned error %s', path, err);
-        }
+      .set('Host', this.apiIP);
+    if (this.uuid !== '') {
+        request.set('X-Daikin-uuid', this.uuid)
+            .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+    }
+    request.end((err, res) => {
+      if (err) {
+        callback(err);
+        return this.log.error('ERROR: API request to %s returned error %s', path, err);
+      }
 
-        this.log.debug('set cache: path: %s', path);
-        this.cache.set(path, res.text);
+      this.log.debug('set cache: path: %s', path);
+      this.cache.set(path, res.text);
 
-        this.log.debug('responding from API: %s', res.text);
-        callback(err, res.text);
-        // Calling the end function will send the request
-      });
+      this.log.debug('responding from API: %s', res.text);
+      callback(err, res.text);
+      // Calling the end function will send the request
+    });
   },
 
   _serveFromCache(path, callback, options) {

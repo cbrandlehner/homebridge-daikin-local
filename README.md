@@ -92,9 +92,9 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 
 # Supported devices
 
-Currently this plugin supports Daikin wifi controllers supporting the "aircon" URLs (System: Default) and "skyfi" URLs (System: Skyfi).
+Currently, this plugin supports Daikin wifi controllers supporting the "aircon" URLs (System: Default) and "skyfi" URLs (System: Skyfi).
 
-To test, use your browser to connect to your device using one of this URLs:
+To test `http` connectivity, use your browser to connect to your device using one of these URLs:
  ```
 http://192.168.1.88/aircon/get_model_info
 http://192.168.1.88/skyfi/aircon/get_model_info
@@ -106,6 +106,8 @@ Your browser should return a line like this:
 ret=OK,model=0AB9,type=N,pv=2,cpv=2,cpv_minor=00,mid=NA,humd=0,s_humd=0,acled=0,land=0,elec=0,temp=1,temp_rng=0,m_dtct=1,ac_dst=--,disp_dry=0,dmnd=0,en_scdltmr=1,en_frate=1,en_fdir=1,s_fdir=3,en_rtemp_a=0,en_spmode=0,en_ipw_sep=0,en_mompow=0
  ```
 If it does not, your device is not yet supported.
+
+To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)
 
 The response of an usupported device will look like this:
  ```
@@ -119,6 +121,8 @@ Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
 Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
 
 Daikin BRP069B45, Model: 0000, Firmware: 1.2.51
+
+Daikin BRP072C42, Model: 0000, Firmware: 1.13.7 (requires https and token)
 
 Daikin Emura BRP072A43, model 10C8, firmware 2.9
 
@@ -144,6 +148,50 @@ Daikin FTXA20 (Stylish), Model: FTXA20A2V1BW, Firmware 1.2.51
 
 
 If you have other devices or firmware versions working, please let me know so I can update the list of tested devices.
+
+## HTTPS/Registered client support<a id="https-registered-client"></a>
+
+Some models require requests via `https` containing a registered client token.
+
+It is necessary to register a client token with each device.
+The same token may be registered with multiple devices.
+
+These instructions are based on comments in [GitHub Project ael-code/daikin-control Issue #27](https://github.com/ael-code/daikin-control/issues/27)
+
+1. Generate a UUID4 (https://www.uuidgenerator.net can be used), _e.g._ `7b9c9a47-c9c6-4ee1-9063-848e67cc7edd`
+2. Strip the `-` from the UUID, _i.e._ `7b9c9a47c9c64ee19063848e67cc7edd`
+3. Grab the 13-digit key from the sticker on the back of the controller. _e.g._ `0123456789012`
+4. Register the UUID as a client token
+```
+curl --insecure -H "X-Daikin-uuid: 7b9c9a47c9c64ee19063848e67cc7edd" -v "https://<controller-ip>/common/register_terminal?key=0123456789012"
+```
+
+This UUID must be used in client requests to the device.
+
+Test your registered token using the above requests but using `https` instead of `http`, _e.g._
+```
+curl --insecure -H "X-Daikin-uuid: 7b9c9a47c9c64ee19063848e67cc7edd" -v "https://192.168.1.88/aircon/get_model_info"
+curl --insecure -H "X-Daikin-uuid: 7b9c9a47c9c64ee19063848e67cc7edd" -v "https://192.168.1.88/skifi/aircon/get_model_info"
+```
+
+In the configuration file, make sure you specify `https` in the `apiroute` option
+and add the registered token as the value of `uuid` in the configuration for _each_ device, _e.g._
+```
+        "accessories": [
+            {
+                "accessory": "Daikin-Local",
+                "name": "Living room",
+                "apiroute": "https://192.168.1.50",
+                "uuid": "7b9c9a47c9c64ee19063848e67cc7edd",
+                "system": "Default",
+                "swingMode": "2",
+                "defaultMode": "0",
+                "fanMode": "FAN",
+                "fanName": "Living room FAN"
+            }
+        ],
+```
+Make sure to use the correct token if a different token has been registered with each device.
 
 # Debugging and Testing
 
