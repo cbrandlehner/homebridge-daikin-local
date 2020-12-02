@@ -1,9 +1,10 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 ![node](https://img.shields.io/node/v/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
-[![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
+[![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://github.com/cbrandlehner/homebridge-daikin-local/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/homebridge-daikin-local.svg)](https://badge.fury.io/js/homebridge-daikin-local)
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/Node.js%20CI/badge.svg)
+![CodeQL](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/CodeQL/badge.svg)
 # homebridge-daikin-local
 
 Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
@@ -210,4 +211,4 @@ DEBUG=* homebridge -D
 
 # Credit
 
-This remake is based on homebridge-daikin. Since it's no longer maintained, I forked the project.
+This remake is based on homebridge-daikin. Since it's no longer maintained, [cbrandlehner](https://github.com/cbrandlehner/) forked the project.

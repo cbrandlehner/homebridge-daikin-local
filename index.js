@@ -133,11 +133,10 @@ function Daikin(log, config) {
   else
       this.disableFan = true;
 
-  if (config.uuid === undefined) {
+  if (config.uuid === undefined)
       this.uuid = '';
-  } else {
+    else
       this.uuid = config.uuid;
-  }
 
   switch (this.system) {
     case 'Default':
@@ -240,7 +239,7 @@ Daikin.prototype = {
       return;
 
     this.log.debug('requesting from API: path: %s', path);
-    let request = superagent
+    const request = superagent
       .get(path)
       .retry(this.retries) // retry 3 (default) times
       .timeout({
@@ -254,6 +253,7 @@ Daikin.prototype = {
         request.set('X-Daikin-uuid', this.uuid)
             .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
     }
+
     request.end((err, res) => {
       if (err) {
         callback(err);
