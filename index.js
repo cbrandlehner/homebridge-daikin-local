@@ -196,8 +196,8 @@ Daikin.prototype = {
             const items = response.split(',');
             const length = items.length;
             for (let i = 0; i < length; i++) {
-                const keyVal = items[i].split('=');
-                vals[keyVal[0]] = keyVal[1];
+                const keyValue = items[i].split('=');
+                vals[keyValue[0]] = keyValue[1];
             }
         }
 
@@ -218,7 +218,7 @@ Daikin.prototype = {
     this.queue[method](done => {
       this.log.debug('executing queued request: path: %s', path);
 
-        this._doSendGetRequest(path, (err, res) => {
+        this._doSendGetRequest(path, (err, response) => {
           if (err) {
             this.log.error('ERROR: Queued request to %s returned error %s', path, err);
             done();
@@ -228,7 +228,7 @@ Daikin.prototype = {
           this.log.debug('queued request finished: path: %s', path);
 
           // actual response callback
-          callback(res);
+          callback(response);
           done();
         }, options);
     });
@@ -254,17 +254,17 @@ Daikin.prototype = {
             .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
     }
 
-    request.end((err, res) => {
+    request.end((err, response) => {
       if (err) {
         callback(err);
         return this.log.error('ERROR: API request to %s returned error %s', path, err);
       }
 
       this.log.debug('set cache: path: %s', path);
-      this.cache.set(path, res.text);
+      this.cache.set(path, response.text);
 
-      this.log.debug('responding from API: %s', res.text);
-      callback(err, res.text);
+      this.log.debug('responding from API: %s', response.text);
+      callback(err, response.text);
       // Calling the end function will send the request
     });
   },
@@ -492,14 +492,14 @@ Daikin.prototype = {
           });
         },
 
-  setCoolingTemperature(temp, callback) {
+  setCoolingTemperature(temperature, callback) {
           this.sendGetRequest(this.get_control_info, body => {
-          temp = Math.round(temp * 2) / 2; // Daikin only supports steps of 0.5 degree
-          temp = temp.toFixed(1); // Daikin always expects a precision of 1
+          temperature = Math.round(temperature * 2) / 2; // Daikin only supports steps of 0.5 degree
+          temperature = temperature.toFixed(1); // Daikin always expects a precision of 1
           const query = body
             .replace(/,/g, '&')
-            .replace(/stemp=[0-9.]+/, `stemp=${temp}`)
-            .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
+            .replace(/stemp=[\d.]+/, `stemp=${temperature}`)
+            .replace(/dt3=[\d.]+/, `dt3=${temperature}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                     callback();
                 }, {skipCache: true, skipQueue: true});
@@ -513,14 +513,14 @@ Daikin.prototype = {
               });
         },
 
-  setHeatingTemperature(temp, callback) {
+  setHeatingTemperature(temperature, callback) {
           this.sendGetRequest(this.get_control_info, body => {
-            temp = Math.round(temp * 2) / 2; // Daikin only supports steps of 0.5 degree
-            temp = temp.toFixed(1); // Daikin always expects a precision of 1
+            temperature = Math.round(temperature * 2) / 2; // Daikin only supports steps of 0.5 degree
+            temperature = temperature.toFixed(1); // Daikin always expects a precision of 1
             const query = body
               .replace(/,/g, '&')
-              .replace(/stemp=[0-9.]+/, `stemp=${temp}`)
-              .replace(/dt3=[0-9.]+/, `dt3=${temp}`);
+              .replace(/stemp=[\d.]+/, `stemp=${temperature}`)
+              .replace(/dt3=[\d.]+/, `dt3=${temperature}`);
           this.sendGetRequest(this.set_control_info + '?' + query, response => {
                       callback();
                   }, {skipCache: true, skipQueue: true});
