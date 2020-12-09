@@ -53,6 +53,24 @@ function Daikin(log, config) {
     this.log.debug('Config: apiroute is %s', config.apiroute);
   }
 
+  if (config.HeatingMinTarget === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "HeatingMinTarget", using default');
+    this.HeatingMinTarget = '3';
+    this.log.debug('Config: HeatingMinTarget is %s', this.HeatingMinTarget);
+  } else {
+    this.log.debug('Config: HeatingMinTarget is %s', config.HeatingMinTarget);
+    this.HeatingMinTarget = config.HeatingMinTarget;
+  }
+
+  if (config.HeatingMaxTarget === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "HeatingMaxTarget", using default');
+    this.HeatingMinTarget = '25';
+    this.log.debug('Config: HeatingMaxTarget is %s', this.HeatingMaxTarget);
+  } else {
+    this.log.debug('Config: HeatingMaxTarget is %s', config.HeatingMaxTarget);
+    this.HeatingMaxTarget = config.HeatingMaxTarget;
+  }
+
   if (config.swingMode === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "swingMode", using default');
     this.swingMode = '1';
@@ -733,7 +751,12 @@ getFanSpeed: function (callback) {
     this.heaterCoolerService
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
       .on('get', this.getHeatingTemperature.bind(this))
-      .on('set', this.setHeatingTemperature.bind(this));
+      .on('set', this.setHeatingTemperature.bind(this))
+      .setProps({
+				minValue: this.HeatingMinTarget,
+				maxValue: this.HeatingMaxTarget,
+				minStep: 0.5
+			});
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.SwingMode)
