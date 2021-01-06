@@ -1,7 +1,6 @@
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
-// const URL = require('url').URL;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
 const Cache = require('./cache');
@@ -218,9 +217,9 @@ Daikin.prototype = {
     this.queue[method](done => {
       this.log.debug('executing queued request: path: %s', path);
 
-        this._doSendGetRequest(path, (err, response) => {
-          if (err) {
-            this.log.error('ERROR: Queued request to %s returned error %s', path, err);
+        this._doSendGetRequest(path, (error, response) => {
+          if (error) {
+            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
             done();
             return;
           }
@@ -254,17 +253,17 @@ Daikin.prototype = {
             .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
     }
 
-    request.end((err, response) => {
-      if (err) {
-        callback(err);
-        return this.log.error('ERROR: API request to %s returned error %s', path, err);
+    request.end((error, response) => {
+      if (error) {
+        callback(error);
+        return this.log.error('ERROR: API request to %s returned error %s', path, error);
       }
 
       this.log.debug('set cache: path: %s', path);
       this.cache.set(path, response.text);
 
       this.log.debug('responding from API: %s', response.text);
-      callback(err, response.text);
+      callback(error, response.text);
       // Calling the end function will send the request
     });
   },
@@ -304,7 +303,7 @@ Daikin.prototype = {
   getActive(callback) {
         this.sendGetRequest(this.get_control_info, body => {
           const responseValues = this.parseResponse(body);
-          this.log.info('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
+          this.log.debug('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
           let HomeKitState = '0';
           if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or an Humidity-mode then show AC OFF in HomeKit
             HomeKitState = '0';
@@ -373,7 +372,7 @@ Daikin.prototype = {
       3 - 3D swing
       */
       this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
-      this.log.info('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+      this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
       callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
     });
   },
@@ -414,6 +413,7 @@ Daikin.prototype = {
                   }
               }
 
+              this.log.debug('getHeaterCoolerState is %s', status);
               callback(null, status);
           });
       },
@@ -421,11 +421,16 @@ Daikin.prototype = {
   getTargetHeaterCoolerState(callback) {
         this.sendGetRequest(this.get_control_info, body => {
                 const responseValues = this.parseResponse(body);
-                let status = Characteristic.TargetHeaterCoolerState.INACTIVE;
+                this.log.debug('getTargetHeaterCoolerState responseValues.pow is %s', responseValues.pow);
+                let status = Characteristic.TargetHeaterCoolerState.AUTO;
                 if (responseValues.pow === '1') {
                     switch (responseValues.mode) {
                         case '0': // automatic
+                            status = Characteristic.TargetHeaterCoolerState.AUTO;
+                            break;
                         case '1': // humidification
+                            status = Characteristic.TargetHeaterCoolerState.AUTO;
+                            break;
                         case '2': // dehumidification
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
                             break;
@@ -443,6 +448,7 @@ Daikin.prototype = {
                     }
                 }
 
+                this.log.debug('getTargetHeaterCollerState is %s', status);
                 callback(null, status);
             });
         },
@@ -481,14 +487,16 @@ Daikin.prototype = {
           this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
           this.sendGetRequest(this.get_sensor_info, body => {
                   const responseValues = this.parseResponse(body);
-                  callback(null, responseValues.htemp);
+                  const currentTemperature = Number.parseFloat(responseValues.htemp);
+                  callback(null, currentTemperature);
           });
         },
 
   getCoolingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
-                  callback(null, responseValues.stemp);
+                  const coolingThresholdTemperature = Number.parseFloat(responseValues.stemp);
+                  callback(null, coolingThresholdTemperature);
           });
         },
 
@@ -509,7 +517,8 @@ Daikin.prototype = {
   getHeatingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
-                  callback(null, responseValues.stemp);
+                  const heatingThresholdTemperature = Number.parseFloat(responseValues.stemp);
+                  callback(null, heatingThresholdTemperature);
               });
         },
 
@@ -604,7 +613,7 @@ getFanSpeed: function (callback) {
           this.log.debug('getFanSpeed: body is %s', body);
           this.log.debug('getFanSpeed: f_rate is %s', responseValues.f_rate);
           const HomeKitFanSpeed = this.daikinSpeedToRaw(responseValues.f_rate);
-          this.log('getFanSpeed: Reporting a current FAN speed of %s Percent to HomeKit.', HomeKitFanSpeed);
+          this.log.debug('getFanSpeed: Reporting a current FAN speed of %s Percent to HomeKit.', HomeKitFanSpeed);
           callback(null, HomeKitFanSpeed);
       });
 },
@@ -742,7 +751,13 @@ getFanSpeed: function (callback) {
 
     this.heaterCoolerService
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
-    .on('get', this.getTemperatureDisplayUnits.bind(this))
+    // .on('get', this.getTemperatureDisplayUnits.bind(this))
+    .on('get', function (callback) {
+        if (this.temperature_unit === 'C')
+            callback(null, Characteristic.TemperatureDisplayUnits.CELSIUS);
+        else
+            callback(null, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
+    })
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
     let services;

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2020.51.1",
+  "version": "2021.2.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
