@@ -185,6 +185,7 @@ function Daikin(log, config) {
 
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
+  this.temperatureService = new Service.TemperatureSensor(this.name);
 }
 
 Daikin.prototype = {
@@ -737,12 +738,18 @@ getFanSpeed: function (callback) {
     this.heaterCoolerService
       .getCharacteristic(Characteristic.CoolingThresholdTemperature)
       .on('get', this.getCoolingTemperature.bind(this))
-      .on('set', this.setCoolingTemperature.bind(this));
+      .on('set', this.setCoolingTemperature.bind(this))
+      .setProps({minValue: Number.parseFloat('10'),
+                 maxValue: Number.parseFloat('32'),
+                 minStep: Number.parseFloat('0.5')});
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
       .on('get', this.getHeatingTemperature.bind(this))
-      .on('set', this.setHeatingTemperature.bind(this));
+      .on('set', this.setHeatingTemperature.bind(this))
+      .setProps({minValue: Number.parseFloat('10'),
+                 maxValue: Number.parseFloat('32'),
+                 minStep: Number.parseFloat('0.5')});
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.SwingMode)
@@ -760,11 +767,17 @@ getFanSpeed: function (callback) {
     })
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
+    this.temperatureService
+      .getCharacteristic(Characteristic.CurrentTemperature)
+      .setProps({minValue: Number.parseFloat('-50'),
+                 maxValue: Number.parseFloat('100')})
+      .on('get', this.getCurrentTemperature.bind(this));
+
     let services;
     if (this.disableFan === true)
-        services = [informationService, this.heaterCoolerService];
+        services = [informationService, this.heaterCoolerService, this.temperatureService];
     else
-        services = [informationService, this.heaterCoolerService, this.FanService];
+        services = [informationService, this.heaterCoolerService, this.FanService, this.temperatureService];
     return services;
   },
 

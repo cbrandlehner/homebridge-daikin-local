@@ -72,24 +72,6 @@
         ],
         "default": "0"
       },
-      "HeatingMinTarget": {
-        "title": "Minimum target heating temperature",
-        "description": "Apple Home will not allow a setting lower than this value.  Default: 3 degrees Celsius (prevent freeze)",
-        "type": "integer",
-        "default": 3,
-        "minimum": 3,
-        "maximum": 27,
-        "required": false
-      },
-      "HeatingMaxTarget": {
-        "title": "Maximum target heating temperature",
-        "description": "Apple Home will allow a setting up to this value.  Default: 25 degrees Celsius (prevent freeze)",
-        "type": "integer",
-        "default": 25,
-        "minimum": 4,
-        "maximum": 27,
-        "required": false
-      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
