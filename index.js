@@ -493,6 +493,15 @@ Daikin.prototype = {
           });
         },
 
+  getCurrentOutsideTemperature(callback) {
+                this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
+                this.sendGetRequest(this.get_sensor_info, body => {
+                        const responseValues = this.parseResponse(body);
+                        const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
+                        callback(null, currentOutsideTemperature);
+                });
+              },
+
   getCoolingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
