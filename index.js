@@ -28,19 +28,6 @@ function Daikin(log, config) {
     this.log.debug('Config: AC name is %s', config.name);
   }
 
-  if (config.fanName === undefined && config.fanMode === undefined) {
-      this.log.warn('your configuration is missing the parameter "fanName", using default');
-      this.fanName = this.name.concat(' FAN');
-      this.log.warn('Config: Fan name is %s', this.fanName);
-  } else if (config.fanName === undefined) {
-      this.log.warn('your configuration is missing the parameter "fanName", using default');
-      this.fanName = this.name.concat(' ', config.fanMode);
-      this.log.warn('Config: Fan name is %s', this.fanName);
-  } else {
-      this.fanName = config.fanName;
-      this.log.debug('Config: Fan name is %s', this.fanName);
-  }
-
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
     this.apiroute = 'http://192.168.1.88';
@@ -109,7 +96,7 @@ function Daikin(log, config) {
       this.fanMode = '2';
       this.log.debug('Config: fanMode is %s', this.fanMode);
   } else if (config.fanMode === undefined) {
-      this.log.warn('ERROR: your configuration is missing the parameter "fanMode", using default');
+      this.log.warn('ERROR: your configuration is missing the parameter "fanMode", using default: FAN');
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
   } else {
@@ -118,8 +105,21 @@ function Daikin(log, config) {
       this.log.debug('Config: fanMode is %s', this.fanMode);
   }
 
+  if (config.fanName === undefined && config.fanMode === undefined) {
+        this.log.warn('ERROR: your configuration is missing the parameter "fanName", using default');
+        this.fanName = this.name + ' FAN';
+        this.log.warn('Config: Fan name is %s', this.fanName);
+    } else if (config.fanName === undefined) {
+        this.log.warn('ERROR: your configuration is missing the parameter "fanName", using default');
+        this.fanName = this.name + ' ' + config.fanMode;
+        this.log.warn('Config: Fan name is %s', this.fanName);
+    } else {
+        this.fanName = config.fanName;
+        this.log.debug('Config: Fan name is %s', this.fanName);
+    }
+
   if (config.system === undefined) {
-    this.log.warn('ERROR: your configuration is missing the parameter "system", using default');
+    this.log.warn('ERROR: your configuration is missing the parameter "system", using default: Default');
     this.system = 'Default';
     this.log.debug('Config: system is %s', this.system);
   } else {
