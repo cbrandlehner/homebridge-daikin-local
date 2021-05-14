@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2021.15.1",
+  "version": "2021.20.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -16,7 +16,8 @@
     "Pierre-Julien Cazaux",
     "greensouth",
     "Fred de Gier",
-    "Fabian Leutgeb"
+    "Fabian Leutgeb",
+    "Frank Volkmann"
   ],
   "repository": {
     "type": "git",
