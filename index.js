@@ -3,8 +3,8 @@ let Service;
 let Characteristic;
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
-const Cache = require('./cache');
-const Queue = require('./queue');
+const Cache = require('./cache.js');
+const Queue = require('./queue.js');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {
@@ -59,7 +59,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 10000;
+      this.deadline = 10_000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
