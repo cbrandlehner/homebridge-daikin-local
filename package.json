@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2021.20.1",
+  "version": "2021.20.2",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -89,7 +89,11 @@
         "error",
         25
       ],
-      "unicorn/prefer-ternary": "off"
+      "unicorn/prefer-ternary": "off",
+      "unicorn/prefer-module": "warn",
+      "import/extensions": "warn",
+      "unicorn/numeric-separators-style": "warn",
+      "unicorn/prefer-switch": "warn"
     }
   }
 }
