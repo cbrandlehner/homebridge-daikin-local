@@ -18,6 +18,24 @@
         "default": "http://192.168.1.33",
         "format": "uri"
       },
+      "temperature_unit": {
+          "title": "Define Temperature Unit",
+          "type": "string",
+          "default": "C",
+          "oneOf": [{
+                  "title": "Fahrenheit",
+                  "enum": [
+                      "F"
+                  ]
+              },
+              {
+                  "title": "Celsius",
+                  "enum": [
+                      "C"
+                  ]
+              }
+          ]
+      },
       "uuid": {
         "title": "Client UUID token.",
         "description": "Should be a 32 digit hex string",

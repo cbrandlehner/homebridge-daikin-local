@@ -46,6 +46,7 @@ Configuration sample:
                 "accessory": "Daikin-Local",
                 "name": "Living room",
                 "apiroute": "http://192.168.1.50",
+                "temperature_unit": "C",
                 "system": "Default",
                 "swingMode": "2",
                 "defaultMode": "0",

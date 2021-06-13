@@ -1,4 +1,4 @@
-/* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
+// * eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
 const superagent = require('superagent');
@@ -26,6 +26,14 @@ function Daikin(log, config) {
   } else {
     this.name = config.name;
     this.log.debug('Config: AC name is %s', config.name);
+  }
+
+  if (config.temperature_unit === undefined) {
+    this.log.error('ERROR: your configuration is missing the parameter "temperature_unit"');
+    this.temperatureDisplayUnits = 'C';
+  } else {
+    this.temperatureDisplayUnits = config.temperature_unit;
+    this.log.debug('Config: temperature_unit is %s', config.temperature_unit);
   }
 
   if (config.apiroute === undefined) {
@@ -171,6 +179,7 @@ function Daikin(log, config) {
   this.firmwareRevision = packageFile.version;
 
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+  this.log.warn('Display Units: ', this.temperatureDisplayUnits);
 
 //  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
@@ -198,6 +207,7 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
+  this.log.warn('Celsius: %s. Fahrenheit: %s.', Characteristic.TemperatureDisplayUnits.CELSIUS, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
 }
 
 Daikin.prototype = {
@@ -572,12 +582,22 @@ Daikin.prototype = {
   getCoolingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
-                  const coolingThresholdTemperature = Number.parseFloat(responseValues.stemp);
+                  const stemp = Number.parseFloat(responseValues.stemp);
+                  const dt3 = Number.parseFloat(responseValues.dt3);
+                  this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
+                  this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
+                  let coolingThresholdTemperature;
+                  if (responseValues.stemp === 'M')
+                    coolingThresholdTemperature = dt3;
+                  else
+                    coolingThresholdTemperature = stemp;
+                  this.log.debug('getCoolingTemperature: parsed float is %s', coolingThresholdTemperature);
                   callback(null, coolingThresholdTemperature);
           });
         },
   getCoolingTemperatureFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
+    this.log.debug('getCoolingTemperatureFV: cache: %s', this.HeaterCooler_CoolingTemperature);
     this.log.debug('getCoolingTemperatureFV: early callback with cached CoolingTemperature: %s (%d).', this.HeaterCooler_CoolingTemperature, counter);
     callback(null, this.HeaterCooler_CoolingTemperature);
     this.getCoolingTemperature((error, HomeKitState) => {
@@ -606,7 +626,16 @@ Daikin.prototype = {
   getHeatingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
-                  const heatingThresholdTemperature = Number.parseFloat(responseValues.stemp);
+                  const stemp = Number.parseFloat(responseValues.stemp);
+                  const dt3 = Number.parseFloat(responseValues.dt3);
+                  this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
+                  this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
+                  let heatingThresholdTemperature;
+                  if (responseValues.stemp === 'M')
+                    heatingThresholdTemperature = dt3;
+                  else
+                    heatingThresholdTemperature = stemp;
+                  this.log.debug('getHeatingTemperature: parsed float is %s', heatingThresholdTemperature);
                   callback(null, heatingThresholdTemperature);
               });
         },
@@ -736,13 +765,12 @@ getFanStatus: function (callback) {
       const responseValues = this.parseResponse(body);
       this.log.debug('setFanStatus: Current Power is: %s. 0=Off, 1=On', responseValues.pow);
       this.log.debug('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
-      let targetMode;
-      targetMode = responseValues.mode;
+      const targetMode = this.fanMode;
+      this.log.debug('setFanStatus: targetMode = %s', targetMode);
       if (responseValues.pow === '0') {
-                targetMode = 6;
+                // targetMode = 6;
                 this.log.debug('setFanStatus: AC is currently powered off.');
-      } // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE
-       // if (responseValues.pow === '0') value = 1;
+      } // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE or DRY-MODE
 
       // turn power on
       let query;
@@ -808,13 +836,13 @@ getFanSpeed: function (callback) {
   },
 
   getTemperatureDisplayUnits: function (callback) {
-    this.log.info('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
+    this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
     const error = null;
     callback(error, this.temperatureDisplayUnits);
   },
 
   setTemperatureDisplayUnits: function (value, callback) {
-    this.log('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+    this.log.warn('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
     this.temperatureDisplayUnits = value;
     const error = null;
     callback(error);
@@ -882,13 +910,7 @@ getFanSpeed: function (callback) {
 
     this.heaterCoolerService
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
-    // .on('get', this.getTemperatureDisplayUnits.bind(this))
-    .on('get', function (callback) {
-        if (this.temperature_unit === 'C')
-            callback(null, Characteristic.TemperatureDisplayUnits.CELSIUS);
-        else
-            callback(null, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
-    })
+    .on('get', this.getTemperatureDisplayUnits.bind(this))
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
     this.temperatureService
