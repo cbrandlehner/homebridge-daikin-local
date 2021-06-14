@@ -426,7 +426,7 @@ Daikin.prototype = {
       this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
       if (swing !== Characteristic.SwingMode.SWING_DISABLED) swing = this.swingMode;
       let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
-      query = query.replace(/,/g, '&').replace(/b f_dir=[0123]/, `b f_dir=${swing}`);
+      query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         this.HeaterCooler_SwingMode = swing; // FV210510 update cache
@@ -777,7 +777,7 @@ getFanStatus: function (callback) {
 
       if (targetPOW === '1') {
         if (responseValues.mode === 2) // Current Mode is Dehumidification. In this special case we keep the current state and do not switch to FAN mode.
-            query = `pow=${targetPOW}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+            query = `pow=${targetPOW}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
         else
             query = `pow=${targetPOW}&mode=${targetMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
       } else {
