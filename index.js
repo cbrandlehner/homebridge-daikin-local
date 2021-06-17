@@ -266,7 +266,7 @@ Daikin.prototype = {
     if (this._serveFromCache(path, callback, options))
       return;
 
-    this.log.debug('requesting from API: path: %s', path);
+    this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
     const request = superagent
       .get(path)
       .retry(this.retries) // retry 3 (default) times
@@ -283,17 +283,17 @@ Daikin.prototype = {
     }
 
     request.then(response => {
-         this.log.debug('set cache: path: %s', path);
+         this.log.debug('_doSendGetRequest: set cache: path: %s', path);
          this.cache.set(path, response.text);
-         this.log.debug('responding from API: %s', response.text);
+         this.log.debug('_doSendGetRequest: response from API: %s', response.text);
          callback(null, response.text);
        })
        .catch(error => {
            if (error.timeout) { /* timed out! */ } else
            if (error.code === 'ECONNRESET') {
-            this.log.debug('eConnreset filtered');
+            this.log.debug('_doSendGetRequest: eConnreset filtered');
             } else {
-               this.log.error('ERROR: API request to %s returned error %s', path, error);
+               this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
             }
 
         callback(error);
@@ -398,6 +398,8 @@ Daikin.prototype = {
             .replace(/shum=--/, `shum=${'0'}`);
         }
 
+        this.HeaterCooler_Active = power; // FV210510 updating Active Cache
+        this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
         this.sendGetRequest(this.set_control_info + '?' + query, _response => {
           this.HeaterCooler_Active = power; // FV210510 updating Active Cache
           this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
@@ -438,6 +440,8 @@ Daikin.prototype = {
       let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
       query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
+      this.HeaterCooler_SwingMode = swing; // FV210510 update cache
+      this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
       this.sendGetRequest(this.set_control_info + '?' + query, _response => {
         this.HeaterCooler_SwingMode = swing; // FV210510 update cache
         this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
@@ -553,6 +557,8 @@ Daikin.prototype = {
 
                   const query = body.replace(/,/g, '&').replace(/mode=[01234567]/, `mode=${mode}`);
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
+                  this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
+                  this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
                   this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                       this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
                       this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
