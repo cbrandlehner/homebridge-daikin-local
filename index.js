@@ -67,7 +67,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 10_000;
+      this.deadline = 10000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
@@ -242,7 +242,13 @@ Daikin.prototype = {
 
         this._doSendGetRequest(path, (error, response) => {
           if (error) {
-            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            // this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            if (error.code === 'ECONNRESET') {
+              this.log.debug('requeueing request after econnreset');
+              options.skipQueue = 'prepend';
+              this._queueGetRequest(path, callback, options || {});
+            }
+
             done();
             return;
           }
@@ -276,20 +282,24 @@ Daikin.prototype = {
             .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
     }
 
-    request.end((error, response) => {
-      if (error) {
+    request.then(response => {
+         this.log.debug('set cache: path: %s', path);
+         this.cache.set(path, response.text);
+         this.log.debug('responding from API: %s', response.text);
+         callback(null, response.text);
+       })
+       .catch(error => {
+           if (error.timeout) { /* timed out! */ } else
+           if (error.code === 'ECONNRESET') {
+            this.log.debug('eConnreset filtered');
+            } else {
+               this.log.error('ERROR: API request to %s returned error %s', path, error);
+            }
+
         callback(error);
-        return this.log.error('ERROR: API request to %s returned error %s', path, error);
-      }
-
-      this.log.debug('set cache: path: %s', path);
-      this.cache.set(path, response.text);
-
-      this.log.debug('responding from API: %s', response.text);
-      callback(error, response.text);
-      // Calling the end function will send the request
-    });
-  },
+        // return;
+       });
+     },
 
    _serveFromCache(path, callback, options) {
     this.log.debug('requesting from cache: path: %s', path);
@@ -388,7 +398,7 @@ Daikin.prototype = {
             .replace(/shum=--/, `shum=${'0'}`);
         }
 
-        this.sendGetRequest(this.set_control_info + '?' + query, response => {
+        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
           this.HeaterCooler_Active = power; // FV210510 updating Active Cache
           this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
           callback();
@@ -428,7 +438,7 @@ Daikin.prototype = {
       let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
       query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
       this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
-      this.sendGetRequest(this.set_control_info + '?' + query, response => {
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
         this.HeaterCooler_SwingMode = swing; // FV210510 update cache
         this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
         callback();
@@ -543,7 +553,7 @@ Daikin.prototype = {
 
                   const query = body.replace(/,/g, '&').replace(/mode=[01234567]/, `mode=${mode}`);
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
-                  this.sendGetRequest(this.set_control_info + '?' + query, response => {
+                  this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                       this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
                       this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
                       callback();
@@ -587,7 +597,7 @@ Daikin.prototype = {
                   this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
                   this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
                   let coolingThresholdTemperature;
-                  if (responseValues.stemp === 'M')
+                  if (Number.isNaN(responseValues.stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
                     coolingThresholdTemperature = dt3;
                   else
                     coolingThresholdTemperature = stemp;
@@ -615,7 +625,9 @@ Daikin.prototype = {
             .replace(/,/g, '&')
             .replace(/stemp=[\d.]+/, `stemp=${temperature}`)
             .replace(/dt3=[\d.]+/, `dt3=${temperature}`);
-          this.sendGetRequest(this.set_control_info + '?' + query, response => {
+          this.HeaterCooler_CoolingTemperature = temperature;
+          this.log.debug('setCoolingTemperature: update CoolingTemperature: %s.', this.HeaterCooler_CoolingTemperature); // FV2105010
+          this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                     this.HeaterCooler_CoolingTemperature = temperature;
                     this.log.debug('setCoolingTemperature: update CoolingTemperature: %s.', this.HeaterCooler_CoolingTemperature); // FV2105010
                     callback();
@@ -631,7 +643,7 @@ Daikin.prototype = {
                   this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
                   this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
                   let heatingThresholdTemperature;
-                  if (responseValues.stemp === 'M')
+                  if (Number.isNaN(responseValues.stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
                     heatingThresholdTemperature = dt3;
                   else
                     heatingThresholdTemperature = stemp;
@@ -658,7 +670,9 @@ Daikin.prototype = {
               .replace(/,/g, '&')
               .replace(/stemp=[\d.]+/, `stemp=${temperature}`)
               .replace(/dt3=[\d.]+/, `dt3=${temperature}`);
-          this.sendGetRequest(this.set_control_info + '?' + query, response => {
+          this.HeaterCooler_HeatingTemperature = temperature;
+          this.log.debug('setHeatingTemperature: update HeatingTemperature: %s.', this.HeaterCooler_HeatingTemperature); // FV2105010
+          this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                       this.HeaterCooler_HeatingTemperature = temperature;
                       this.log.debug('setHeatingTemperature: update HeatingTemperature: %s.', this.HeaterCooler_HeatingTemperature); // FV2105010
                       callback();
@@ -672,7 +686,7 @@ Daikin.prototype = {
   },
 
   daikinSpeedToRaw: function (daikinSpeed) {
-    let raw = 0;
+    let raw = 5; // FV 16.6.2021 Setting minimum Speed for default value below...
     this.log.debug('daikinSpeedtoRaw: got value %s', daikinSpeed);
     switch (daikinSpeed) {
     case 'A':
@@ -767,6 +781,13 @@ getFanStatus: function (callback) {
       this.log.debug('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
       const targetMode = this.fanMode;
       this.log.debug('setFanStatus: targetMode = %s', targetMode);
+      // FV 210616 Ignoring setFanStatus when already in cooling mode
+     if (responseValues.pow === 1 && responseValues.mode === 3) {
+       this.log.debug('setFanStatus: Already in cooling mode, ignoring setFanStatus');
+       callback();
+       return;
+     }
+
       if (responseValues.pow === '0') {
                 // targetMode = 6;
                 this.log.debug('setFanStatus: AC is currently powered off.');
@@ -790,9 +811,9 @@ getFanStatus: function (callback) {
       }
 
       this.log.warn('setFanStatus: going to send this query: %s', query);
-      this.sendGetRequest(this.set_control_info + '?' + query, response => {
-        this.Fan_Status = value; // FV2105010
-        this.log.debug('setFanStatus: update Status: %s.', this.Fan_Status); // FV2105010
+      this.Fan_Status = value; // FV2105010
+      this.log.debug('setFanStatus: update Status: %s.', this.Fan_Status); // FV2105010
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
         callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
@@ -827,9 +848,9 @@ getFanSpeed: function (callback) {
       let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${value}`);
       query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${value}`);
       this.log.debug('setFanSpeed: Query is: %s', query);
-      this.sendGetRequest(this.set_control_info + '?' + query, response => {
-        this.Fan_Speed = value; // FV2105010
-        this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed); // FV2105010
+      this.Fan_Speed = this.daikinSpeedToRaw(value); // FV2105010
+      this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed); // FV2105010
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
         callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
