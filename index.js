@@ -788,7 +788,7 @@ getFanStatus: function (callback) {
       const targetMode = this.fanMode;
       this.log.debug('setFanStatus: targetMode = %s', targetMode);
       // FV 210616 Ignoring setFanStatus when already in cooling mode
-     if (responseValues.pow === 1 && responseValues.mode === 3) {
+     if (responseValues.pow === '1' && responseValues.mode === '3') {
        this.log.debug('setFanStatus: Already in cooling mode, ignoring setFanStatus');
        callback();
        return;
@@ -803,7 +803,7 @@ getFanStatus: function (callback) {
       let query;
 
       if (targetPOW === '1') {
-        if (responseValues.mode === 2) // Current Mode is Dehumidification. In this special case we keep the current state and do not switch to FAN mode.
+        if (responseValues.mode === '2') // Current Mode is Dehumidification. In this special case we keep the current state and do not switch to FAN mode.
             query = `pow=${targetPOW}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
         else
             query = `pow=${targetPOW}&mode=${targetMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
@@ -816,7 +816,7 @@ getFanStatus: function (callback) {
               .replace(/shum=--/, `shum=${'0'}`);
       }
 
-      this.log.warn('setFanStatus: going to send this query: %s', query);
+      this.log.debug('setFanStatus: going to send this query: %s', query);
       this.Fan_Status = value; // FV2105010
       this.log.debug('setFanStatus: update Status: %s.', this.Fan_Status); // FV2105010
       this.sendGetRequest(this.set_control_info + '?' + query, _response => {
