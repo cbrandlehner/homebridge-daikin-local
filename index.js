@@ -13,6 +13,7 @@ function Daikin(log, config) {
   this.cache = new Cache();
   this.queue = new Queue();
 
+  this.displayUnitsDescription=[ "Celsius", "Fahrenheit"]
   this.throttle = new Throttle({
     active: true, // set false to pause queue
     rate: 1, // how many requests can be sent every `ratePer`
@@ -27,15 +28,13 @@ function Daikin(log, config) {
     this.name = config.name;
     this.log.debug('Config: AC name is %s', config.name);
   }
-
   if (config.temperature_unit === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "temperature_unit"');
-    this.temperatureDisplayUnits = 'C';
+    this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
   } else {
     this.temperatureDisplayUnits = config.temperature_unit;
     this.log.debug('Config: temperature_unit is %s', config.temperature_unit);
   }
-
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
     this.apiroute = 'http://192.168.1.88';
@@ -179,7 +178,7 @@ function Daikin(log, config) {
   this.firmwareRevision = packageFile.version;
 
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-  this.log.warn('Display Units: ', this.temperatureDisplayUnits);
+  this.log.info('Display Units: ', this.displayUnitsDescription[this.temperatureDisplayUnits]);
 
 //  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
@@ -207,7 +206,6 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
-  this.log.warn('Celsius: %s. Fahrenheit: %s.', Characteristic.TemperatureDisplayUnits.CELSIUS, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
 }
 
 Daikin.prototype = {
@@ -863,13 +861,13 @@ getFanSpeed: function (callback) {
   },
 
   getTemperatureDisplayUnits: function (callback) {
-    this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
+    this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s.', this.displayUnitsDescription[this.temperatureDisplayUnits]);
     const error = null;
     callback(error, this.temperatureDisplayUnits);
   },
 
   setTemperatureDisplayUnits: function (value, callback) {
-    this.log.warn('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+    this.log.warn('Changing temperature unit from %s to %s.', this.displayUnitsDescription[this.temperatureDisplayUnits], this.displayUnitsDescription[value]);
     this.temperatureDisplayUnits = value;
     const error = null;
     callback(error);
