@@ -1,0 +1,126 @@
+{
+  "pluginAlias": "Daikin-Local",
+  "pluginType": "accessory",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Daikin Livingroom"
+      },
+      "apiroute": {
+        "title": "URI of the WIFI controller.",
+        "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
+        "type": "string",
+        "required": true,
+        "default": "http://192.168.1.33",
+        "format": "uri"
+      },
+      "temperature_unit": {
+          "title": "Define Temperature Unit",
+          "type": "string",
+          "default": "C",
+          "oneOf": [{
+                  "title": "Fahrenheit",
+                  "enum": [
+                      "F"
+                  ]
+              },
+              {
+                  "title": "Celsius",
+                  "enum": [
+                      "C"
+                  ]
+              }
+          ]
+      },
+      "uuid": {
+        "title": "Client UUID token.",
+        "description": "Should be a 32 digit hex string",
+        "type": "string",
+        "required": false
+      },
+      "system": {
+        "type": "string",
+        "title": "Daikin default or Skyfi",
+        "enum": [ "Default", "Skyfi" ],
+        "default": "Default"
+      },
+      "swingMode": {
+        "title": "Swing mode",
+        "description": "Some Daikin ACs support different swing modes.",
+        "type": "string",
+                "default": "1",
+        "oneOf": [
+          { "title": "Vertical Swing (default)", "enum": ["1"] },
+          { "title": "Horizontal Swing", "enum": ["2"] },
+          { "title": "3D Swing", "enum": ["3"] }
+        ]
+      },
+      "disableFan": {
+        "title": "Fan disabled",
+        "description": "Whether to have both AC and Fan or only AC",
+        "type": "boolean",
+        "default": false
+      },
+      "fanMode": {
+        "title": "Fan mode",
+        "description": "Choose between normal fan or dry mode",
+        "type": "string",
+        "enum": [ "FAN", "DRY" ],
+        "default": "FAN"
+      },
+      "fanPowerMode": {
+        "title": "Fan power mode",
+        "description": "Should Fan power only affect the fan or complete device.",
+        "type": "string",
+        "enum": [ "FAN only", "Complete Device" ],
+        "default": "YES"
+      },
+      "fanName": {
+          "title": "FAN name",
+          "description": "The name of the fan. Only applies if the FAN has not been disabled.",
+          "type": "string",
+          "required": true,
+          "default": "Livingroom FAN"
+      },
+      "defaultMode": {
+        "title": "Default operation mode",
+        "description": "When turning on the Daikin device in HomeBridge using a single-tap, the default operation mode will be applied.",
+        "type": "string",
+        "oneOf": [
+          { "title": "Auto (default)", "enum": ["1"] },
+          { "title": "Cool", "enum": ["3"] },
+          { "title": "Heat", "enum": ["4"] }
+        ],
+        "default": "0"
+      },
+      "response": {
+        "title": "Response",
+	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
+        "type": "integer",
+        "default": 2000,
+        "minimum": 2000,
+        "maximum": 8000
+      },
+      "deadline": {
+        "title": "Deadline",
+	      "description": "Timeout in milliseconds for the device to complete a response.  Default: 60000 (one minute).",
+        "type": "integer",
+        "default": 60000,
+        "minimum": 10000,
+        "maximum": 60000
+      },
+      "retries": {
+        "title": "Retries",
+	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 5.",
+        "type": "integer",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 10
+      }
+    }
+  }
+}
