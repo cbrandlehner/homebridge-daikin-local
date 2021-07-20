@@ -440,13 +440,13 @@ Daikin.prototype = {
       */
       this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
       this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
-      callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
+      if(!(typeof callback === 'undefined')) callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
     });
   },
   getSwingModeFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getSwingModeFV: early callback with cached SwingMode: %s (%d).', this.HeaterCooler_SwingMode, counter);
-    callback(null, this.HeaterCooler_SwingMode);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_SwingMode);
     this.getSwingMode((error, HomeKitState) => {
       this.HeaterCooler_SwingMode = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode).updateValue(this.HeaterCooler_SwingMode); // FV210504
@@ -466,7 +466,7 @@ Daikin.prototype = {
       this.sendGetRequest(this.set_control_info + '?' + query, _response => {
         this.HeaterCooler_SwingMode = swing; // FV210510 update cache
         this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
-        callback();
+        if(!(typeof callback === 'undefined')) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
@@ -495,13 +495,13 @@ Daikin.prototype = {
               }
 
               this.log.debug('getHeaterCoolerState is %s', status);
-              callback(null, status);
+              if(!(typeof callback === 'undefined')) callback(null, status);
           });
       },
   getHeaterCoolerStateFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getHeaterCoolerStateFV: early callback with CurrentHeaterCoolerState: %s (%d).', this.HeaterCooler_CurrentHeaterCoolerState, counter);
-    callback(null, this.HeaterCooler_CurrentHeaterCoolerState);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_CurrentHeaterCoolerState);
     this.getHeaterCoolerState((error, HomeKitState) => {
       this.HeaterCooler_CurrentHeaterCoolerState = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(this.HeaterCooler_CurrentHeaterCoolerState);
@@ -540,13 +540,13 @@ Daikin.prototype = {
                 }
 
                 this.log.debug('getTargetHeaterCollerState is %s', status);
-                callback(null, status);
+                if(!(typeof callback === 'undefined')) callback(null, status);
             });
         },
   getTargetHeaterCoolerStateFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getTargetHeaterCoolerStateFV: early callback with cached TargetHeaterCoolerState: %s (%d).', this.HeaterCooler_TargetHeaterCoolerState, counter);
-    callback(null, this.HeaterCooler_TargetHeaterCoolerState);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_TargetHeaterCoolerState);
     this.getTargetHeaterCoolerState((error, HomeKitState) => {
       this.HeaterCooler_TargetHeaterCoolerState = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(this.HeaterCooler_TargetHeaterCoolerState); // FV210504
@@ -583,7 +583,7 @@ Daikin.prototype = {
                   this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                       this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
                       this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
-                      callback();
+                      if(!(typeof callback === 'undefined')) callback();
                   }, {skipCache: true, skipQueue: true});
               }, {skipCache: true});
         },
@@ -593,13 +593,13 @@ Daikin.prototype = {
           this.sendGetRequest(this.get_sensor_info, body => {
                   const responseValues = this.parseResponse(body);
                   const currentTemperature = Number.parseFloat(responseValues.htemp);
-                  callback(null, currentTemperature);
+                  if(!(typeof callback === 'undefined')) callback(null, currentTemperature);
           });
         },
   getCurrentTemperatureFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getCurrentTemperatureFV: early callback with cached CurrentTemperature: %s (%d).', this.HeaterCooler_CurrentTemperature, counter);
-    callback(null, this.HeaterCooler_CurrentTemperature);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_CurrentTemperature);
     this.getCurrentTemperature((error, HomeKitState) => {
       this.HeaterCooler_CurrentTemperature = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.HeaterCooler_CurrentTemperature); // FV210504
@@ -612,7 +612,7 @@ Daikin.prototype = {
                 this.sendGetRequest(this.get_sensor_info, body => {
                         const responseValues = this.parseResponse(body);
                         const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
-                        callback(null, currentOutsideTemperature);
+                        if(!(typeof callback === 'undefined')) callback(null, currentOutsideTemperature);
                 });
               },
 
@@ -629,14 +629,14 @@ Daikin.prototype = {
                   else
                     coolingThresholdTemperature = stemp;
                   this.log.debug('getCoolingTemperature: parsed float is %s', coolingThresholdTemperature);
-                  callback(null, coolingThresholdTemperature);
+                  if(!(typeof callback === 'undefined')) callback(null, coolingThresholdTemperature);
           });
         },
   getCoolingTemperatureFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getCoolingTemperatureFV: cache: %s', this.HeaterCooler_CoolingTemperature);
     this.log.debug('getCoolingTemperatureFV: early callback with cached CoolingTemperature: %s (%d).', this.HeaterCooler_CoolingTemperature, counter);
-    callback(null, this.HeaterCooler_CoolingTemperature);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_CoolingTemperature);
     this.getCoolingTemperature((error, HomeKitState) => {
       this.HeaterCooler_CoolingTemperature = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.HeaterCooler_CoolingTemperature);
@@ -657,7 +657,7 @@ Daikin.prototype = {
           this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                     this.HeaterCooler_CoolingTemperature = temperature;
                     this.log.debug('setCoolingTemperature: update CoolingTemperature: %s.', this.HeaterCooler_CoolingTemperature); // FV2105010
-                    callback();
+                    if(!(typeof callback === 'undefined')) callback();
                 }, {skipCache: true, skipQueue: true});
             }, {skipCache: true});
         },
@@ -675,13 +675,13 @@ Daikin.prototype = {
                   else
                     heatingThresholdTemperature = stemp;
                   this.log.debug('getHeatingTemperature: parsed float is %s', heatingThresholdTemperature);
-                  callback(null, heatingThresholdTemperature);
+                  if(!(typeof callback === 'undefined')) callback(null, heatingThresholdTemperature);
               });
         },
   getHeatingTemperatureFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getHeatingTemperatureFV: early callback with cached HeatingTemperature: %s (%d).', this.HeaterCooler_HeatingTemperature, counter);
-    callback(null, this.HeaterCooler_HeatingTemperature);
+    if(!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_HeatingTemperature);
     this.getHeatingTemperature((error, HomeKitState) => {
       this.HeaterCooler_HeatingTemperature = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.HeaterCooler_HeatingTemperature);
@@ -702,14 +702,14 @@ Daikin.prototype = {
           this.sendGetRequest(this.set_control_info + '?' + query, _response => {
                       this.HeaterCooler_HeatingTemperature = temperature;
                       this.log.debug('setHeatingTemperature: update HeatingTemperature: %s.', this.HeaterCooler_HeatingTemperature); // FV2105010
-                      callback();
+                      if(!(typeof callback === 'undefined')) callback();
                   }, {skipCache: true, skipQueue: true});
               }, {skipCache: true});
           },
 
   identify: function (callback) {
     this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
-    callback(null);
+    if(!(typeof callback === 'undefined')) callback(null);
   },
 
   daikinSpeedToRaw: function (daikinSpeed) {
@@ -774,13 +774,13 @@ rawToDaikinSpeed: function (rawFanSpeed) {
 getFanStatus: function (callback) {
   this.sendGetRequest(this.basic_info, body => {
     const responseValues = this.parseResponse(body);
-    callback(null, responseValues.pow === '1');
+    if(!(typeof callback === 'undefined')) callback(null, responseValues.pow === '1');
   });
 },
   getFanStatusFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getFanStatusFV: early callback with cached Status: %s (%d).', this.Fan_Status, counter);
-    callback(null, this.Fan_Status);
+    if(!(typeof callback === 'undefined')) callback(null, this.Fan_Status);
     this.getFanStatus((error, HomeKitState) => {
       this.Fan_Status = HomeKitState;
       this.FanService.getCharacteristic(Characteristic.On).updateValue(this.Fan_Status); // FV210504
@@ -859,13 +859,13 @@ getFanSpeed: function (callback) {
           this.log.debug('getFanSpeed: f_rate is %s', responseValues.f_rate);
           const HomeKitFanSpeed = this.daikinSpeedToRaw(responseValues.f_rate);
           this.log.debug('getFanSpeed: Reporting a current FAN speed of %s Percent to HomeKit.', HomeKitFanSpeed);
-          callback(null, HomeKitFanSpeed);
+          if(!(typeof callback === 'undefined')) callback(null, HomeKitFanSpeed);
       });
 },
   getFanSpeedFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getFanSpeedFV: early callback with cached Speed: %s (%d).', this.Fan_Speed, counter);
-    callback(null, this.Fan_Speed);
+    if(!(typeof callback === 'undefined')) callback(null, this.Fan_Speed);
     this.getFanSpeed((error, HomeKitState) => {
       this.Fan_Speed = HomeKitState;
       this.FanService.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.Fan_Speed); // FV210504
@@ -892,14 +892,14 @@ getFanSpeed: function (callback) {
   getTemperatureDisplayUnits: function (callback) {
     this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s.', this.displayUnitsDescription[this.temperatureDisplayUnits]);
     const error = null;
-    callback(error, this.temperatureDisplayUnits);
+    if(!(typeof callback === 'undefined')) callback(error, this.temperatureDisplayUnits);
   },
 
   setTemperatureDisplayUnits: function (value, callback) {
     this.log.warn('Changing temperature unit from %s to %s.', this.displayUnitsDescription[this.temperatureDisplayUnits], this.displayUnitsDescription[value]);
     this.temperatureDisplayUnits = value;
     const error = null;
-    callback(error);
+    if(!(typeof callback === 'undefined')) callback(error);
   },
 
 	getServices: function () {
