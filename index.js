@@ -779,12 +779,12 @@ getFanStatus: function (callback) {
 },
   getFanStatusFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
-    this.log.debug('getFanStatusFV: early callback with cached Status: %s (%d).', this.Fan_Status, counter);
+    this.log.debug('getFanStatusFV: early callback with cached Status: %s (%d).', this.powerDescription[this.Fan_Status], counter);
     if(!(typeof callback === 'undefined')) callback(null, this.Fan_Status);
     this.getFanStatus((error, HomeKitState) => {
       this.Fan_Status = HomeKitState;
       this.FanService.getCharacteristic(Characteristic.On).updateValue(this.Fan_Status); // FV210504
-      this.log.debug('getFanStatusFV: update Status: %s (%d).', this.Fan_Status, counter);
+      this.log.debug('getFanStatusFV: update Status: %s (%d).', this.powerDescription[this.Fan_Status], counter);
     });
   },
 
