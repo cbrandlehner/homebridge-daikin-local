@@ -380,7 +380,7 @@ Daikin.prototype = {
         if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1' || responseValues.mode === '0') {// If AC is in Fan-mode, or an Humidity-mode then use the default mode.
           switch (this.defaultMode) {
             case '1': // Auto
-            this.log.warn('Auto');
+            this.log.debug('setActive: setting default mode: Auto');
               query = query
                 .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
@@ -388,6 +388,7 @@ Daikin.prototype = {
                 .replace(/shum=--/, `shum=${'0'}`);
                 break;
             case '3': // COOL
+            this.log.debug('setActive: setting default mode: Cooling.');
               query = query
                 .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
@@ -395,6 +396,7 @@ Daikin.prototype = {
                 .replace(/shum=--/, `shum=${'0'}`);
                 break;
                 case '4': // HEAT
+                  this.log.debug('setActive: setting default mode: Heating.');
                   query = query
                     .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                     .replace(/stemp=--/, `stemp=${responseValues.dt5}`)
