@@ -13,6 +13,7 @@ function Daikin(log, config) {
   this.cache = new Cache();
   this.queue = new Queue();
 
+  this.displayUnitsDescription = ['Celsius', 'Fahrenheit'];
   this.throttle = new Throttle({
     active: true, // set false to pause queue
     rate: 1, // how many requests can be sent every `ratePer`
@@ -30,7 +31,7 @@ function Daikin(log, config) {
 
   if (config.temperature_unit === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "temperature_unit"');
-    this.temperatureDisplayUnits = 'C';
+    this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
   } else {
     this.temperatureDisplayUnits = config.temperature_unit;
     this.log.debug('Config: temperature_unit is %s', config.temperature_unit);
@@ -113,6 +114,15 @@ function Daikin(log, config) {
       this.log.debug('Config: fanMode is %s', this.fanMode);
   }
 
+  if (config.fanPowerMode === undefined) {
+        this.log.warn('ERROR: your configuration is missing the parameter "fanPowerMode", using default');
+        this.fanPowerMode = false;
+  } else if (config.fanPowerMode === 'FAN only') {
+      this.fanPowerMode = false;
+    } else {
+        this.fanPowerMode = true;
+    }
+
   if (config.fanName === undefined && config.fanMode === undefined) {
         this.log.warn('ERROR: your configuration is missing the parameter "fanName", using default');
         this.fanName = this.name + ' FAN';
@@ -179,7 +189,7 @@ function Daikin(log, config) {
   this.firmwareRevision = packageFile.version;
 
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-  this.log.warn('Display Units: ', this.temperatureDisplayUnits);
+  this.log.info('Display Units: ', this.displayUnitsDescription[this.temperatureDisplayUnits]);
 
 //  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 
@@ -190,7 +200,6 @@ function Daikin(log, config) {
   this.log.info('accessory name: ' + this.name);
   this.log.info('accessory ip: ' + this.apiIP);
   this.log.debug('system: ' + this.system);
-  this.log.debug('Debug mode enabled');
 
   // FV 210510: Storing last values for early returns (and set defaults for first calls)
   this.HeaterCooler_Active = Characteristic.Active.INACTIVE;
@@ -201,13 +210,18 @@ function Daikin(log, config) {
   this.HeaterCooler_CoolingTemperature = 21;
   this.HeaterCooler_HeatingTemperature = 21;
   this.Fan_Speed = 15;
-  this.Fan_Status = false;
+  this.Fan_Status = 0;
   this.counter = 0;
+  this.lastMode = 3; /* cooling */
+  this.lastFanSpeed = 10; /* Silent */
+
+  // FV 2100720 adding description arrays
+  this.modeDescription = ['off', 'Auto', 'Dehumidification', 'Cooling', 'Heating', 'unknown:5', 'Fan'];
+  this.powerDescription = ['off', 'on'];
 
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
-  this.log.warn('Celsius: %s. Fahrenheit: %s.', Characteristic.TemperatureDisplayUnits.CELSIUS, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
 }
 
 Daikin.prototype = {
@@ -256,7 +270,7 @@ Daikin.prototype = {
           this.log.debug('queued request finished: path: %s', path);
 
           // actual response callback
-          callback(response);
+          if (!(typeof callback === 'undefined')) callback(response);
           done();
         }, options);
     });
@@ -286,7 +300,7 @@ Daikin.prototype = {
          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
          this.cache.set(path, response.text);
          this.log.debug('_doSendGetRequest: response from API: %s', response.text);
-         callback(null, response.text);
+         if (!(typeof callback === 'undefined')) callback(null, response.text);
        })
        .catch(error => {
            if (error.timeout) { /* timed out! */ } else
@@ -296,7 +310,7 @@ Daikin.prototype = {
                this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
             }
 
-        callback(error);
+        if (!(typeof callback === 'undefined')) callback(error);
         // return;
        });
      },
@@ -329,7 +343,7 @@ Daikin.prototype = {
     this.log.debug('cache HIT: path: %s', path);
     this.log.debug('responding from cache: %s', cachedResponse);
 
-    callback(null, cachedResponse);
+    if (!(typeof callback === 'undefined')) callback(null, cachedResponse);
     return true;
   },
 
@@ -345,13 +359,13 @@ Daikin.prototype = {
               HomeKitState = '1'; // Power is ON and the device is neither in Fan-mode nor Humidity-mode
             else
               HomeKitState = '0'; // Power is OFF
-          callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
+          if (!(typeof callback === 'undefined')) callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
         });
     },
   getActiveFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getActiveFV: early callback with cached Active: %s (%d).', this.HeaterCooler_Active, counter);
-    callback(null, this.HeaterCooler_Active);
+    if (!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_Active);
     this.getActive((error, HomeKitState) => {
       this.HeaterCooler_Active = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.Active).updateValue(this.HeaterCooler_Active);
@@ -403,7 +417,11 @@ Daikin.prototype = {
         this.sendGetRequest(this.set_control_info + '?' + query, _response => {
           this.HeaterCooler_Active = power; // FV210510 updating Active Cache
           this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
-          callback();
+          if (!(typeof callback === 'undefined')) callback();
+        if (power === '0') {
+          this.lastFanSpeed = this.Fan_Speed;
+          this.setFanSpeed(0);
+        }
         }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
@@ -768,59 +786,62 @@ getFanStatus: function (callback) {
   },
 
   setFanStatus: function (value, callback) {
-    this.log.debug('setFanStatus: HomeKit requested FAN operation state is: %s', value);
+    let targetPOW = 0;
+    if (value === true)
+      targetPOW = 1;
+
+    /* Get current state from daikin */
     this.sendGetRequest(this.get_control_info, body => {
-      let targetPOW;
-      if (value === true) {
-        // value = 1;
-        this.log.info('setFanStatus: HomeKit requested to turn the FAN on.');
-        targetPOW = '1';
-      } else {
-        // value = 0;
-        targetPOW = '0';
-        this.log.info('setFanStatus: HomeKit requested to turn the FAN off.');
+      const responseValues = this.parseResponse(body);
+      let currentPOW = 0;
+      if (responseValues.pow === '1')
+        currentPOW = 1;
+
+      const targetFanMode = this.fanMode; // FAN or Dehumidify */
+      this.log.info('setFanStatus: HomeKit requested  to turn the FAN %s.', this.powerDescription[targetPOW]);
+      this.log.debug('setFanStatus: Current Power is: %s.', this.powerDescription[currentPOW]);
+      this.log.debug('setFanStatus: Current Mode is: %s.', this.modeDescription[responseValues.mode]);
+
+      if (targetPOW === currentPOW) {
+        this.log.debug('setFanStatus: Powerstate did not change, ignore it.');
+        if (!(typeof callback === 'undefined')) callback();
+        return;
       }
 
-      this.log.debug('setFanStatus: HomeKit requested a new state of: %s', value);
-      const responseValues = this.parseResponse(body);
-      this.log.debug('setFanStatus: Current Power is: %s. 0=Off, 1=On', responseValues.pow);
-      this.log.debug('setFanStatus: Current Mode is: %s. 1=Auto, 2=Dehumidification, 3=Cool, 4=Heat, 6=FAN', responseValues.mode);
-      const targetMode = this.fanMode;
-      this.log.debug('setFanStatus: targetMode = %s', targetMode);
-      // FV 210616 Ignoring setFanStatus when already in cooling mode
-     if (responseValues.pow === '1' && responseValues.mode === '3') {
-       this.log.debug('setFanStatus: Already in cooling mode, ignoring setFanStatus');
-       callback();
+     if (targetPOW === 0) {
+       /* Powering off */
+       if (this.fanPowerMode === false) {
+           if ((responseValues.mode === '2') || (responseValues.mode === '6')) {
+               this.log.debug('setFanStatus: fanPowerMode is "FAN only" and mode is a FAN Mode => Power off device.');
+               this.setActive(0);
+             } else {
+               this.log.debug('setFanStatus: fanPowerMode is "FAN only" and mode is NOT a FAN Mode => Ignore it.');
+           }
+       } else {
+           this.log.debug('setFanStatus: fanPowerMode is "complete Device", shutting down device.');
+           this.setActive(0);
+       }
+
+       if (!(typeof callback === 'undefined')) callback();
+       return;
+     }
+     // turn power on
+
+     if (this.fanPowerMode === true) {
+       this.log.debug('setFanStatus: fanPowerMode is "complete Device" => power on Device.');
+       this.setActive(1);
+       if (!(typeof callback === 'undefined')) callback();
        return;
      }
 
-      if (responseValues.pow === '0') {
-                // targetMode = 6;
-                this.log.debug('setFanStatus: AC is currently powered off.');
-      } // If the AC is currently off and HomeKit asks to switch the Fan on, change AC mode to Fan-MODE or DRY-MODE
+     this.log.info('setFanStatus: fanPowerMode is "FAN only", power on Device in configured FAN mode.');
 
-      // turn power on
-      let query;
-
-      if (targetPOW === '1') {
-        if (responseValues.mode === '2') // Current Mode is Dehumidification. In this special case we keep the current state and do not switch to FAN mode.
-            query = `pow=${targetPOW}&mode=${responseValues.mode}&stemp=M&shum=50&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
-        else
-            query = `pow=${targetPOW}&mode=${targetMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
-      } else {
-            query = body
-              .replace(/,/g, '&').replace(/pow=[01]/, `pow=${targetPOW}`)
-              .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
-              .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
-              .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
-              .replace(/shum=--/, `shum=${'0'}`);
-      }
-
-      this.log.debug('setFanStatus: going to send this query: %s', query);
-      this.Fan_Status = value; // FV2105010
-      this.log.debug('setFanStatus: update Status: %s.', this.Fan_Status); // FV2105010
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
-        callback();
+     const query = `pow=${targetPOW}&mode=${targetFanMode}&stemp=${responseValues.stemp}&shum=${responseValues.shum}&dt2=${responseValues.dt2}&dh2=${responseValues.dh2}&f_rate=${responseValues.f_rate}&f_dir=${this.swingMode}`;
+     this.log.debug('setFanStatus: going to send this query: %s', query);
+     this.Fan_Status = targetPOW; // FV2105010
+     this.log.debug('setFanStatus: update Status: %s.', this.powerDescription[this.Fan_Status]); // FV2105010
+     this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        if (!(typeof callback === 'undefined')) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
@@ -847,7 +868,7 @@ getFanSpeed: function (callback) {
   },
 
   setFanSpeed: function (value, callback) {
-    this.log('setFanSpeed: HomeKit requested a FAN speed of %s Percent.', value);
+    this.log.info('setFanSpeed: HomeKit requested a FAN speed of %s Percent.', value);
     value = this.rawToDaikinSpeed(value);
     this.log.debug('setFanSpeed: this translates to Daikin f_rate value: %s', value);
     this.sendGetRequest(this.get_control_info, body => {
@@ -857,19 +878,19 @@ getFanSpeed: function (callback) {
       this.Fan_Speed = this.daikinSpeedToRaw(value); // FV2105010
       this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed); // FV2105010
       this.sendGetRequest(this.set_control_info + '?' + query, _response => {
-        callback();
+        if (!(typeof callback === 'undefined')) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
 
   getTemperatureDisplayUnits: function (callback) {
-    this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
+    this.log.debug('getTemperatureDisplayUnits: Temperature unit is %s.', this.displayUnitsDescription[this.temperatureDisplayUnits]);
     const error = null;
     callback(error, this.temperatureDisplayUnits);
   },
 
   setTemperatureDisplayUnits: function (value, callback) {
-    this.log.warn('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+    this.log.warn('Changing temperature unit from %s to %s.', this.displayUnitsDescription[this.temperatureDisplayUnits], this.displayUnitsDescription[value]);
     this.temperatureDisplayUnits = value;
     const error = null;
     callback(error);

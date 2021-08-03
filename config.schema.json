@@ -72,6 +72,13 @@
         "enum": [ "FAN", "DRY" ],
         "default": "FAN"
       },
+      "fanPowerMode": {
+        "title": "Fan power mode",
+        "description": "Should Fan power only affect the fan or complete device.",
+        "type": "string",
+        "enum": [ "FAN only", "Complete Device" ],
+        "default": "FAN only"
+      },
       "fanName": {
           "title": "FAN name",
           "description": "The name of the fan. Only applies if the FAN has not been disabled.",
