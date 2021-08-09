@@ -621,7 +621,7 @@ Daikin.prototype = {
                   this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
                   this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
                   let coolingThresholdTemperature;
-                  if (Number.isNaN(responseValues.stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
+                  if (Number.isNaN(stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
                     coolingThresholdTemperature = dt3;
                   else
                     coolingThresholdTemperature = stemp;
@@ -667,7 +667,7 @@ Daikin.prototype = {
                   this.log.debug('stemp: %s', stemp); // stemp usually holds the controllers target temperature
                   this.log.debug('dt3: %s', dt3); // except when it is or was in dehumidification mode, then stemp equals "M" and the temperature is in dt3.
                   let heatingThresholdTemperature;
-                  if (Number.isNaN(responseValues.stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
+                  if (Number.isNaN(stemp) || responseValues.stemp === 'M') // FV 16.6.21 detected that stemp is sometimes a NaN
                     heatingThresholdTemperature = dt3;
                   else
                     heatingThresholdTemperature = stemp;
