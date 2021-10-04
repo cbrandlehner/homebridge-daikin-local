@@ -50,7 +50,7 @@
     "eslint": ">=7.17.0",
     "eslint-plugin-json": ">=2.1.2",
     "minimist": ">=1.2.5",
-    "xo": "=0.39.1",
+    "xo": "=0.45.0",
     "yargs-parser": ">=20.2.4"
   },
   "xo": {
