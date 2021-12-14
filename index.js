@@ -228,9 +228,7 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
-  if (this.enableHumiditySensor === true) {
-      this.humidityService = new Service.HumiditySensor(this.name);
-  }
+  this.humidityService = new Service.HumiditySensor(this.name);
 }
 
 Daikin.prototype = {
@@ -994,7 +992,7 @@ getFanSpeed: function (callback) {
                  maxValue: Number.parseFloat('100')})
       .on('get', this.getCurrentTemperatureFV.bind(this));
 
-    if (this.humidityService !== undefined) {
+    if (this.enableHumiditySensor) {
       this.humidityService
         .getCharacteristic(Characteristic.CurrentRelativeHumidity)
         .setProps({minValue: Number.parseFloat('0'),
@@ -1002,13 +1000,11 @@ getFanSpeed: function (callback) {
         .on('get', this.getCurrentHumidityFV.bind(this));
     }
 
-    let services = [informationService, this.heaterCoolerService, this.temperatureService];
-    if (this.disableFan === false) {
+    const services = [informationService, this.heaterCoolerService, this.temperatureService];
+    if (this.disableFan === false)
       services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
-    }
-    if (this.enableHumiditySensor === true) {
+    if (this.enableHumiditySensor === true)
       services.push(this.humidityService);
-    }
     return services;
   },
 
