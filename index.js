@@ -150,6 +150,11 @@ function Daikin(log, config) {
   else
       this.disableFan = true;
 
+  if (config.enableHumiditySensor === true)
+      this.enableHumiditySensor = true;
+  else
+      this.enableHumiditySensor = false;
+
   if (config.uuid === undefined)
       this.uuid = '';
     else
@@ -223,7 +228,9 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
-  this.humidityService = new Service.HumiditySensor(this.name);
+  if (this.enableHumiditySensor === true) {
+      this.humidityService = new Service.HumiditySensor(this.name);
+  }
 }
 
 Daikin.prototype = {
@@ -987,17 +994,21 @@ getFanSpeed: function (callback) {
                  maxValue: Number.parseFloat('100')})
       .on('get', this.getCurrentTemperatureFV.bind(this));
 
-    this.humidityService
-      .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-      .setProps({minValue: Number.parseFloat('0'),
-                 maxValue: Number.parseFloat('100')})
-      .on('get', this.getCurrentHumidityFV.bind(this));
+    if (this.humidityService !== undefined) {
+      this.humidityService
+        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        .setProps({minValue: Number.parseFloat('0'),
+                  maxValue: Number.parseFloat('100')})
+        .on('get', this.getCurrentHumidityFV.bind(this));
+    }
 
-    let services;
-    if (this.disableFan === true)
-        services = [informationService, this.heaterCoolerService, this.temperatureService, this.humidityService];
-    else
-        services = [informationService, this.heaterCoolerService, this.FanService, this.temperatureService, this.humidityService];
+    let services = [informationService, this.heaterCoolerService, this.temperatureService];
+    if (this.disableFan === false) {
+      services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
+    }
+    if (this.enableHumiditySensor === true) {
+      services.push(this.humidityService);
+    }
     return services;
   },
 

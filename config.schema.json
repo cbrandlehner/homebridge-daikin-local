@@ -97,6 +97,12 @@
         ],
         "default": "0"
       },
+      "enableHumiditySensor": {
+        "title": "Humidity sensor enabled",
+        "description": "Enables humidity sensor if Daikin device is equipped with one.",
+        "type": "boolean",
+        "default": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
