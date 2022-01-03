@@ -1,4 +1,5 @@
-//* eslint promise/prefer-await-to-then: ["warn"] *//
+/* eslint comma-dangle: ["warn", "never"] */
+
 function Cache(expiration /* seconds */) {
   this.entries = {};
   this.expiration = 5;

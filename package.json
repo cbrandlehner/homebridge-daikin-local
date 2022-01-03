@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2022.1.0",
+  "version": "2022.1.00",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -17,7 +17,8 @@
     "greensouth",
     "Fred de Gier",
     "Fabian Leutgeb",
-    "Frank Volkmann"
+    "Frank Volkmann",
+    "@bogdanovskii"
   ],
   "repository": {
     "type": "git",
@@ -50,7 +51,7 @@
     "eslint": ">=7.17.0",
     "eslint-plugin-json": ">=2.1.2",
     "minimist": ">=1.2.5",
-    "xo": "=0.39.1",
+    "xo": "=0.47.0",
     "yargs-parser": ">=20.2.4"
   },
   "xo": {
@@ -91,7 +92,8 @@
       ],
       "unicorn/prefer-ternary": "off",
       "unicorn/prefer-switch": "warn",
-      "promise/prefer-await-to-then": "warn"
+      "promise/prefer-await-to-then": "off",
+      "unicorn/prefer-module": "off"
     }
   }
 }
