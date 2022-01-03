@@ -9,6 +9,12 @@ assignees: ''
 
 **Describe the bug**
 A clear and concise description of what the bug is.
+Please be prepared that incomplete bug reports, especially those missing a full LOG, might be ignored.
+
+**Minimum information**
+To provide information on your device provide the output of the following URLs, your IP may differ though:
+http://192.168.1.88/aircon/get_model_info
+http://192.168.1.88/skyfi/aircon/get_model_info
 
 **To Reproduce**
 Information on your wifi gateway from the daikin app:
