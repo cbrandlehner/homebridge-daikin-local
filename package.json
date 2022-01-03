@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2022.1.00",
+  "version": "2022.1.000",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -48,7 +48,6 @@
   },
   "devDependencies": {
     "eslint": ">=7.17.0",
-    "eslint-plugin-json": ">=2.1.2",
     "minimist": ">=1.2.5",
     "xo": "=0.47.0",
     "yargs-parser": ">=20.2.4"
