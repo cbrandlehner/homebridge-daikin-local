@@ -150,6 +150,11 @@ function Daikin(log, config) {
   else
       this.disableFan = true;
 
+  if (config.enableHumiditySensor === true)
+      this.enableHumiditySensor = true;
+  else
+      this.enableHumiditySensor = false;
+
   if (config.uuid === undefined)
       this.uuid = '';
     else
@@ -209,6 +214,7 @@ function Daikin(log, config) {
   this.HeaterCooler_CurrentTemperature = 21;
   this.HeaterCooler_CoolingTemperature = 21;
   this.HeaterCooler_HeatingTemperature = 21;
+  this.HeaterCooler_CurrentHumidity = 40;
   this.Fan_Speed = 15;
   this.Fan_Status = 0;
   this.counter = 0;
@@ -222,6 +228,7 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
+  this.humidityService = new Service.HumiditySensor(this.name);
 }
 
 Daikin.prototype = {
@@ -604,6 +611,24 @@ Daikin.prototype = {
     });
   },
 
+  getCurrentHumidity(callback) {
+            this.log.debug('getCurrentHumidity using %s', this.get_sensor_info);
+            this.sendGetRequest(this.get_sensor_info, body => {
+                    const responseValues = this.parseResponse(body);
+                    const currentHumidity = Number.parseFloat(responseValues.hhum);
+                    callback(null, currentHumidity);
+            });
+  },
+  getCurrentHumidityFV(callback) {
+    const counter = ++this.counter;
+    this.log.debug('getCurrentHumidityFV: early callback with cached CurrentHumidity: %s (%d).', this.HeaterCooler_CurrentHumidity, counter);
+    callback(null, this.HeaterCooler_CurrentHumidity);
+    this.getCurrentHumidity((error, HomeKitState) => {
+      this.HeaterCooler_CurrentHumidity = HomeKitState;
+      this.log.debug('getCurrentHumidityFV: update CurrentHumidity: %s (%d).', this.HeaterCooler_CurrentHumidity, counter);
+    });
+  },
+
   getCurrentOutsideTemperature(callback) {
                 this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
                 this.sendGetRequest(this.get_sensor_info, body => {
@@ -967,11 +992,19 @@ getFanSpeed: function (callback) {
                  maxValue: Number.parseFloat('100')})
       .on('get', this.getCurrentTemperatureFV.bind(this));
 
-    let services;
-    if (this.disableFan === true)
-        services = [informationService, this.heaterCoolerService, this.temperatureService];
-    else
-        services = [informationService, this.heaterCoolerService, this.FanService, this.temperatureService];
+    if (this.enableHumiditySensor) {
+      this.humidityService
+        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        .setProps({minValue: Number.parseFloat('0'),
+                  maxValue: Number.parseFloat('100')})
+        .on('get', this.getCurrentHumidityFV.bind(this));
+    }
+
+    const services = [informationService, this.heaterCoolerService, this.temperatureService];
+    if (this.disableFan === false)
+      services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
+    if (this.enableHumiditySensor === true)
+      services.push(this.humidityService);
     return services;
   },
 
