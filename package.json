@@ -44,7 +44,6 @@
   ],
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint --ignore-path .gitignore package.json config.schema.json sample-config.json",
     "test": "xo"
   },
   "devDependencies": {
