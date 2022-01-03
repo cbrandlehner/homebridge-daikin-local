@@ -761,7 +761,7 @@ Daikin.prototype = {
       break;
     default:
       // do nothing
-      this.log.warn('daikinSpeedtoRaw: default case - this could be a problem.');
+      this.log.debug('daikinSpeedtoRaw: default case - not changing speed. Message is for debugging purpose only.');
   }
 
   this.log.debug('daikinSpeedtoRaw: raw value is %s', raw);
