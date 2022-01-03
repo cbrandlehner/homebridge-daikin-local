@@ -1,3 +1,4 @@
+//* eslint promise/prefer-await-to-then: ["warn"] *//
 function Cache(expiration /* seconds */) {
   this.entries = {};
   this.expiration = 5;

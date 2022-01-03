@@ -1,4 +1,4 @@
-// * eslint no-unused-vars: ["warn", {"args": "none"}  ] */
+//* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
 const superagent = require('superagent');
