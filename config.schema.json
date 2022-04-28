@@ -103,6 +103,12 @@
         "type": "boolean",
         "default": false
       },
+      "enableTemperatureSensor": {
+        "title": "Temperature sensor enabled",
+        "description": "Enables temperature sensor in HomeKit.",
+        "type": "boolean",
+        "default": true
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",

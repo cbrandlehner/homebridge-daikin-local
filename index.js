@@ -7,6 +7,8 @@ const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const packageFile = require('./package.json');
 
+/* eslint complexity: ["error", 26] */
+
 function Daikin(log, config) {
   this.log = log;
 
@@ -154,6 +156,11 @@ function Daikin(log, config) {
       this.enableHumiditySensor = true;
   else
       this.enableHumiditySensor = false;
+
+  if (config.enableTemperatureSensor === true)
+      this.enableTemperatureSensor = true;
+  else
+      this.enableTemperatureSensor = false;
 
   if (config.uuid === undefined)
       this.uuid = '';
@@ -986,11 +993,13 @@ getFanSpeed: function (callback) {
     .on('get', this.getTemperatureDisplayUnits.bind(this))
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-    this.temperatureService
-      .getCharacteristic(Characteristic.CurrentTemperature)
-      .setProps({minValue: Number.parseFloat('-50'),
-                 maxValue: Number.parseFloat('100')})
-      .on('get', this.getCurrentTemperatureFV.bind(this));
+    if (this.enableTemperatureSensor) {
+      this.temperatureService
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .setProps({minValue: Number.parseFloat('-50'),
+                   maxValue: Number.parseFloat('100')})
+        .on('get', this.getCurrentTemperatureFV.bind(this));
+    }
 
     if (this.enableHumiditySensor) {
       this.humidityService
@@ -1000,11 +1009,16 @@ getFanSpeed: function (callback) {
         .on('get', this.getCurrentHumidityFV.bind(this));
     }
 
-    const services = [informationService, this.heaterCoolerService, this.temperatureService];
+    // const services = [informationService, this.heaterCoolerService, this.temperatureService];
+    const services = [informationService, this.heaterCoolerService];
+    // if (this.disableFan === false)
+    //   services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
     if (this.disableFan === false)
-      services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
+      services.push(this.FanService);
     if (this.enableHumiditySensor === true)
       services.push(this.humidityService);
+    if (this.enableTemperatureSensor === true)
+      services.push(this.temperatureService);
     return services;
   },
 
