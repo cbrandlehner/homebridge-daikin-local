@@ -3,8 +3,10 @@
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://github.com/cbrandlehner/homebridge-daikin-local/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/homebridge-daikin-local.svg)](https://badge.fury.io/js/homebridge-daikin-local)
+
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/Node.js%20CI/badge.svg)
 ![CodeQL](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/CodeQL/badge.svg)
+[![HCL AppScan CodeSweep](https://github.com/cbrandlehner/homebridge-daikin-local/actions/workflows/HCL_AppScan_CodeSweep.yml/badge.svg)](https://github.com/cbrandlehner/homebridge-daikin-local/actions/workflows/HCL_AppScan_CodeSweep.yml)
 # homebridge-daikin-local
 
 Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg).
