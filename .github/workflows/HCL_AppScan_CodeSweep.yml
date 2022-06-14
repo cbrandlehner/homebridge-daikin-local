@@ -7,7 +7,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Run AppScan CodeSweep
-        uses: HCL-TECH-SOFTWARE/appscan-codesweep-action@v1
+        uses: HCL-TECH-SOFTWARE/appscan-codesweep-action@v2
         with:
           asoc_key: ${{secrets.ASOC_KEY}}
           asoc_secret: ${{secrets.ASOC_SECRET}}
