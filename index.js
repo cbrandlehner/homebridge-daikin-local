@@ -41,8 +41,8 @@ function Daikin(log, config) {
 
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
-    this.apiroute = 'http://192.168.1.88';
-    this.apiIP = '192.168.1.88';
+    this.apiroute = 'http://127.0.0.1';
+    this.apiIP = '127.0.0.1';
   } else {
     const myURL = new URL(config.apiroute);
     this.apiroute = myURL.origin;
@@ -213,7 +213,7 @@ function Daikin(log, config) {
   this.log.info('accessory ip: ' + this.apiIP);
   this.log.debug('system: ' + this.system);
 
-  // FV 210510: Storing last values for early returns (and set defaults for first calls)
+  // Setting defaults for early response to improve HomeKit performance
   this.HeaterCooler_Active = Characteristic.Active.INACTIVE;
   this.HeaterCooler_SwingMode = Characteristic.SwingMode.SWING_DISABLED;
   this.HeaterCooler_CurrentHeaterCoolerState = Characteristic.CurrentHeaterCoolerState.IDLE;
@@ -228,7 +228,7 @@ function Daikin(log, config) {
   this.lastMode = 3; /* cooling */
   this.lastFanSpeed = 10; /* Silent */
 
-  // FV 2100720 adding description arrays
+  // description arrays
   this.modeDescription = ['off', 'Auto', 'Dehumidification', 'Cooling', 'Heating', 'unknown:5', 'Fan'];
   this.powerDescription = ['off', 'on'];
 
