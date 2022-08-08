@@ -969,7 +969,7 @@ getFanSpeed: function (callback) {
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.CoolingThresholdTemperature)
-      .setProps({minValue: Number.parseFloat('10'),
+      .setProps({minValue: Number.parseFloat('18'),
                  maxValue: Number.parseFloat('32'),
                  minStep: Number.parseFloat('0.5')})
       .on('get', this.getCoolingTemperatureFV.bind(this))
@@ -978,7 +978,7 @@ getFanSpeed: function (callback) {
     this.heaterCoolerService
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
       .setProps({minValue: Number.parseFloat('10'),
-                 maxValue: Number.parseFloat('32'),
+                 maxValue: Number.parseFloat('30'),
                  minStep: Number.parseFloat('0.5')})
       .on('get', this.getHeatingTemperatureFV.bind(this))
       .on('set', this.setHeatingTemperature.bind(this));
