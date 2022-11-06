@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "2022.34.1",
+  "version": "2022.45.1",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -25,7 +25,7 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
   "dependencies": {
-    "superagent": "^8.0.0",
+    "superagent": "^8.0.3",
     "superagent-throttle": "^1.0.1"
   },
   "bugs": {
@@ -47,10 +47,10 @@
     "test": "xo"
   },
   "devDependencies": {
-    "eslint": "^8.22.0",
-    "minimist": "^1.2.5",
-    "xo": "=0.52.3",
-    "yargs-parser": "^20.2.4"
+    "eslint": "^8.27.0",
+    "minimist": "^1.2.7",
+    "xo": "=0.52.4",
+    "yargs-parser": "^21.1.1"
   },
   "xo": {
     "space": false,
