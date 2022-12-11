@@ -2,6 +2,8 @@
 let Service;
 let Characteristic;
 const superagent = require('superagent');
+const https = require('https');
+const crypto = require("crypto");
 const Throttle = require('superagent-throttle');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
@@ -305,9 +307,17 @@ Daikin.prototype = {
       .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
+
     if (this.uuid !== '') {
-        request.set('X-Daikin-uuid', this.uuid)
-            .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+      request.set('X-Daikin-uuid', this.uuid);
+
+      // the units use a self-signed cert and the CA doesn't seem to be publicly available.
+      // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+      const unsafeAgent = new https.Agent({
+        rejectUnauthorized: false,
+        secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
+      });
+      request.agent(unsafeAgent);
     }
 
     request.then(response => {
