@@ -1,9 +1,9 @@
 //* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
+const https = require('node:https');
+const crypto = require('node:crypto');
 const superagent = require('superagent');
-const https = require('https');
-const crypto = require("crypto");
 const Throttle = require('superagent-throttle');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
@@ -170,29 +170,29 @@ function Daikin(log, config) {
       this.uuid = config.uuid;
 
   switch (this.system) {
-    case 'Default':
+    case 'Default': {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;
+      break;}
 
-    case 'Skyfi':
+    case 'Skyfi': {
       this.get_sensor_info = this.apiroute + '/skyfi/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/skyfi/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/skyfi/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/skyfi/aircon/set_control_info';
       this.basic_info = this.apiroute + '/skyfi/common/basic_info';
-      break;
+      break;}
 
-    default:
+    default: {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;
+      break;}
   }
 
   this.log.debug('get_sensor_info %s', this.get_sensor_info);
@@ -307,15 +307,14 @@ Daikin.prototype = {
       .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
-
     if (this.uuid !== '') {
-      request.set('X-Daikin-uuid', this.uuid);
-
-      // the units use a self-signed cert and the CA doesn't seem to be publicly available.
-      // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
-      const unsafeAgent = new https.Agent({
+        request.set('X-Daikin-uuid', this.uuid);
+        //    .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+        // the units use a self-signed cert and the CA doesn't seem to be publicly available.
+        // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+        const unsafeAgent = new https.Agent({
         rejectUnauthorized: false,
-        secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
+        secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
       });
       request.agent(unsafeAgent);
     }
@@ -403,28 +402,30 @@ Daikin.prototype = {
         let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${power}`);
         if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1' || responseValues.mode === '0') {// If AC is in Fan-mode, or an Humidity-mode then use the default mode.
           switch (this.defaultMode) {
-            case '1': // Auto
+            case '1': { // Auto
             this.log.warn('Auto');
               query = query
                 .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
                 .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
                 .replace(/shum=--/, `shum=${'0'}`);
-                break;
-            case '3': // COOL
+                break;}
+
+            case '3': { // COOL
               query = query
                 .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                 .replace(/stemp=--/, `stemp=${responseValues.dt7}`)
                 .replace(/dt3=--/, `dt3=${responseValues.dt7}`)
                 .replace(/shum=--/, `shum=${'0'}`);
-                break;
-                case '4': // HEAT
+                break;}
+
+                case '4': { // HEAT
                   query = query
                     .replace(/mode=[01234567]/, `mode=${this.defaultMode}`)
                     .replace(/stemp=--/, `stemp=${responseValues.dt5}`)
                     .replace(/dt3=--/, `dt3=${responseValues.dt5}`)
                     .replace(/shum=--/, `shum=${'0'}`);
-                    break;
+                    break;}
 
                 default:
           }
@@ -501,17 +502,21 @@ Daikin.prototype = {
                       case '0': // Auto
                       case '1': // humidification
                       case '2': // dehumidification
-                      case '6': // FAN-Mode
+                      case '6': { // FAN-Mode
                           status = Characteristic.CurrentHeaterCoolerState.IDLE;
-                          break;
-                      case '3':
+                          break;}
+
+                          case '3': {
                           status = Characteristic.CurrentHeaterCoolerState.COOLING;
-                          break;
-                      case '4':
+                          break;}
+
+                          case '4': {
                           status = Characteristic.CurrentHeaterCoolerState.HEATING;
-                          break;
-                      default:
+                          break;}
+
+                          default: {
                           status = Characteristic.CurrentHeaterCoolerState.IDLE;
+                          }
                   }
               }
 
@@ -537,26 +542,33 @@ Daikin.prototype = {
                 let status = Characteristic.TargetHeaterCoolerState.AUTO;
                 if (responseValues.pow === '1') {
                     switch (responseValues.mode) {
-                        case '0': // automatic
+                        case '0': { // automatic
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
-                            break;
-                        case '1': // humidification
+                            break;}
+
+                        case '1': { // humidification
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
-                            break;
-                        case '2': // dehumidification
+                            break;}
+
+                        case '2': { // dehumidification
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
-                            break;
-                        case '3': // cool
+                            break;}
+
+                        case '3': { // cool
                             status = Characteristic.TargetHeaterCoolerState.COOL;
-                            break;
-                        case '4': // heat
+                            break;}
+
+                        case '4': { // heat
                             status = Characteristic.TargetHeaterCoolerState.HEAT;
-                            break;
-                        case '6': // AUTO or FAN
+                            break;}
+
+                        case '6': { // AUTO or FAN
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
-                            break;
-                        default:
+                            break;}
+
+                        default: {
                             status = Characteristic.TargetHeaterCoolerState.AUTO;
+                        }
                     }
                 }
 
@@ -581,20 +593,24 @@ Daikin.prototype = {
                   const currentValues = this.parseResponse(body);
                   let mode = currentValues.mode;
                   switch (state) {
-                      case Characteristic.TargetHeaterCoolerState.AUTO:
+                      case Characteristic.TargetHeaterCoolerState.AUTO: {
                           this.log.info('HomeKit requested the AC to operate in AUTO mode.');
                           mode = 0;
-                          break;
-                      case Characteristic.TargetHeaterCoolerState.COOL:
+                          break;}
+
+                      case Characteristic.TargetHeaterCoolerState.COOL: {
                           this.log.info('HomeKit requested the AC to operate in COOL mode.');
                           mode = 3;
-                          break;
-                      case Characteristic.TargetHeaterCoolerState.HEAT:
+                          break;}
+
+                      case Characteristic.TargetHeaterCoolerState.HEAT: {
                           this.log.info('HomeKit requested the AC to operate in HEAT mode.');
                           mode = 4;
+                          break;}
+
+                      default: {
                           break;
-                      default:
-                          break;
+                      }
                   }
 
                   const query = body.replace(/,/g, '&').replace(/mode=[01234567]/, `mode=${mode}`);
@@ -755,30 +771,38 @@ Daikin.prototype = {
     let raw = 5; // FV 16.6.2021 Setting minimum Speed for default value below...
     this.log.debug('daikinSpeedtoRaw: got value %s', daikinSpeed);
     switch (daikinSpeed) {
-    case 'A':
+    case 'A': {
       raw = 15;
-      break;
-    case 'B':
+      break;}
+
+    case 'B': {
       raw = 5;
-      break;
-    case '3':
+      break;}
+
+    case '3': {
       raw = 25;
-      break;
-    case '4':
+      break;}
+
+    case '4': {
       raw = 35;
-      break;
-    case '5':
+      break;}
+
+    case '5': {
       raw = 50;
-      break;
-    case '6':
+      break;}
+
+    case '6': {
       raw = 70;
-      break;
-    case '7':
+      break;}
+
+    case '7': {
       raw = 100;
-      break;
-    default:
+      break;}
+
+    default: {
       // do nothing
       this.log.debug('daikinSpeedtoRaw: default case - not changing speed. Message is for debugging purpose only.');
+    }
   }
 
   this.log.debug('daikinSpeedtoRaw: raw value is %s', raw);
