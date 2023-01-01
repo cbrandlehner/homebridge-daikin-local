@@ -12,7 +12,7 @@
       },
       "apiroute": {
         "title": "URI of the WIFI controller.",
-        "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
+        "description": "Should be in the format of: http://aaa.bbb.ccc.ddd or https://aaa.bbb.ccc.ddd",
         "type": "string",
         "required": true,
         "default": "http://192.168.1.33",
@@ -37,8 +37,8 @@
           ]
       },
       "uuid": {
-        "title": "Client UUID token.",
-        "description": "Should be a 32 digit hex string",
+        "title": "Client UUID token if needed",
+        "description": "Should be a 32 digit hex string. Most Daikin devices do not need a UUID token. Read the documentation: https://github.com/cbrandlehner/homebridge-daikin-local#httpsregistered-client-support",
         "type": "string",
         "required": false
       },
@@ -46,7 +46,14 @@
         "type": "string",
         "title": "Daikin default or Skyfi",
         "enum": [ "Default", "Skyfi" ],
-        "default": "Default"
+        "default": "Default",
+        "required": true
+      },
+      "OpenSSL3": {
+        "title": "OpenSSL3 support",
+        "description": "Use new OpenSSL3 SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION option",
+        "type": "boolean",
+        "default": false
       },
       "swingMode": {
         "title": "Swing mode",
@@ -95,7 +102,8 @@
           { "title": "Cool", "enum": ["3"] },
           { "title": "Heat", "enum": ["4"] }
         ],
-        "default": "0"
+        "default": "1",
+        "required": true
       },
       "enableHumiditySensor": {
         "title": "Humidity sensor enabled",

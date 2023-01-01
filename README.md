@@ -117,40 +117,10 @@ The response of an usupported device will look like this:
 ret=PARAM NG,msg=404 Not Found
  ```
 
-Tested devices:
+Tested devices are documented here: 
+(https://github.com/cbrandlehner/homebridge-daikin-local/wiki/Tested-devices,-reported-to-work)
 
-Daikin BRP069A41, Model: 0ABB, Firmware: 3.3.6
-
-Daikin BRP069B41, Model: 0AB9, Firmware: 1.2.51
-
-Daikin BRP069B45, Model: 0000, Firmware: 1.2.51
-
-Daikin BRP072C42, Model: 0000, Firmware: 1.13.7 (requires https and token)
-
-Daikin Emura BRP072A43, model 10C8, firmware 2.9
-
-Daikin Emura BRP072A43, model 10C9, firmware 2.9
-
-Daikin Siesta ATXP-K3, (model unknown), Firmware 3.3.6
-
-Daikin Cora BRP072A42, Model 0C87, Firmware 3.4.3
-
-Daikin Cora BRP072A42, Model 0C89, Firmware 3.4.3
-
-Daikin Cora BRP072A42, Model 0C8A, Firmware 3.4.3
-
-Daikin Cora BRP072A42, Model 0C8B, Firmware 3.4.3
-
-Daikin Cora BRP072A42, Model 0EB0, Firmware 3.4.3
-
-Daikin FDXM-F3, Model: FDXM35F3V1B, Firmware 3.3.6
-
-Daikin FKXS20, Model: BRP069A43, Firmware 1.2.51
-
-Daikin FTXA20 (Stylish), Model: FTXA20A2V1BW, Firmware 1.2.51
-
-
-If you have other devices or firmware versions working, please let me know so I can update the list of tested devices.
+If you have other devices or firmware versions working, please update the wiki.
 
 ## HTTPS/Registered client support<a id="https-registered-client"></a>
 

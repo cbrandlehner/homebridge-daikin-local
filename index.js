@@ -9,7 +9,7 @@ const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const packageFile = require('./package.json');
 
-/* eslint complexity: ["error", 26] */
+/* eslint complexity: ["error", 28] */
 
 function Daikin(log, config) {
   this.log = log;
@@ -148,6 +148,11 @@ function Daikin(log, config) {
     this.log.debug('Config: system is %s', config.system);
     this.system = config.system;
   }
+
+  if (config.OpenSSL3 === undefined || config.OpenSSL3 === false)
+      this.OpenSSL3 = false;
+  else
+      this.OpenSSL3 = true;
 
   if (config.disableFan === undefined || config.disableFan === false)
       this.disableFan = false;
@@ -308,16 +313,23 @@ Daikin.prototype = {
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
     if (this.uuid !== '') {
-        request.set('X-Daikin-uuid', this.uuid);
-        //    .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
-        // the units use a self-signed cert and the CA doesn't seem to be publicly available.
-        // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
-        const unsafeAgent = new https.Agent({
-        rejectUnauthorized: false,
-        secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
-      });
-      request.agent(unsafeAgent);
-    }
+      if (this.OpenSSL3 === true) {
+          // new code which did not work for many folks.
+          request.set('X-Daikin-uuid', this.uuid);
+          //    .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+          // the units use a self-signed cert and the CA doesn't seem to be publicly available.
+          // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+          const unsafeAgent = new https.Agent({
+              rejectUnauthorized: false,
+              secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
+          });
+          request.agent(unsafeAgent);
+        } else {
+          // old code which seems to fail with NodeJS 18
+          request.set('X-Daikin-uuid', this.uuid)
+            .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+        }
+      }
 
     request.then(response => {
          this.log.debug('_doSendGetRequest: set cache: path: %s', path);

@@ -86,10 +86,6 @@
           "classes": false
         }
       ],
-      "complexity": [
-        "error",
-        25
-      ],
       "unicorn/prefer-ternary": "off",
       "unicorn/prefer-switch": "warn",
       "promise/prefer-await-to-then": "off",
