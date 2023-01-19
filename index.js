@@ -983,7 +983,7 @@ getFanSpeed: function (callback) {
 			.setCharacteristic(Characteristic.Manufacturer, 'Daikin')
 			.setCharacteristic(Characteristic.Model, this.model)
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
-			.setCharacteristic(Characteristic.SerialNumber, this.firmwareRevision);
+			.setCharacteristic(Characteristic.SerialNumber, this.name);
 
 		this.FanService
 			.getCharacteristic(Characteristic.On)
