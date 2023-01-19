@@ -164,14 +164,6 @@ Make sure to use the correct token if a different token has been registered with
 # Debugging and Testing
 
 The code of this plugins generates debug output. Normally, this debug output is not visible on the [homebridge](https://github.com/nfarina/homebridge) console.
-As explained in the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) you should start [homebridge](https://github.com/nfarina/homebridge) like this to see the debug output:
 
-```
-homebridge -D
-```
-
-For even more debug, use this:
-
-```
-DEBUG=* homebridge -D
-```
+Before reporting any issue or bug, enable debugging and restart.
+<img src="https://user-images.githubusercontent.com/10800971/213495032-6b8cab33-8a8f-4cb4-ad9e-77ffd8ba89d0.png" align="center" alt="Debug" width="100%" height="100%">
