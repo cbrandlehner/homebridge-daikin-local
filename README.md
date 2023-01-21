@@ -17,7 +17,7 @@ Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/home
 
 
 
-# Installation
+# About this plugin
 
 This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https://amzn.to/2MZDQjg) in your local network and allows you to set operation modes and target temperatures. As it is a plugin for [HomeBridge](https://github.com/nfarina/homebridge) you will have access to these features using Apple Home.
 
