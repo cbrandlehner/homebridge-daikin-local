@@ -27,34 +27,6 @@ This plugin can be installed using [Homebridge Config UI X](https://github.com/o
 
 # Configuration
 
-Configuration sample:
-
- ```
-    {
-        "bridge": {
-            ...
-        },
-
-        "description": "...",
-
-        "accessories": [
-            {
-                "accessory": "Daikin-Local",
-                "name": "Living room",
-                "apiroute": "http://192.168.1.50",
-                "temperature_unit": "C",
-                "system": "Default",
-                "swingMode": "2",
-                "defaultMode": "0",
-                "fanMode": "FAN",
-                "fanName": "Living room FAN"
-            }
-        ],
-
-        "platforms":[]
-    }
-```
-
 This screenshot shows the configuration in [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme):
 
 <img src="https://user-images.githubusercontent.com/10800971/80524996-daf4e580-8990-11ea-9e13-3328a65f20af.png" align="center" alt="configuration" width="50%" height="50%">
