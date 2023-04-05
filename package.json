@@ -51,7 +51,7 @@
   "devDependencies": {
     "eslint": "^8.32.0",
     "minimist": "^1.2.7",
-    "xo": "^0.53.1",
+    "xo": "^0.54.0",
     "yargs-parser": "^21.1.1"
   },
   "xo": {
