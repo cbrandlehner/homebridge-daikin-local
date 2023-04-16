@@ -102,29 +102,43 @@ function Daikin(log, config) {
     this.defaultMode = '1';
   }
 
-  if (config.fanMode === 'FAN') {
+  switch (config.fanMode) {
+    case 'FAN': {
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
-  } else if (config.fanMode === 'DRY') {
+      break;}
+
+    case 'DRY': {
       this.fanMode = '2';
       this.log.debug('Config: fanMode is %s', this.fanMode);
-  } else if (config.fanMode === undefined) {
+      break;}
+
+      case undefined: {
       this.log.warn('ERROR: your configuration is missing the parameter "fanMode", using default: FAN');
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
-  } else {
+      break;}
+
+      default: {
       this.log.error('ERROR: your configuration has an invalid value for parameter "fanMode", using default');
       this.fanMode = '6';
       this.log.debug('Config: fanMode is %s', this.fanMode);
+      break;}
   }
 
-  if (config.fanPowerMode === undefined) {
+    switch (config.fanPowerMode) {
+      case undefined: {
         this.log.warn('ERROR: your configuration is missing the parameter "fanPowerMode", using default');
         this.fanPowerMode = false;
-  } else if (config.fanPowerMode === 'FAN only') {
-      this.fanPowerMode = false;
-    } else {
+        break;}
+
+        case 'FAN only': {
+        this.fanPowerMode = false;
+        break;}
+
+        default: {
         this.fanPowerMode = true;
+        break;}
     }
 
   if (config.fanName === undefined && config.fanMode === undefined) {
@@ -291,7 +305,7 @@ Daikin.prototype = {
           this.log.debug('queued request finished: path: %s', path);
 
           // actual response callback
-          if (!(typeof callback === 'undefined')) callback(response);
+          if (!(callback === undefined)) callback(response);
           done();
         }, options);
     });
@@ -335,7 +349,7 @@ Daikin.prototype = {
          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
          this.cache.set(path, response.text);
          this.log.debug('_doSendGetRequest: response from API: %s', response.text);
-         if (!(typeof callback === 'undefined')) callback(null, response.text);
+         if (!(callback === undefined)) callback(null, response.text);
        })
        .catch(error => {
            if (error.timeout) { /* timed out! */ } else
@@ -345,7 +359,7 @@ Daikin.prototype = {
                this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
             }
 
-        if (!(typeof callback === 'undefined')) callback(error);
+        if (!(callback === undefined)) callback(error);
         // return;
        });
      },
@@ -378,7 +392,7 @@ Daikin.prototype = {
     this.log.debug('cache HIT: path: %s', path);
     this.log.debug('responding from cache: %s', cachedResponse);
 
-    if (!(typeof callback === 'undefined')) callback(null, cachedResponse);
+    if (!(callback === undefined)) callback(null, cachedResponse);
     return true;
   },
 
@@ -394,13 +408,13 @@ Daikin.prototype = {
               HomeKitState = '1'; // Power is ON and the device is neither in Fan-mode nor Humidity-mode
             else
               HomeKitState = '0'; // Power is OFF
-          if (!(typeof callback === 'undefined')) callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
+          if (!(callback === undefined)) callback(null, HomeKitState === '1' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
         });
     },
   getActiveFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getActiveFV: early callback with cached Active: %s (%d).', this.HeaterCooler_Active, counter);
-    if (!(typeof callback === 'undefined')) callback(null, this.HeaterCooler_Active);
+    if (!(callback === undefined)) callback(null, this.HeaterCooler_Active);
     this.getActive((error, HomeKitState) => {
       this.HeaterCooler_Active = HomeKitState;
       this.heaterCoolerService.getCharacteristic(Characteristic.Active).updateValue(this.HeaterCooler_Active);
@@ -454,7 +468,7 @@ Daikin.prototype = {
         this.sendGetRequest(this.set_control_info + '?' + query, _response => {
           this.HeaterCooler_Active = power; // FV210510 updating Active Cache
           this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
-          if (!(typeof callback === 'undefined')) callback();
+          if (!(callback === undefined)) callback();
         if (power === '0') {
           this.lastFanSpeed = this.Fan_Speed;
           this.setFanSpeed(0);
@@ -695,6 +709,7 @@ Daikin.prototype = {
                     coolingThresholdTemperature = dt3;
                   else
                     coolingThresholdTemperature = stemp;
+                  if (coolingThresholdTemperature < 18) coolingThresholdTemperature = 18; // to fix #264
                   this.log.debug('getCoolingTemperature: parsed float is %s', coolingThresholdTemperature);
                   callback(null, coolingThresholdTemperature);
           });
@@ -882,7 +897,7 @@ getFanStatus: function (callback) {
 
       if (targetPOW === currentPOW) {
         this.log.debug('setFanStatus: Powerstate did not change, ignore it.');
-        if (!(typeof callback === 'undefined')) callback();
+        if (!(callback === undefined)) callback();
         return;
       }
 
@@ -900,7 +915,7 @@ getFanStatus: function (callback) {
            this.setActive(0);
        }
 
-       if (!(typeof callback === 'undefined')) callback();
+       if (!(callback === undefined)) callback();
        return;
      }
      // turn power on
@@ -908,7 +923,7 @@ getFanStatus: function (callback) {
      if (this.fanPowerMode === true) {
        this.log.debug('setFanStatus: fanPowerMode is "complete Device" => power on Device.');
        this.setActive(1);
-       if (!(typeof callback === 'undefined')) callback();
+       if (!(callback === undefined)) callback();
        return;
      }
 
@@ -919,7 +934,7 @@ getFanStatus: function (callback) {
      this.Fan_Status = targetPOW; // FV2105010
      this.log.debug('setFanStatus: update Status: %s.', this.powerDescription[this.Fan_Status]); // FV2105010
      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
-        if (!(typeof callback === 'undefined')) callback();
+        if (!(callback === undefined)) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
@@ -956,7 +971,7 @@ getFanSpeed: function (callback) {
       this.Fan_Speed = this.daikinSpeedToRaw(value); // FV2105010
       this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed); // FV2105010
       this.sendGetRequest(this.set_control_info + '?' + query, _response => {
-        if (!(typeof callback === 'undefined')) callback();
+        if (!(callback === undefined)) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
   },
