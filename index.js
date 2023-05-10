@@ -9,10 +9,17 @@ const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const packageFile = require('./package.json');
 
-/* eslint complexity: ["error", 28] */
+/* eslint complexity: ["error", 30] */
 
 function Daikin(log, config) {
   this.log = log;
+
+  const process = require('node:process');
+  const NODE_MAJOR_VERSION = process.versions.node.split('.')[0];
+  if (NODE_MAJOR_VERSION <= 14) {
+    this.log.warn('WARNING: NodeJS version 14 is end of life 2023-04-30.');
+    this.log.warn('Visit nodejs.org for more details.');
+  }
 
   this.cache = new Cache();
   this.queue = new Queue();

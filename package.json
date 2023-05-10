@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "daikin plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -8,7 +8,7 @@
     "daikin"
   ],
   "engines": {
-    "node": ">=16.15.1",
+    "node": ">=16.18.1",
     "homebridge": ">=1.4.1"
   },
   "author": "Christian Brandlehner",
@@ -27,7 +27,7 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
   "dependencies": {
-    "superagent": "^8.0.8",
+    "superagent": "^8.0.9",
     "superagent-throttle": "^1.0.1"
   },
   "bugs": {
@@ -49,9 +49,9 @@
     "test": "xo"
   },
   "devDependencies": {
-    "eslint": "^8.32.0",
-    "minimist": "^1.2.7",
-    "xo": "^0.54.1",
+    "eslint": "^8.40.0",
+    "minimist": "^1.2.8",
+    "xo": "^0.54.2",
     "yargs-parser": "^21.1.1"
   },
   "xo": {
@@ -89,7 +89,8 @@
       "unicorn/prefer-ternary": "off",
       "unicorn/prefer-switch": "warn",
       "promise/prefer-await-to-then": "off",
-      "unicorn/prefer-module": "off"
+      "unicorn/prefer-module": "off",
+      "unicorn/expiring-todo-comments": "off"
     }
   }
 }
