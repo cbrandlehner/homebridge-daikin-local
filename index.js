@@ -339,7 +339,7 @@ Daikin.prototype = {
           request.set('X-Daikin-uuid', this.uuid);
           //    .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
           // the units use a self-signed cert and the CA doesn't seem to be publicly available.
-          // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+          // Node.js 18 utilizes OpenSSL 3.0 which requires secure renegotiation by default.
           const unsafeAgent = new https.Agent({
               rejectUnauthorized: false,
               secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
@@ -408,7 +408,7 @@ Daikin.prototype = {
           const responseValues = this.parseResponse(body);
           this.log.debug('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
           let HomeKitState = '0';
-          if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or an Humidity-mode then show AC OFF in HomeKit
+          if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or in Humidity-mode then show AC OFF in HomeKit
             HomeKitState = '0';
           else
             if (responseValues.pow === '1')
@@ -605,7 +605,7 @@ Daikin.prototype = {
                     }
                 }
 
-                this.log.debug('getTargetHeaterCollerState is %s', status);
+                this.log.debug('getTargetHeaterCoolerState is %s', status);
                 callback(null, status);
             });
         },
@@ -802,7 +802,7 @@ Daikin.prototype = {
   },
 
   daikinSpeedToRaw: function (daikinSpeed) {
-    let raw = 5; // FV 16.6.2021 Setting minimum Speed for default value below...
+    let raw;
     this.log.debug('daikinSpeedtoRaw: got value %s', daikinSpeed);
     switch (daikinSpeed) {
     case 'A': {
@@ -834,8 +834,8 @@ Daikin.prototype = {
       break;}
 
     default: {
-      // do nothing
-      this.log.debug('daikinSpeedtoRaw: default case - not changing speed. Message is for debugging purpose only.');
+      raw = 5;
+      this.log.debug('daikinSpeedtoRaw: Invalid speed value. Setting default raw value to 5');
     }
   }
 
@@ -848,20 +848,21 @@ rawToDaikinSpeed: function (rawFanSpeed) {
   let f_rate = 'A';
   rawFanSpeed = Number(rawFanSpeed);
   this.log.debug('rawToDaikinSpeed: numberized value %s', rawFanSpeed);
-  if ((rawFanSpeed > 0) && (rawFanSpeed <= 9)) {// from 1% to 5%, we set the SILENT mode
-    f_rate = 'B';
-  } else if ((rawFanSpeed > 9) && (rawFanSpeed < 20)) {
-    f_rate = 'A';
-  } else if ((rawFanSpeed >= 20) && (rawFanSpeed < 30)) {
-    f_rate = '3';
-  } else if ((rawFanSpeed >= 30) && (rawFanSpeed < 40)) {
-    f_rate = '4';
-  } else if ((rawFanSpeed >= 40) && (rawFanSpeed < 60)) {
-    f_rate = '5';
-  } else if ((rawFanSpeed >= 60) && (rawFanSpeed < 80)) {
-    f_rate = '6';
-  } else if ((rawFanSpeed >= 80) && (rawFanSpeed <= 100)) {
-    f_rate = '7';
+  const speedRanges = [
+    {min: 1, max: 9, value: 'B'}, // silent fan speed
+    {min: 9, max: 20, value: 'A'}, // Auto fan speed
+    {min: 20, max: 30, value: '3'},
+    {min: 30, max: 40, value: '4'},
+    {min: 40, max: 60, value: '5'},
+    {min: 60, max: 80, value: '6'},
+    {min: 80, max: 100, value: '7'},
+  ];
+
+  for (const range of speedRanges) {
+    if (rawFanSpeed >= range.min && rawFanSpeed < range.max) {
+      f_rate = range.value;
+      break;
+    }
   }
 
   this.log.debug('rawToDaikinSpeed: Daikin Speed is %s', f_rate);
@@ -876,12 +877,12 @@ getFanStatus: function (callback) {
 },
   getFanStatusFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
-    this.log.debug('getFanStatusFV: early callback with cached Status: %s (%d).', this.powerDescription[this.Fan_Status], counter);
+    this.log.debug('getFanStatusFV: early callback with cached Status: %s (counter: %d).', this.powerDescription[this.Fan_Status], counter);
     callback(null, this.Fan_Status);
     this.getFanStatus((error, HomeKitState) => {
       this.Fan_Status = HomeKitState;
       this.FanService.getCharacteristic(Characteristic.On).updateValue(this.Fan_Status); // FV210504
-      this.log.debug('getFanStatusFV: update Status: %s (%d).', this.powerDescription[this.Fan_Status], counter);
+      this.log.debug('getFanStatusFV: update Status: %s (counter: %d).', this.Fan_Status ? 'on' : 'off', counter);
     });
   },
 
@@ -898,7 +899,7 @@ getFanStatus: function (callback) {
         currentPOW = 1;
 
       const targetFanMode = this.fanMode; // FAN or Dehumidify */
-      this.log.info('setFanStatus: HomeKit requested  to turn the FAN %s.', this.powerDescription[targetPOW]);
+      this.log.info('setFanStatus: HomeKit requested to turn the FAN %s.', this.powerDescription[targetPOW]);
       this.log.debug('setFanStatus: Current Power is: %s.', this.powerDescription[currentPOW]);
       this.log.debug('setFanStatus: Current Mode is: %s.', this.modeDescription[responseValues.mode]);
 

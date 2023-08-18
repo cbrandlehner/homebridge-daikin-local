@@ -21,20 +21,10 @@
       "temperature_unit": {
           "title": "Define Temperature Unit",
           "type": "string",
+          "required": true,
           "default": "C",
-          "oneOf": [{
-                  "title": "Fahrenheit",
-                  "enum": [
-                      "F"
-                  ]
-              },
-              {
-                  "title": "Celsius",
-                  "enum": [
-                      "C"
-                  ]
-              }
-          ]
+          "oneOf": [{"title": "Fahrenheit", "enum": ["F"]},
+                    {"title": "Celsius", "enum": ["C"]}]
       },
       "uuid": {
         "title": "Client UUID token if needed",
@@ -44,7 +34,8 @@
       },
       "system": {
         "type": "string",
-        "title": "Daikin default or Skyfi",
+        "title": "Default Daikin device or Skyfi-model?",
+        "description": "Try with Default first before choosing the Skyfi-option. Consult the documentation for more information.",
         "enum": [ "Default", "Skyfi" ],
         "default": "Default",
         "required": true
@@ -57,10 +48,11 @@
       },
       "swingMode": {
         "title": "Swing mode",
-        "description": "Some Daikin ACs support different swing modes.",
+        "description": "Apple Home allows to enable OSCILLATE. However most Daikin ACs support different swing modes. This setting allows to choose the swing-mode used if oscillation is enabled.",
         "type": "string",
-                "default": "1",
-        "oneOf": [
+        "default": "1",
+        "required": true,
+        "oneOf": [       
           { "title": "Vertical Swing (default)", "enum": ["1"] },
           { "title": "Horizontal Swing", "enum": ["2"] },
           { "title": "3D Swing", "enum": ["3"] }
@@ -74,17 +66,22 @@
       },
       "fanMode": {
         "title": "Fan mode",
-        "description": "Choose between normal fan or dry mode",
-        "type": "string",
-        "enum": [ "FAN", "DRY" ],
-        "default": "FAN"
+        "description": "If in DRY-mode, switching on the FAN in Apple-Home will start the AC in dry mode. If in FAN-mode, it will only activate the FAN.",
+        "type": "string", 
+        "default": "FAN",
+        "required": true,
+        "oneOf": [
+          { "title": "FAN", "enum": ["FAN"] },
+          { "title": "DRY", "enum": ["DRY"] }
+        ]
       },
       "fanPowerMode": {
         "title": "Fan power mode",
         "description": "Should Fan power only affect the fan or complete device.",
         "type": "string",
-        "enum": [ "FAN only", "Complete Device" ],
-        "default": "FAN only"
+        "default": "FAN only",
+        "required": true,
+        "enum": [ "FAN only", "Complete Device" ]
       },
       "fanName": {
           "title": "FAN name",
@@ -95,19 +92,19 @@
       },
       "defaultMode": {
         "title": "Default operation mode",
-        "description": "When turning on the Daikin device in HomeBridge using a single-tap, the default operation mode will be applied.",
+        "description": "When turning on the Daikin device in HomeBridge using a single-tap, the default operation mode will be applied. The Daikin-Auto-mode does not match Apple-Homekit - so it is advised to use either COOL- or HEAT-mode if possible.",
         "type": "string",
+        "default": "3",
         "oneOf": [
-          { "title": "Auto (default)", "enum": ["1"] },
-          { "title": "Cool", "enum": ["3"] },
+          { "title": "Auto", "enum": ["1"] },
+          { "title": "Cool (default)", "enum": ["3"] },
           { "title": "Heat", "enum": ["4"] }
         ],
-        "default": "1",
         "required": true
       },
       "enableHumiditySensor": {
         "title": "Humidity sensor enabled",
-        "description": "Enables humidity sensor if Daikin device is equipped with one.",
+        "description": "Enables humidity sensor if present in Daikin device.",
         "type": "boolean",
         "default": false
       },
@@ -115,7 +112,7 @@
         "title": "Temperature sensor enabled",
         "description": "Enables temperature sensor in HomeKit.",
         "type": "boolean",
-        "default": true
+        "default": false
       },
       "response": {
         "title": "Response",
