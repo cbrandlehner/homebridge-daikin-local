@@ -8,8 +8,8 @@
     "daikin"
   ],
   "engines": {
-    "node": ">=16.18.1",
-    "homebridge": ">=1.4.1"
+    "node": ">=18.17.0",
+    "homebridge": ">=1.6.1"
   },
   "author": "Christian Brandlehner",
   "contributors": [
