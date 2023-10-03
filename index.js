@@ -16,8 +16,8 @@ function Daikin(log, config) {
 
   const process = require('node:process');
   const NODE_MAJOR_VERSION = process.versions.node.split('.')[0];
-  if (NODE_MAJOR_VERSION <= 14) {
-    this.log.warn('WARNING: NodeJS version 14 is end of life 2023-04-30.');
+  if (NODE_MAJOR_VERSION <= 16) {
+    this.log.warn('WARNING: NodeJS version 16 and older versions are end of life as of 2023-09-11.');
     this.log.warn('Visit nodejs.org for more details.');
   }
 
