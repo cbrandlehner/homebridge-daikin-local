@@ -15,6 +15,11 @@ Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/home
 
 <img src="https://user-images.githubusercontent.com/2294359/80783675-b4a79380-8ba4-11ea-9fa8-f48f9bf12585.jpeg" align="center" alt="controller" width="50%" height="50%">
 
+# WARNING
+
+Daikin has removed their local API in newer products. They offer a cloud API accessible only under NDA, which is incompatible with open source. This affects units fitted with the BRP069C4x wifi adapter.
+
+The Daikin App will most likely ask you to update the devices firmware. If you want to continue to use this plugin, DO NOT UPDATE THE FIRMWARE.
 
 
 # About this plugin
