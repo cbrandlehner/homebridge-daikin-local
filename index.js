@@ -1038,17 +1038,21 @@ getFanSpeed: function (callback) {
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.CoolingThresholdTemperature)
-      .setProps({minValue: Number.parseFloat('18'),
-                 maxValue: Number.parseFloat('32'),
-                 minStep: Number.parseFloat('0.5')})
+      .setProps({
+        minValue: Number.parseFloat('18'),
+        maxValue: Number.parseFloat('32'),
+        minStep: Number.parseFloat('0.5'),
+      })
       .on('get', this.getCoolingTemperatureFV.bind(this))
       .on('set', this.setCoolingTemperature.bind(this));
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
-      .setProps({minValue: Number.parseFloat('10'),
-                 maxValue: Number.parseFloat('30'),
-                 minStep: Number.parseFloat('0.5')})
+      .setProps({
+        minValue: Number.parseFloat('10'),
+        maxValue: Number.parseFloat('30'),
+        minStep: Number.parseFloat('0.5'),
+      })
       .on('get', this.getHeatingTemperatureFV.bind(this))
       .on('set', this.setHeatingTemperature.bind(this));
 
@@ -1065,16 +1069,20 @@ getFanSpeed: function (callback) {
     if (this.enableTemperatureSensor) {
       this.temperatureService
         .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({minValue: Number.parseFloat('-50'),
-                   maxValue: Number.parseFloat('100')})
+        .setProps({
+          minValue: Number.parseFloat('-50'),
+          maxValue: Number.parseFloat('100'),
+        })
         .on('get', this.getCurrentTemperatureFV.bind(this));
     }
 
     if (this.enableHumiditySensor) {
       this.humidityService
         .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-        .setProps({minValue: Number.parseFloat('0'),
-                  maxValue: Number.parseFloat('100')})
+        .setProps({
+          minValue: Number.parseFloat('0'),
+          maxValue: Number.parseFloat('100'),
+        })
         .on('get', this.getCurrentHumidityFV.bind(this));
     }
 
