@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "daikin plugin for homebridge: https://github.com/homebridge/homebridge",
   "license": "MIT",
   "keywords": [
@@ -46,28 +46,35 @@
   ],
   "main": "index.js",
   "scripts": {
-    "lint:json": "jsonlint -q package.json package-lock.json config.schema.json sample-config.json",
+    "lint:json": "for file in config.schema.json sample-config.json package.json; do jsonlint -q $file || exit 1; done",
     "pretest": "npm run lint:json",
     "test": "xo"
   },
   "devDependencies": {
-    "minimist": "^1.2.8",
     "xo": "^0.59.3",
-    "jsonlint": "^1.6.3",
-    "yargs-parser": "^21.1.1"
+    "jsonlint": "^1.6.3"
   },
   "xo": {
     "space": false,
     "rules": {
       "camelcase": "off",
-      "no-mixed-spaces-and-tabs": "warn",
-      "no-useless-escape": "warn",
-      "indent": "off",
-      "quotes": "warn",
       "capitalized-comments": "off",
+      "curly": [
+        "error",
+        "multi-or-nest",
+        "consistent"
+      ],
+      "indent": "off",
+      "no-mixed-spaces-and-tabs": "warn",
+      "no-unused-vars": "warn",
+      "no-useless-escape": "warn",
+      "no-use-before-define": [
+        "error",
+        {
+          "classes": false
+        }
+      ],
       "no-var": "warn",
-      "prefer-destructuring": "warn",
-      "prefer-arrow-callback": "warn",
       "object-shorthand": [
         "off",
         "always",
@@ -75,26 +82,17 @@
           "ignoreConstructors": true
         }
       ],
-      "quote-props": "error",
-      "no-unused-vars": "warn",
-      "curly": [
-        "error",
-        "multi-or-nest",
-        "consistent"
-      ],
-      "no-use-before-define": [
-        "error",
-        {
-          "classes": false
-        }
-      ],
-      "unicorn/prefer-ternary": "off",
-      "unicorn/prefer-switch": "warn",
+      "prefer-arrow-callback": "warn",
+      "prefer-destructuring": "warn",
       "promise/prefer-await-to-then": "off",
-      "unicorn/prefer-module": "off",
+      "quotes": "warn",
+      "quote-props": "error",
       "unicorn/expiring-todo-comments": "off",
+      "unicorn/no-anonymous-default-export": "off",
+      "unicorn/prefer-module": "off",
       "unicorn/prefer-string-replace-all": "warn",
-      "unicorn/no-anonymous-default-export": "off"
+      "unicorn/prefer-switch": "warn",
+      "unicorn/prefer-ternary": "off"
     }
   }
 }
