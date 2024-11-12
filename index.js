@@ -681,7 +681,7 @@ Daikin.prototype = {
             this.log.debug('getCurrentHumidity using %s', this.get_sensor_info);
             this.sendGetRequest(this.get_sensor_info, body => {
                     const responseValues = this.parseResponse(body);
-                    const currentHumidity = Number.parseFloat(responseValues.hhum);
+                    const currentHumidity = (value => isNaN(value) ? 0 : value)(Number.parseFloat(responseValues.hhum));
                     callback(null, currentHumidity);
             });
   },
