@@ -8,7 +8,7 @@
     "daikin"
   ],
   "engines": {
-    "node": "^18.19.1 || ^20.15.1",
+    "node": "^18.19.1 || ^20.15.1 || ^22.12.0",
     "homebridge": "^1.6.1 || ^2.0.0-beta.0"
   },
   "author": "Christian Brandlehner",
