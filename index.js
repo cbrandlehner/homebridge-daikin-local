@@ -1013,10 +1013,12 @@ getFanSpeed: function (callback) {
 			.on('get', this.getFanStatusFV.bind(this))
 			.on('set', this.setFanStatus.bind(this));
 
+	if (this.supportFanSpeed) {
 		this.FanService
 			.getCharacteristic(Characteristic.RotationSpeed)
 			.on('get', this.getFanSpeedFV.bind(this))
 			.on('set', this.setFanSpeed.bind(this));
+	}
 
     this.heaterCoolerService
       .getCharacteristic(Characteristic.Active)
@@ -1056,10 +1058,12 @@ getFanSpeed: function (callback) {
       .on('get', this.getHeatingTemperatureFV.bind(this))
       .on('set', this.setHeatingTemperature.bind(this));
 
-    this.heaterCoolerService
-      .getCharacteristic(Characteristic.SwingMode)
-      .on('get', this.getSwingModeFV.bind(this)) // FV210510
-      .on('set', this.setSwingMode.bind(this));
+    if (this.supportSwingMode) {
+		this.heaterCoolerService
+		.getCharacteristic(Characteristic.SwingMode)
+		.on('get', this.getSwingModeFV.bind(this)) // FV210510
+		.on('set', this.setSwingMode.bind(this));
+	}
 
     this.heaterCoolerService
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
@@ -1076,7 +1080,7 @@ getFanSpeed: function (callback) {
         .on('get', this.getCurrentTemperatureFV.bind(this));
     }
 
-    if (this.enableHumiditySensor) {
+    if (this.supportHumidity && this.enableHumiditySensor) {
       this.humidityService
         .getCharacteristic(Characteristic.CurrentRelativeHumidity)
         .setProps({
@@ -1092,7 +1096,7 @@ getFanSpeed: function (callback) {
     //   services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
     if (this.disableFan === false)
       services.push(this.FanService);
-    if (this.enableHumiditySensor === true)
+    if (this.supportHumidity && this.enableHumiditySensor === true)
       services.push(this.humidityService);
     if (this.enableTemperatureSensor === true)
       services.push(this.temperatureService);
@@ -1127,6 +1131,17 @@ getFanSpeed: function (callback) {
         this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');
         }
       });
+
+	// detect features from get_*_info
+	this.sendGetRequest(this.get_control_info, body => {
+		const responseValues = this.parseResponse(body);
+		this.supportSwingMode = (value => Number.isNaN(value) ? false : true)(Number.parseFloat(responseValues.f_dir));
+		this.supportFanSpeed = (value => Number.isNaN(value) ? false : true)(Number.parseFloat(responseValues.f_rate));
+    });
+	this.sendGetRequest(this.get_sensor_info, body => {
+		const responseValues = this.parseResponse(body);
+		this.supportHumidity = (value => Number.isNaN(value) ? false : true)(Number.parseFloat(responseValues.hhum));
+	});
     },
   };
 
