@@ -1,1 +1,4 @@
 .idea
+.github
+node_modules
+*.sh

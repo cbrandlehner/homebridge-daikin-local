@@ -44,19 +44,22 @@
       "url": "https://paypal.me/CBrandlehner"
     }
   ],
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "lint:json": "for file in config.schema.json sample-config.json package.json; do jsonlint -q $file || exit 1; done",
+    "lint:json": "xo --ext .json",
     "pretest": "npm run lint:json",
     "test": "xo"
   },
   "devDependencies": {
     "xo": "^0.60.0",
-    "jsonlint": "^1.6.3"
+    "eslint-plugin-json": "^3.1.0"
   },
   "xo": {
     "space": false,
+    "extensions": ["js", "json"],
+    "plugins": ["json"],
     "rules": {
+      "json/*": "error",
       "camelcase": "off",
       "capitalized-comments": "off",
       "curly": [

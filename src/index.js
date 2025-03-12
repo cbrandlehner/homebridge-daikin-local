@@ -5,8 +5,9 @@ const https = require('node:https');
 const crypto = require('node:crypto');
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
-const Cache = require('./cache.js');
-const Queue = require('./queue.js');
+const Cache = require('./src/cache.js');
+const Queue = require('./src/queue.js');
+const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./src/utils.js');
 const packageFile = require('./package.json');
 
 /* eslint complexity: ["error", 30] */
@@ -267,20 +268,9 @@ function Daikin(log, config) {
 }
 
 Daikin.prototype = {
-
-  parseResponse(response) {
-        const vals = {};
-        if (response) {
-            const items = response.split(',');
-            const length = items.length;
-            for (let i = 0; i < length; i++) {
-                const keyValue = items[i].split('=');
-                vals[keyValue[0]] = keyValue[1];
-            }
-        }
-
-    return vals;
-  },
+  parseResponse,
+  daikinSpeedToRaw,
+  rawToDaikinSpeed,
 
   sendGetRequest(path, callback, options) {
     this.log.debug('attempting request: path: %s', path);
@@ -801,80 +791,12 @@ Daikin.prototype = {
     callback(null);
   },
 
-  daikinSpeedToRaw: function (daikinSpeed) {
-    let raw;
-    this.log.debug('daikinSpeedtoRaw: got value %s', daikinSpeed);
-    switch (daikinSpeed) {
-    case 'A': {
-      raw = 15;
-      break;}
-
-    case 'B': {
-      raw = 5;
-      break;}
-
-    case '3': {
-      raw = 25;
-      break;}
-
-    case '4': {
-      raw = 35;
-      break;}
-
-    case '5': {
-      raw = 50;
-      break;}
-
-    case '6': {
-      raw = 70;
-      break;}
-
-    case '7': {
-      raw = 100;
-      break;}
-
-    default: {
-      raw = 5;
-      this.log.debug('daikinSpeedtoRaw: Invalid speed value. Setting default raw value to 5');
-    }
-  }
-
-  this.log.debug('daikinSpeedtoRaw: raw value is %s', raw);
-  return raw;
-},
-
-rawToDaikinSpeed: function (rawFanSpeed) {
-  this.log.debug('rawToDaikinSpeed: got value %s', rawFanSpeed);
-  let f_rate = 'A';
-  rawFanSpeed = Number(rawFanSpeed);
-  this.log.debug('rawToDaikinSpeed: numberized value %s', rawFanSpeed);
-  const speedRanges = [
-    {min: 1, max: 9, value: 'B'}, // silent fan speed
-    {min: 9, max: 20, value: 'A'}, // Auto fan speed
-    {min: 20, max: 30, value: '3'},
-    {min: 30, max: 40, value: '4'},
-    {min: 40, max: 60, value: '5'},
-    {min: 60, max: 80, value: '6'},
-    {min: 80, max: 100, value: '7'},
-  ];
-
-  for (const range of speedRanges) {
-    if (rawFanSpeed >= range.min && rawFanSpeed < range.max) {
-      f_rate = range.value;
-      break;
-    }
-  }
-
-  this.log.debug('rawToDaikinSpeed: Daikin Speed is %s', f_rate);
-  return f_rate;
-},
-
-getFanStatus: function (callback) {
-  this.sendGetRequest(this.basic_info, body => {
-    const responseValues = this.parseResponse(body);
-    callback(null, responseValues.pow === '1');
-  });
-},
+  getFanStatus: function (callback) {
+    this.sendGetRequest(this.basic_info, body => {
+      const responseValues = this.parseResponse(body);
+      callback(null, responseValues.pow === '1');
+    });
+  },
   getFanStatusFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getFanStatusFV: early callback with cached Status: %s (counter: %d).', this.powerDescription[this.Fan_Status], counter);
