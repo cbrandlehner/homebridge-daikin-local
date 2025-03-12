@@ -21,6 +21,8 @@ Daikin has removed their local API in newer products. They offer a cloud API acc
 
 The Daikin App will most likely ask you to update the devices firmware. If you want to continue to use this plugin, DO NOT UPDATE THE FIRMWARE.
 
+In case you already updated the firmware or you bought a new device, you may want to have a look at this plugin instead: [https://github.com/tasict/homebridge-daikin-local-platform](https://github.com/tasict/homebridge-daikin-local-platform).
+
 
 # About this plugin
 
