@@ -5,10 +5,10 @@ const https = require('node:https');
 const crypto = require('node:crypto');
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
-const Cache = require('./src/cache.js');
-const Queue = require('./src/queue.js');
-const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./src/utils.js');
-const packageFile = require('./package.json');
+const packageFile = require('../package.json');
+const Cache = require('./cache.js');
+const Queue = require('./queue.js');
+const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./utils.js');
 
 /* eslint complexity: ["error", 30] */
 
