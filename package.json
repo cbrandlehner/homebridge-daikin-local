@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "xo": "^0.60.0",
-    "eslint-plugin-json": "^3.1.0"
+    "eslint-plugin-json": "^4.0.1"
   },
   "xo": {
     "space": false,
