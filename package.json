@@ -51,7 +51,7 @@
     "test": "xo"
   },
   "devDependencies": {
-    "xo": "^0.60.0",
+    "xo": "^1.0.5",
     "eslint-plugin-json": "^4.0.1"
   },
   "xo": {
