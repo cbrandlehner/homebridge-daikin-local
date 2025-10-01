@@ -9,6 +9,7 @@ assignees: ''
 
 #### Checklist
 
+- [ ] It was working in an earlier version (regression)
 - [ ] I checked other issues already, but found no answer/solution
 - [ ] I checked the documentation and wiki, but found no answer/solution
 - [ ] I am running the latest version and the issue still occurs
@@ -18,12 +19,12 @@ assignees: ''
 
 **Describe the bug**
 
-A clear and concise description of what the bug is.
-
+A clear and concise description of what the bug is and what your configuration is.
 
 **Screenshots**
 
 If applicable, add screenshots to help explain your problem.
+
 To add a screenshot, just drag 'n drop a screenshot file into this editor window.
 
 
