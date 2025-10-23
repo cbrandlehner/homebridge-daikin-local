@@ -1,8 +1,14 @@
-//* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
+/* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
+/* eslint brace-style: ["warn"] */
+/* eslint curly: "off" */
+/* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
 let Service;
 let Characteristic;
+// Use node: protocol for core modules
 const https = require('node:https');
+const http = require('node:http');
 const crypto = require('node:crypto');
+const process = require('node:process');
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
 const packageFile = require('../package.json');
@@ -15,7 +21,6 @@ const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./utils.js'
 function Daikin(log, config) {
   this.log = log;
 
-  const process = require('node:process');
   const NODE_MAJOR_VERSION = process.versions.node.split('.')[0];
   if (NODE_MAJOR_VERSION <= 16) {
     this.log.warn('WARNING: NodeJS version 16 and older versions are end of life as of 2023-09-11.');
@@ -171,30 +176,17 @@ function Daikin(log, config) {
     this.system = config.system;
   }
 
-  if (config.OpenSSL3 === undefined || config.OpenSSL3 === false)
-      this.OpenSSL3 = false;
-  else
-      this.OpenSSL3 = true;
+  /* eslint no-implicit-coercion: "warn" */
 
-  if (config.disableFan === undefined || config.disableFan === false)
-      this.disableFan = false;
-  else
-      this.disableFan = true;
+  this.OpenSSL3 = !!config.OpenSSL3;
 
-  if (config.enableHumiditySensor === true)
-      this.enableHumiditySensor = true;
-  else
-      this.enableHumiditySensor = false;
+  this.disableFan = !!config.disableFan;
 
-  if (config.enableTemperatureSensor === true)
-      this.enableTemperatureSensor = true;
-  else
-      this.enableTemperatureSensor = false;
+  this.enableHumiditySensor = !!config.enableHumiditySensor;
 
-  if (config.uuid === undefined)
-      this.uuid = '';
-    else
-      this.uuid = config.uuid;
+  this.enableTemperatureSensor = !!config.enableTemperatureSensor;
+
+  this.uuid = config.uuid || '';
 
   switch (this.system) {
     case 'Default': {
@@ -267,6 +259,65 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
 }
 
+// --- BEGIN: OpenSSL / Agent helpers (added) ---
+/* eslint-disable no-bitwise */
+/*
+  Bitmask to (a) allow unsafe legacy renegotiation and (b) tolerate legacy servers.
+  Using `|| 0` keeps this safe on builds where a constant might be missing.
+*/
+const SECURE_OPS
+  = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)
+  | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
+/* eslint-enable no-bitwise */
+
+// Runtime check for OpenSSL 3 (Node 18+/20 typically link to OpenSSL 3.x)
+function isOpenSSL3() {
+  return (process.versions.openssl || '').startsWith('3.');
+}
+
+// Lazy singletons to avoid per-request Agent churn
+let LEGACY_AGENT = null;
+let DEFAULT_AGENT = null;
+let DEFAULT_HTTP_AGENT = null; // { for devices with old firmware using plain http URLs }
+
+function getLegacyAgent() {
+  if (!LEGACY_AGENT) {
+    LEGACY_AGENT = new https.Agent({
+      keepAlive: true,
+      rejectUnauthorized: false, // device uses self-signed cert
+      minVersion: 'TLSv1.2',
+      maxVersion: 'TLSv1.2',
+      secureOptions: SECURE_OPS,
+      // If you see a cipher/security level error, consider:
+      // ciphers: 'DEFAULT:@SECLEVEL=0',
+    });
+  }
+
+  return LEGACY_AGENT;
+}
+
+function getDefaultAgent() {
+  if (!DEFAULT_AGENT) {
+    DEFAULT_AGENT = new https.Agent({
+      keepAlive: true,
+      rejectUnauthorized: false,
+    });
+  }
+
+  return DEFAULT_AGENT;
+}
+
+function getDefaultHttpAgent() { // { for devices with old firmware using plain http URLs as the code would crash trying to use https.Agent }
+  if (!DEFAULT_HTTP_AGENT) {
+    DEFAULT_HTTP_AGENT = new http.Agent({
+      keepAlive: true,
+    });
+  }
+
+  return DEFAULT_HTTP_AGENT;
+}
+// --- END: OpenSSL / Agent helpers ---
+
 Daikin.prototype = {
   parseResponse,
   daikinSpeedToRaw,
@@ -309,57 +360,85 @@ Daikin.prototype = {
   },
 
   _doSendGetRequest(path, callback, options) {
-    if (this._serveFromCache(path, callback, options))
-      return;
+    // Preserve old cache behavior if present
+    if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
     this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
-    const request = superagent
+
+    // Handle both throttle styles: { plugin() {..} } or a raw function(req)=>req
+    const throttlePlugin = (this.throttle && typeof this.throttle.plugin === 'function')
+      ? this.throttle.plugin()
+      : (typeof this.throttle === 'function' ? this.throttle : r => r);
+
+    let request = superagent
       .get(path)
-      .retry(this.retries) // retry 3 (default) times
+      .retry(this.retries) // default retry count
       .timeout({
-        response: this.response, // Wait 5 (default) seconds for the server to start sending,
-        deadline: this.deadline, // but allow 10 (default) seconds for the request to finish loading.
+        response: this.response, // ms to first byte
+        deadline: this.deadline, // total ms to finish
       })
-      .use(this.throttle.plugin())
+      .use(throttlePlugin)
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
+
     if (this.uuid !== '') {
-      if (this.OpenSSL3 === true) {
-          // new code which did not work for many folks.
-          request.set('X-Daikin-uuid', this.uuid);
-          //    .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
-          // the units use a self-signed cert and the CA doesn't seem to be publicly available.
-          // Node.js 18 utilizes OpenSSL 3.0 which requires secure renegotiation by default.
-          const unsafeAgent = new https.Agent({
-              rejectUnauthorized: false,
-              secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
-          });
-          request.agent(unsafeAgent);
+      request = request.set('X-Daikin-uuid', this.uuid);
+    }
+
+    // --- BEGIN: protocol-aware agent selection (changed) ---
+    let urlProtocol = 'https:';
+    try {
+      urlProtocol = new URL(path).protocol;
+    } catch {
+      // fallback: if parsing fails, assume https for safety
+      urlProtocol = 'https:';
+    }
+
+    if (urlProtocol === 'https:') {
+      if (isOpenSSL3()) {
+        // Node linked against OpenSSL 3: enable legacy reneg + lock to TLS1.2
+        request = request.agent(getLegacyAgent());
+      } else if (typeof request.disableTLSCerts === 'function') {
+        // OpenSSL 1.1.1 path (legacy behavior)
+        request = request.disableTLSCerts();
+      } else {
+        // Some superagent builds dropped disableTLSCerts(); use an agent fallback
+        request = request.agent(getDefaultAgent());
+      }
+    } else {
+      // http: use an http.Agent (do NOT use https.Agent for plain http URLs)
+      request = request.agent(getDefaultHttpAgent());
+    }
+    // --- END: protocol-aware agent selection ---
+
+    // Use end(...) to get a single error/result callback and maintain compatibility.
+    request.end((error, response) => {
+      if (error) {
+        if (error.timeout) { /* timed out */ }
+        else if (error.code === 'ECONNRESET') {
+          this.log.debug('_doSendGetRequest: eConnreset filtered');
         } else {
-          // old code which seems to fail with NodeJS 18
-          request.set('X-Daikin-uuid', this.uuid)
-            .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+          this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
         }
+
+        return callback && callback(error);
       }
 
-    request.then(response => {
-         this.log.debug('_doSendGetRequest: set cache: path: %s', path);
-         this.cache.set(path, response.text);
-         this.log.debug('_doSendGetRequest: response from API: %s', response.text);
-         if (!(callback === undefined)) callback(null, response.text);
-       })
-       .catch(error => {
-           if (error.timeout) { /* timed out! */ } else
-           if (error.code === 'ECONNRESET') {
-            this.log.debug('_doSendGetRequest: eConnreset filtered');
-            } else {
-               this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
-            }
+      // Prefer text when available (keeps compatibility with parseResponse callers)
+      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+      try {
+        if (this.cache && typeof this.cache.set === 'function') {
+          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
+          this.cache.set(path, body);
+        }
+      } catch (error) {
+        this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+      }
 
-        if (!(callback === undefined)) callback(error);
-        // return;
-       });
-     },
+      this.log.debug('_doSendGetRequest: response from API: %s', body);
+      return callback && callback(null, body);
+    });
+  },
 
    _serveFromCache(path, callback, options) {
     this.log.debug('requesting from cache: path: %s', path);

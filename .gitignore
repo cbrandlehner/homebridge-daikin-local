@@ -35,5 +35,5 @@ node_modules
 # IDE directories
 .idea
 
-# Scipts
+# Scripts
 *.sh
