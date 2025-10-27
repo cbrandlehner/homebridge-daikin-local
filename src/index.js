@@ -259,9 +259,9 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
   
   // Special modes switches - these toggle on/off
-  this.econoModeService = new Service.Outlet(null, 'econo-mode-outlet');
-  this.powerfulModeService = new Service.Outlet(null, 'powerful-mode-outlet');
-  this.nightQuietModeService = new Service.Outlet(null, 'night-quiet-outlet');
+  this.econoModeService = new Service.Switch(this.name + ' Econo Mode', 'econo-mode-switch');
+  this.powerfulModeService = new Service.Switch(this.name + ' Powerful Mode', 'powerful-mode-switch');
+  this.nightQuietModeService = new Service.Switch(this.name + ' Night Quiet', 'night-quiet-switch');
   
   // State for toggle modes
   this.Econo_Mode = false;
@@ -1214,35 +1214,23 @@ getFanSpeed: function (callback) {
 
     if (this.enableEconoMode) {
       this.econoModeService
-        .setCharacteristic(Characteristic.Name, 'Econo Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
-      this.econoModeService
-        .getCharacteristic(Characteristic.OutletInUse)
-        .updateValue(true);
     }
 
     if (this.enablePowerfulMode) {
       this.powerfulModeService
-        .setCharacteristic(Characteristic.Name, 'Powerful Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
-      this.powerfulModeService
-        .getCharacteristic(Characteristic.OutletInUse)
-        .updateValue(true);
     }
 
     if (this.enableNightQuietMode) {
       this.nightQuietModeService
-        .setCharacteristic(Characteristic.Name, 'Night Quiet')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
-      this.nightQuietModeService
-        .getCharacteristic(Characteristic.OutletInUse)
-        .updateValue(true);
     }
 
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
