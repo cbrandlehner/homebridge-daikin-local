@@ -257,8 +257,8 @@ function Daikin(log, config) {
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
   this.humidityService = new Service.HumiditySensor(this.name);
-  this.econoModeService = new Service.Switch(this.name + ' Econo Mode', 'econo-mode');
-  this.powerfulModeService = new Service.Switch(this.name + ' Powerful Mode', 'powerful-mode');
+  this.econoModeService = new Service.Switch('Econo Mode', 'econo-mode');
+  this.powerfulModeService = new Service.Switch('Powerful Mode', 'powerful-mode');
   
   // State for econo and powerful modes
   this.Econo_Mode = false;
