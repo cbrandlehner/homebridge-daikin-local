@@ -259,12 +259,12 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
   
   // Special modes switches - these toggle on/off
-  this.econoModeService = new Service.Switch(this.name + ' Econo', 'econo');
-  this.powerfulModeService = new Service.Switch(this.name + ' Powerful', 'powerful');
-  this.nightQuietModeService = new Service.Switch(this.name + ' Quiet', 'quiet');
+  this.econoModeService = new Service.Switch('Econo', 'econo');
+  this.powerfulModeService = new Service.Switch('Powerful', 'powerful');
+  this.nightQuietModeService = new Service.Switch('Quiet', 'quiet');
   
   // AC Modes service - Fan with rotation speed for mode selection
-  this.acModesService = new Service.Fan(this.name + ' AC Mode', 'ac-modes');
+  this.acModesService = new Service.Fan('AC Mode', 'ac-modes');
   
   // State for toggle modes
   this.Econo_Mode = false;
