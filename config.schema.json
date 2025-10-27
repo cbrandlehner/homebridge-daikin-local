@@ -34,8 +34,8 @@
       },
       "system": {
         "type": "string",
-        "title": "Default Daikin device, Skyfi-model, or Faikin (ESP32-Faikin)?",
-        "description": "Select 'Faikin' if using ESP32-Faikin chipset. Try with 'Default' first for standard Daikin WiFi modules before choosing other options. Consult the documentation for more information.",
+        "title": "Controller Type",
+        "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx), 'Skyfi' for Skyfi controllers, or 'Faikin' for ESP32-Faikin open-source controllers. Choose 'Faikin' if you installed the ESP32-Faikin firmware on an ESP32 chip.",
         "enum": [ "Default", "Skyfi", "Faikin" ],
         "default": "Default",
         "required": true
@@ -47,8 +47,8 @@
         "default": false
       },
       "swingMode": {
-        "title": "Swing mode",
-        "description": "Apple Home allows to enable OSCILLATE. However most Daikin ACs support different swing modes. This setting allows to choose the swing-mode used if oscillation is enabled.",
+        "title": "Swing mode (Traditional Daikin only)",
+        "description": "For traditional Daikin controllers: Choose the swing mode when oscillation is enabled. Faikin controllers automatically handle both horizontal and vertical swing (3D swing).",
         "type": "string",
         "default": "1",
         "required": true,
@@ -116,39 +116,42 @@
       },
       "enableEconoMode": {
         "title": "Econo Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode).",
+        "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode). Works with both traditional Daikin and Faikin controllers. Mutually exclusive with Powerful mode.",
         "type": "boolean",
         "default": false
       },
       "econoModeName": {
         "title": "Econo Mode switch name (optional)",
-        "description": "Custom name for the Econo Mode switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "description": "Custom name for the Econo Mode switch. Default: 'Econo Mode'. Toggle the switch and check Homebridge logs to identify which one it is.",
         "type": "string",
-        "required": false
+        "required": false,
+        "placeholder": "Econo Mode"
       },
       "enablePowerfulMode": {
         "title": "Powerful Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating).",
+        "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating). Works with both traditional Daikin and Faikin controllers. Mutually exclusive with Econo mode.",
         "type": "boolean",
         "default": false
       },
       "powerfulModeName": {
         "title": "Powerful Mode switch name (optional)",
-        "description": "Custom name for the Powerful Mode switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "description": "Custom name for the Powerful Mode switch. Default: 'Powerful Mode'. Toggle the switch and check Homebridge logs to identify which one it is.",
         "type": "string",
-        "required": false
+        "required": false,
+        "placeholder": "Powerful Mode"
       },
       "enableNightQuietMode": {
         "title": "Night Quiet Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation for nighttime).",
+        "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation). Faikin uses fan='Q', traditional Daikin uses f_rate='B' (silent). Can be used with Econo or Powerful modes.",
         "type": "boolean",
         "default": false
       },
       "nightQuietModeName": {
         "title": "Night Quiet Mode switch name (optional)",
-        "description": "Custom name for the Night Quiet switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "description": "Custom name for the Night Quiet switch. Default: 'Night Quiet'. Toggle the switch and check Homebridge logs to identify which one it is.",
         "type": "string",
-        "required": false
+        "required": false,
+        "placeholder": "Night Quiet"
       },
       "enableACModes": {
         "title": "AC Modes slider enabled",
@@ -181,5 +184,94 @@
         "maximum": 10
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "type": "help",
+      "helpvalue": "<div style='background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;'><h5 style='margin-top: 0;'>🔌 Controller Type Selection</h5><ul style='margin-bottom: 0;'><li><strong>Default:</strong> Standard Daikin WiFi modules (BRP069xxx series)</li><li><strong>Skyfi:</strong> Skyfi WiFi controller models</li><li><strong>Faikin:</strong> ESP32-Faikin open-source controller (uses JSON API instead of query strings)</li></ul><p style='margin-bottom: 0; margin-top: 10px;'><em>Faikin controllers automatically use separate horizontal/vertical swing controls and JSON-based API endpoints.</em></p></div>"
+    },
+    {
+      "type": "section",
+      "title": "Device Connection",
+      "expandable": false,
+      "items": [
+        "name",
+        "apiroute",
+        "system",
+        "uuid",
+        "temperature_unit"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Swing & Fan Settings",
+      "expandable": true,
+      "items": [
+        {
+          "key": "swingMode",
+          "condition": {
+            "functionBody": "return model.system !== 'Faikin';"
+          }
+        },
+        "disableFan",
+        "fanMode",
+        "fanPowerMode",
+        "fanName"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Special Modes (Econo, Powerful, Night Quiet)",
+      "expandable": true,
+      "items": [
+        {
+          "type": "help",
+          "helpvalue": "<p><strong>Note:</strong> Econo and Powerful modes are mutually exclusive - enabling one will disable the other.</p>"
+        },
+        "enableEconoMode",
+        {
+          "key": "econoModeName",
+          "condition": {
+            "functionBody": "return model.enableEconoMode === true;"
+          }
+        },
+        "enablePowerfulMode",
+        {
+          "key": "powerfulModeName",
+          "condition": {
+            "functionBody": "return model.enablePowerfulMode === true;"
+          }
+        },
+        "enableNightQuietMode",
+        {
+          "key": "nightQuietModeName",
+          "condition": {
+            "functionBody": "return model.enableNightQuietMode === true;"
+          }
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Additional Sensors & Modes",
+      "expandable": true,
+      "items": [
+        "defaultMode",
+        "enableHumiditySensor",
+        "enableTemperatureSensor",
+        "enableACModes"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Advanced Settings",
+      "expandable": true,
+      "items": [
+        "OpenSSL3",
+        "response",
+        "deadline",
+        "retries"
+      ]
+    }
+  ]
 }
