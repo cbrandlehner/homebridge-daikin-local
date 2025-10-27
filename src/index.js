@@ -259,9 +259,14 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
   
   // Special modes switches - these toggle on/off
-  this.econoModeService = new Service.Switch('Econo Mode', 'econo-mode-switch');
-  this.powerfulModeService = new Service.Switch('Powerful Mode', 'powerful-mode-switch');
-  this.nightQuietModeService = new Service.Switch('Night Quiet', 'night-quiet-switch');
+  // Note: Names stored in config for user identification
+  this.econoModeName = config.econoModeName || 'Econo Mode';
+  this.powerfulModeName = config.powerfulModeName || 'Powerful Mode';
+  this.nightQuietModeName = config.nightQuietModeName || 'Night Quiet';
+  
+  this.econoModeService = new Service.Switch(this.econoModeName, 'econo-mode-switch');
+  this.powerfulModeService = new Service.Switch(this.powerfulModeName, 'powerful-mode-switch');
+  this.nightQuietModeService = new Service.Switch(this.nightQuietModeName, 'night-quiet-switch');
   
   // State for toggle modes
   this.Econo_Mode = false;
@@ -1214,32 +1219,38 @@ getFanSpeed: function (callback) {
 
     if (this.enableEconoMode) {
       this.econoModeService
-        .setCharacteristic(Characteristic.ConfiguredName, 'Econo Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
       
-      this.log.info('Econo Mode switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
+      this.log.info('===== ECONO MODE SWITCH ENABLED =====');
+      this.log.info('Switch name configured as: "%s"', this.econoModeName);
+      this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('=====================================');
     }
 
     if (this.enablePowerfulMode) {
       this.powerfulModeService
-        .setCharacteristic(Characteristic.ConfiguredName, 'Powerful Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
       
-      this.log.info('Powerful Mode switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
+      this.log.info('===== POWERFUL MODE SWITCH ENABLED =====');
+      this.log.info('Switch name configured as: "%s"', this.powerfulModeName);
+      this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('========================================');
     }
 
     if (this.enableNightQuietMode) {
       this.nightQuietModeService
-        .setCharacteristic(Characteristic.ConfiguredName, 'Night Quiet')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
       
-      this.log.info('Night Quiet switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
+      this.log.info('===== NIGHT QUIET SWITCH ENABLED =====');
+      this.log.info('Switch name configured as: "%s"', this.nightQuietModeName);
+      this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('======================================');
     }
 
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];

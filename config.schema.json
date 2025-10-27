@@ -120,17 +120,35 @@
         "type": "boolean",
         "default": false
       },
+      "econoModeName": {
+        "title": "Econo Mode switch name (optional)",
+        "description": "Custom name for the Econo Mode switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "type": "string",
+        "required": false
+      },
       "enablePowerfulMode": {
         "title": "Powerful Mode switch enabled",
         "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating).",
         "type": "boolean",
         "default": false
       },
+      "powerfulModeName": {
+        "title": "Powerful Mode switch name (optional)",
+        "description": "Custom name for the Powerful Mode switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "type": "string",
+        "required": false
+      },
       "enableNightQuietMode": {
         "title": "Night Quiet Mode switch enabled",
         "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation for nighttime).",
         "type": "boolean",
         "default": false
+      },
+      "nightQuietModeName": {
+        "title": "Night Quiet Mode switch name (optional)",
+        "description": "Custom name for the Night Quiet switch. Toggle the switch and check Homebridge logs to identify which one it is.",
+        "type": "string",
+        "required": false
       },
       "enableACModes": {
         "title": "AC Modes slider enabled",
