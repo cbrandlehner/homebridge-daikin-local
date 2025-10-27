@@ -21,6 +21,7 @@
             "enableEconoMode": true,
             "enablePowerfulMode": true,
             "enableNightQuietMode": true,
+            "enableACModes": true,
             "response": 2000,
             "deadline": 60000,
             "retries": 5,

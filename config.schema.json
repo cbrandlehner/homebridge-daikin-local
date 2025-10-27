@@ -132,6 +132,12 @@
         "type": "boolean",
         "default": false
       },
+      "enableACModes": {
+        "title": "AC Modes slider enabled",
+        "description": "Enables a fan slider in HomeKit to switch between Dry and Fan-only modes. 0-20%=Off, 21-49%=Dry, 50-79%=Fan, 80-100%=Normal modes.",
+        "type": "boolean",
+        "default": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",

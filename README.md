@@ -67,6 +67,13 @@ When enabled in the configuration, a switch will appear in HomeKit to toggle the
 Night Quiet Mode:
 When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Night Quiet mode. This mode reduces noise for silent operation during nighttime.
 
+AC Modes (Dry/Fan):
+When enabled in the configuration, a fan slider will appear in HomeKit to switch between special AC modes:
+- 0-20%: Off
+- 21-49%: Dry mode (dehumidification)
+- 50-79%: Fan-only mode
+- 80-100%: Return to normal operation (Cool/Heat/Auto)
+
 **Note:** Econo mode and Powerful mode are typically mutually exclusive - activating one may automatically disable the other on most Daikin units.
 
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">

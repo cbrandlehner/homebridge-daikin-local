@@ -257,19 +257,26 @@ function Daikin(log, config) {
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
   this.humidityService = new Service.HumiditySensor(this.name);
+  
+  // Special modes switches - these toggle on/off
   this.econoModeService = new Service.Switch(this.name + ' Econo', 'econo');
   this.powerfulModeService = new Service.Switch(this.name + ' Powerful', 'powerful');
   this.nightQuietModeService = new Service.Switch(this.name + ' Quiet', 'quiet');
   
-  // State for econo and powerful modes
+  // AC Modes service - Fan with rotation speed for mode selection
+  this.acModesService = new Service.Fan(this.name + ' AC Mode', 'ac-modes');
+  
+  // State for toggle modes
   this.Econo_Mode = false;
   this.Powerful_Mode = false;
   this.NightQuiet_Mode = false;
+  this.AC_Mode = 0; // 0=Auto, 1=Dry, 2=Fan-only
   
   // Config options for enabling these features
   this.enableEconoMode = !!config.enableEconoMode;
   this.enablePowerfulMode = !!config.enablePowerfulMode;
   this.enableNightQuietMode = !!config.enableNightQuietMode;
+  this.enableACModes = !!config.enableACModes;
 }
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -991,6 +998,78 @@ Daikin.prototype = {
     }, {skipCache: true});
   },
 
+  getACMode: function (callback) {
+    this.sendGetRequest(this.get_control_info, body => {
+      const responseValues = this.parseResponse(body);
+      // mode: 0=Auto, 1=Auto/Humid, 2=Dry, 3=Cool, 4=Heat, 6=Fan
+      // Convert to rotation speed: 0%=Off, 33%=Dry, 66%=Fan, 100%=Auto  
+      let speed = 0;
+      if (responseValues.pow === '1') {
+        if (responseValues.mode === '2') speed = 33; // Dry
+        else if (responseValues.mode === '6') speed = 66; // Fan
+        else speed = 100; // Auto/Cool/Heat (normal modes)
+      }
+      this.log.debug('getACMode: mode %s -> speed %s', responseValues.mode, speed);
+      callback(null, speed);
+    });
+  },
+
+  getACModeFV: function (callback) {
+    const counter = ++this.counter;
+    this.log.debug('getACModeFV: early callback with cached AC_Mode: %s (%d).', this.AC_Mode, counter);
+    callback(null, this.AC_Mode);
+    this.getACMode((error, speed) => {
+      this.AC_Mode = speed;
+      this.acModesService.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.AC_Mode);
+      this.log.debug('getACModeFV: update AC_Mode: %s (%d).', this.AC_Mode, counter);
+    });
+  },
+
+  setACModeSpeed: function (value, callback) {
+    this.log.info('setACModeSpeed: HomeKit requested AC mode speed: %s', value);
+    this.sendGetRequest(this.get_control_info, body => {
+      const responseValues = this.parseResponse(body);
+      let targetMode = responseValues.mode;
+      
+      // Map rotation speed to mode: 0-20=Off, 21-49=Dry, 50-79=Fan, 80-100=restore last mode
+      if (value <= 20) {
+        // Turn off
+        this.setActive(0, callback);
+        return;
+      } else if (value <= 49) {
+        targetMode = '2'; // Dry mode
+      } else if (value <= 79) {
+        targetMode = '6'; // Fan mode
+      } else {
+        // Restore to a normal mode (use defaultMode or last used mode)
+        if (['2', '6'].includes(responseValues.mode)) {
+          targetMode = this.defaultMode; // Use configured default
+        }
+      }
+      
+      const query = body.replace(/,/g, '&')
+        .replace(/pow=[01]/, 'pow=1')
+        .replace(/mode=[01234567]/, `mode=${targetMode}`);
+      
+      this.log.debug('setACModeSpeed: Query is: %s', query);
+      this.AC_Mode = value;
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this.AC_Mode = value;
+        this.log.debug('setACModeSpeed: confirmed AC_Mode: %s.', this.AC_Mode);
+        if (callback) callback();
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
+  },
+
+  setACModeOn: function (value, callback) {
+    this.log.info('setACModeOn: HomeKit requested AC modes: %s', value ? 'ON' : 'OFF');
+    if (!value) {
+      this.AC_Mode = 0;
+      this.acModesService.getCharacteristic(Characteristic.RotationSpeed).updateValue(0);
+    }
+    if (callback) callback();
+  },
+
   getFanStatus: function (callback) {
     this.sendGetRequest(this.basic_info, body => {
       const responseValues = this.parseResponse(body);
@@ -1229,6 +1308,18 @@ getFanSpeed: function (callback) {
         .on('set', this.setNightQuietMode.bind(this));
     }
 
+    if (this.enableACModes) {
+      this.acModesService
+        .getCharacteristic(Characteristic.On)
+        .on('get', (callback) => callback(null, this.AC_Mode > 0))
+        .on('set', this.setACModeOn.bind(this));
+      
+      this.acModesService
+        .getCharacteristic(Characteristic.RotationSpeed)
+        .on('get', this.getACModeFV.bind(this))
+        .on('set', this.setACModeSpeed.bind(this));
+    }
+
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
     const services = [informationService, this.heaterCoolerService];
     // if (this.disableFan === false)
@@ -1245,6 +1336,8 @@ getFanSpeed: function (callback) {
       services.push(this.powerfulModeService);
     if (this.enableNightQuietMode === true)
       services.push(this.nightQuietModeService);
+    if (this.enableACModes === true)
+      services.push(this.acModesService);
     return services;
   },
 
