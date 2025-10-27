@@ -1214,23 +1214,32 @@ getFanSpeed: function (callback) {
 
     if (this.enableEconoMode) {
       this.econoModeService
+        .setCharacteristic(Characteristic.ConfiguredName, 'Econo Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
+      
+      this.log.info('Econo Mode switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
     }
 
     if (this.enablePowerfulMode) {
       this.powerfulModeService
+        .setCharacteristic(Characteristic.ConfiguredName, 'Powerful Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
+      
+      this.log.info('Powerful Mode switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
     }
 
     if (this.enableNightQuietMode) {
       this.nightQuietModeService
+        .setCharacteristic(Characteristic.ConfiguredName, 'Night Quiet')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
+      
+      this.log.info('Night Quiet switch enabled - this will appear as Switch 1, 2, or 3 in HomeKit');
     }
 
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
