@@ -58,6 +58,14 @@ This plugin translates this percentage value as follows:
 The AC:
 Apple HomeKit settings allow you to enable or disable the swing aka oscillation mode. As HomeKit is limited to a true or false value, the plugin's configuration allows you to configure the type of swing mode. Available modes are "horizontal swing", "vertical swing" and "3D".
 
+Econo Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Econo mode. This energy-saving mode reduces power consumption by moderating the cooling/heating output.
+
+Powerful Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Powerful mode. This mode provides maximum cooling or heating output for rapid temperature change.
+
+**Note:** Econo mode and Powerful mode are typically mutually exclusive - activating one may automatically disable the other on most Daikin units.
+
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">
 
 

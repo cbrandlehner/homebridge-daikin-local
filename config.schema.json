@@ -114,6 +114,18 @@
         "type": "boolean",
         "default": false
       },
+      "enableEconoMode": {
+        "title": "Econo Mode switch enabled",
+        "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode).",
+        "type": "boolean",
+        "default": false
+      },
+      "enablePowerfulMode": {
+        "title": "Powerful Mode switch enabled",
+        "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating).",
+        "type": "boolean",
+        "default": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",

@@ -257,6 +257,16 @@ function Daikin(log, config) {
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
   this.humidityService = new Service.HumiditySensor(this.name);
+  this.econoModeService = new Service.Switch(this.name + ' Econo Mode', 'econo-mode');
+  this.powerfulModeService = new Service.Switch(this.name + ' Powerful Mode', 'powerful-mode');
+  
+  // State for econo and powerful modes
+  this.Econo_Mode = false;
+  this.Powerful_Mode = false;
+  
+  // Config options for enabling these features
+  this.enableEconoMode = !!config.enableEconoMode;
+  this.enablePowerfulMode = !!config.enablePowerfulMode;
 }
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -870,6 +880,78 @@ Daikin.prototype = {
     callback(null);
   },
 
+  getEconoMode: function (callback) {
+    this.sendGetRequest(this.get_control_info, body => {
+      const responseValues = this.parseResponse(body);
+      this.log.debug('getEconoMode: en_economode is: %s', responseValues.en_economode);
+      const isEnabled = responseValues.en_economode === '1';
+      callback(null, isEnabled);
+    });
+  },
+
+  getEconoModeFV: function (callback) {
+    const counter = ++this.counter;
+    this.log.debug('getEconoModeFV: early callback with cached EconoMode: %s (%d).', this.Econo_Mode, counter);
+    callback(null, this.Econo_Mode);
+    this.getEconoMode((error, state) => {
+      this.Econo_Mode = state;
+      this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
+      this.log.debug('getEconoModeFV: update EconoMode: %s (%d).', this.Econo_Mode, counter);
+    });
+  },
+
+  setEconoMode: function (value, callback) {
+    this.log.info('setEconoMode: HomeKit requested to turn Econo mode %s.', value ? 'ON' : 'OFF');
+    this.sendGetRequest(this.get_control_info, body => {
+      const targetValue = value ? '1' : '0';
+      const query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
+      this.log.debug('setEconoMode: Query is: %s', query);
+      this.Econo_Mode = value;
+      this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this.Econo_Mode = value;
+        this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
+        if (callback) callback();
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
+  },
+
+  getPowerfulMode: function (callback) {
+    this.sendGetRequest(this.get_control_info, body => {
+      const responseValues = this.parseResponse(body);
+      this.log.debug('getPowerfulMode: en_powerful is: %s', responseValues.en_powerful);
+      const isEnabled = responseValues.en_powerful === '1';
+      callback(null, isEnabled);
+    });
+  },
+
+  getPowerfulModeFV: function (callback) {
+    const counter = ++this.counter;
+    this.log.debug('getPowerfulModeFV: early callback with cached PowerfulMode: %s (%d).', this.Powerful_Mode, counter);
+    callback(null, this.Powerful_Mode);
+    this.getPowerfulMode((error, state) => {
+      this.Powerful_Mode = state;
+      this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
+      this.log.debug('getPowerfulModeFV: update PowerfulMode: %s (%d).', this.Powerful_Mode, counter);
+    });
+  },
+
+  setPowerfulMode: function (value, callback) {
+    this.log.info('setPowerfulMode: HomeKit requested to turn Powerful mode %s.', value ? 'ON' : 'OFF');
+    this.sendGetRequest(this.get_control_info, body => {
+      const targetValue = value ? '1' : '0';
+      const query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
+      this.log.debug('setPowerfulMode: Query is: %s', query);
+      this.Powerful_Mode = value;
+      this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this.Powerful_Mode = value;
+        this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
+        if (callback) callback();
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
+  },
+
   getFanStatus: function (callback) {
     this.sendGetRequest(this.basic_info, body => {
       const responseValues = this.parseResponse(body);
@@ -1087,6 +1169,20 @@ getFanSpeed: function (callback) {
         .on('get', this.getCurrentHumidityFV.bind(this));
     }
 
+    if (this.enableEconoMode) {
+      this.econoModeService
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getEconoModeFV.bind(this))
+        .on('set', this.setEconoMode.bind(this));
+    }
+
+    if (this.enablePowerfulMode) {
+      this.powerfulModeService
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getPowerfulModeFV.bind(this))
+        .on('set', this.setPowerfulMode.bind(this));
+    }
+
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
     const services = [informationService, this.heaterCoolerService];
     // if (this.disableFan === false)
@@ -1097,6 +1193,10 @@ getFanSpeed: function (callback) {
       services.push(this.humidityService);
     if (this.enableTemperatureSensor === true)
       services.push(this.temperatureService);
+    if (this.enableEconoMode === true)
+      services.push(this.econoModeService);
+    if (this.enablePowerfulMode === true)
+      services.push(this.powerfulModeService);
     return services;
   },
 
