@@ -277,8 +277,13 @@ function Daikin(log, config) {
   this.nightQuietModeName = config.nightQuietModeName || 'Night Quiet';
   
   this.econoModeService = new Service.Switch(this.econoModeName, 'econo-mode-switch');
+  this.econoModeService.setCharacteristic(Characteristic.ConfiguredName, this.econoModeName);
+  
   this.powerfulModeService = new Service.Switch(this.powerfulModeName, 'powerful-mode-switch');
+  this.powerfulModeService.setCharacteristic(Characteristic.ConfiguredName, this.powerfulModeName);
+  
   this.nightQuietModeService = new Service.Switch(this.nightQuietModeName, 'night-quiet-switch');
+  this.nightQuietModeService.setCharacteristic(Characteristic.ConfiguredName, this.nightQuietModeName);
   
   // State for toggle modes
   this.Econo_Mode = false;
@@ -1447,9 +1452,18 @@ getFanSpeed: function (callback) {
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
       
+      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+      this.econoModeService
+        .getCharacteristic(Characteristic.ConfiguredName)
+        .on('set', (value, callback) => {
+          this.log.info('Econo Mode switch renamed to: "%s"', value);
+          callback();
+        });
+      
       this.log.info('===== ECONO MODE SWITCH ENABLED =====');
       this.log.info('Switch name configured as: "%s"', this.econoModeName);
       this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('You can rename this switch in the Home app');
       this.log.info('=====================================');
     }
 
@@ -1459,9 +1473,18 @@ getFanSpeed: function (callback) {
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
       
+      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+      this.powerfulModeService
+        .getCharacteristic(Characteristic.ConfiguredName)
+        .on('set', (value, callback) => {
+          this.log.info('Powerful Mode switch renamed to: "%s"', value);
+          callback();
+        });
+      
       this.log.info('===== POWERFUL MODE SWITCH ENABLED =====');
       this.log.info('Switch name configured as: "%s"', this.powerfulModeName);
       this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('You can rename this switch in the Home app');
       this.log.info('========================================');
     }
 
@@ -1471,9 +1494,18 @@ getFanSpeed: function (callback) {
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
       
+      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+      this.nightQuietModeService
+        .getCharacteristic(Characteristic.ConfiguredName)
+        .on('set', (value, callback) => {
+          this.log.info('Night Quiet Mode switch renamed to: "%s"', value);
+          callback();
+        });
+      
       this.log.info('===== NIGHT QUIET SWITCH ENABLED =====');
       this.log.info('Switch name configured as: "%s"', this.nightQuietModeName);
       this.log.info('Toggle this switch ON and check the logs to identify it');
+      this.log.info('You can rename this switch in the Home app');
       this.log.info('======================================');
     }
 
