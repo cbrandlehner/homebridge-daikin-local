@@ -64,6 +64,8 @@ When enabled in the configuration, a switch will appear in HomeKit to toggle the
 Powerful Mode:
 When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Powerful mode. This mode provides maximum cooling or heating output for rapid temperature change.
 
+**Important:** Econo mode and Powerful mode are mutually exclusive - they cannot both be active simultaneously. Turning on one will automatically turn off the other, as they have opposite effects on power consumption and performance.
+
 Night Quiet Mode:
 When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Night Quiet mode. This mode reduces noise for silent operation during nighttime.
 
@@ -74,7 +76,7 @@ When enabled in the configuration, a fan slider will appear in HomeKit to switch
 - 50-79%: Fan-only mode
 - 80-100%: Return to normal operation (Cool/Heat/Auto)
 
-**Note:** Econo mode and Powerful mode are typically mutually exclusive - activating one may automatically disable the other on most Daikin units.
+**Note:** Night Quiet Mode can be used independently with either Econo or Powerful modes.
 
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">
 
@@ -119,14 +121,32 @@ If you're using the [ESP32-Faikin](https://github.com/revk/ESP32-Faikin) open-so
 - Full compatibility with this plugin's special modes (Econo, Powerful, Night Quiet)
 
 For Faikin devices, the plugin automatically uses the JSON-based control API. The special modes work as follows:
-- **Econo Mode**: Controlled via the `econo` parameter
-- **Powerful Mode**: Controlled via the `powerful` parameter  
+- **Econo Mode**: Controlled via the `econo` parameter (boolean)
+- **Powerful Mode**: Controlled via the `powerful` parameter (boolean)
 - **Night Quiet Mode**: Controlled via the `fan` parameter set to 'Q' (Quiet mode)
+- **Swing Mode**: Controlled via `swingh` and `swingv` parameters (separate horizontal and vertical swing booleans)
 
 For traditional Daikin controllers, the special modes work as follows:
 - **Econo Mode**: Controlled via the `en_economode` parameter
 - **Powerful Mode**: Controlled via the `en_powerful` parameter
 - **Night Quiet Mode**: Controlled via the `f_rate` parameter set to 'B' (Silent/Night mode)
+- **Swing Mode**: Controlled via the `f_dir` parameter (0=No swing, 1=Vertical, 2=Horizontal, 3=3D)
+
+**Faikin Attribute Support:**
+The plugin currently supports these Faikin control attributes:
+- `power` (boolean) - AC on/off state
+- `mode` (H/C/A/D/F) - Heat, Cool, Auto, Dry, Fan modes
+- `temp` (number) - Target temperature in Celsius
+- `fan` (A/Q/1-5) - Auto, Quiet, or manual fan levels 1-5
+- `swingh` (boolean) - Horizontal louvre swing
+- `swingv` (boolean) - Vertical louvre swing
+- `powerful` (boolean) - Powerful mode
+- `econo` (boolean) - Economy mode
+
+Not yet implemented:
+- `target` - Single temp or min/max array for Faikin auto mode
+- `env` - Temperature reference for Faikin auto mode
+- `streamer` - Air purifier/ionizer boolean
 
 To test Faikin connectivity, access your Faikin device's web interface at `http://<faikin-ip>.local` or check the `/aircon/get_control_info` endpoint.
 

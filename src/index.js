@@ -642,15 +642,25 @@ Daikin.prototype = {
   getSwingMode(callback) {
     this.sendGetRequest(this.get_control_info, body => {
       const responseValues = this.parseResponse(body);
-      /* f_dir values:
-      0 - No swing
-      1 - Vertical swing
-      2 - Horizontal swing
-      3 - 3D swing
-      */
-      this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
-      this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
-      callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
+      
+      if (this.isFaikin) {
+        // Faikin uses separate swingh and swingv booleans
+        const swingH = responseValues.swingh === '1' || responseValues.swingh === 'true' || responseValues.swingh === true;
+        const swingV = responseValues.swingv === '1' || responseValues.swingv === 'true' || responseValues.swingv === true;
+        this.log.debug('getSwingMode (Faikin): swingh=%s, swingv=%s', swingH, swingV);
+        // Enable HomeKit swing if either horizontal or vertical swing is on
+        const isEnabled = swingH || swingV;
+        callback(null, isEnabled ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+      } else {
+        // Traditional Daikin f_dir values:
+        // 0 - No swing
+        // 1 - Vertical swing
+        // 2 - Horizontal swing
+        // 3 - 3D swing
+        this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
+        this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
+        callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
+      }
     });
   },
   getSwingModeFV(callback) { // FV 210510: Wrapper for service call to early return
@@ -665,20 +675,42 @@ Daikin.prototype = {
   },
 
   setSwingMode(swing, callback) {
-    this.sendGetRequest(this.get_control_info, body => {
-      this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
-      if (swing !== Characteristic.SwingMode.SWING_DISABLED) swing = this.swingMode;
-      let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
-      query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
-      this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
-      this.HeaterCooler_SwingMode = swing; // FV210510 update cache
-      this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+    if (this.isFaikin) {
+      // Faikin uses separate swingh and swingv booleans
+      // When enabling swing, enable both horizontal and vertical (3D swing)
+      // When disabling, disable both
+      const enableSwing = (swing !== Characteristic.SwingMode.SWING_DISABLED);
+      const controlData = {
+        swingh: enableSwing,
+        swingv: enableSwing
+      };
+      this.log.info('setSwingMode (Faikin): HomeKit requested swing mode: %s (swingh=%s, swingv=%s)', 
+        swing, enableSwing, enableSwing);
+      this.HeaterCooler_SwingMode = swing;
+      this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode);
+      
+      this.sendFaikinControl(controlData, () => {
+        this.HeaterCooler_SwingMode = swing;
+        this.log.debug('setSwingMode: confirmed SwingMode: %s.', this.HeaterCooler_SwingMode);
+        callback();
+      });
+    } else {
+      // Traditional Daikin API
+      this.sendGetRequest(this.get_control_info, body => {
+        this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
+        if (swing !== Characteristic.SwingMode.SWING_DISABLED) swing = this.swingMode;
+        let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
+        query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
+        this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
         this.HeaterCooler_SwingMode = swing; // FV210510 update cache
         this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
-        callback();
-      }, {skipCache: true, skipQueue: true});
-    }, {skipCache: true});
+        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this.HeaterCooler_SwingMode = swing; // FV210510 update cache
+          this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
+          callback();
+        }, {skipCache: true, skipQueue: true});
+      }, {skipCache: true});
+    }
   },
 
   getHeaterCoolerState(callback) {
@@ -989,11 +1021,25 @@ Daikin.prototype = {
 
   setEconoMode: function (value, callback) {
     this.log.info('setEconoMode: HomeKit requested to turn Econo mode %s.', value ? 'ON' : 'OFF');
+    
+    // Econo and Powerful modes are mutually exclusive
+    if (value && this.Powerful_Mode) {
+      this.log.info('setEconoMode: Turning off Powerful mode (mutually exclusive with Econo mode)');
+      this.Powerful_Mode = false;
+      if (this.enablePowerfulMode) {
+        this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(false);
+      }
+    }
+    
     if (this.isFaikin) {
       // Faikin uses JSON control API - send POST to /control endpoint
       const controlData = {
         econo: value
       };
+      // If turning on Econo, also disable Powerful
+      if (value) {
+        controlData.powerful = false;
+      }
       this.log.debug('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Econo_Mode = value;
       this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
@@ -1008,7 +1054,11 @@ Daikin.prototype = {
       // Traditional Daikin API
       this.sendGetRequest(this.get_control_info, body => {
         const targetValue = value ? '1' : '0';
-        const query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
+        let query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
+        // If turning on Econo, also disable Powerful
+        if (value) {
+          query = query.replace(/en_powerful=[01]/, 'en_powerful=0');
+        }
         this.log.debug('setEconoMode: Query is: %s', query);
         this.Econo_Mode = value;
         this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
@@ -1054,11 +1104,25 @@ Daikin.prototype = {
 
   setPowerfulMode: function (value, callback) {
     this.log.info('setPowerfulMode: HomeKit requested to turn Powerful mode %s.', value ? 'ON' : 'OFF');
+    
+    // Econo and Powerful modes are mutually exclusive
+    if (value && this.Econo_Mode) {
+      this.log.info('setPowerfulMode: Turning off Econo mode (mutually exclusive with Powerful mode)');
+      this.Econo_Mode = false;
+      if (this.enableEconoMode) {
+        this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
+      }
+    }
+    
     if (this.isFaikin) {
       // Faikin uses JSON control API - send POST to /control endpoint
       const controlData = {
         powerful: value
       };
+      // If turning on Powerful, also disable Econo
+      if (value) {
+        controlData.econo = false;
+      }
       this.log.debug('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Powerful_Mode = value;
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
@@ -1072,7 +1136,11 @@ Daikin.prototype = {
       // Traditional Daikin API
       this.sendGetRequest(this.get_control_info, body => {
         const targetValue = value ? '1' : '0';
-        const query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
+        let query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
+        // If turning on Powerful, also disable Econo
+        if (value) {
+          query = query.replace(/en_economode=[01]/, 'en_economode=0');
+        }
         this.log.debug('setPowerfulMode: Query is: %s', query);
         this.Powerful_Mode = value;
         this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
