@@ -259,9 +259,9 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
   
   // Special modes switches - these toggle on/off
-  this.econoModeService = new Service.Outlet(this.name + ' Econo Mode', 'econo-mode-outlet');
-  this.powerfulModeService = new Service.Outlet(this.name + ' Powerful Mode', 'powerful-mode-outlet');
-  this.nightQuietModeService = new Service.Outlet(this.name + ' Night Quiet', 'night-quiet-outlet');
+  this.econoModeService = new Service.Outlet('Econo Mode', 'econo-mode-outlet');
+  this.powerfulModeService = new Service.Outlet('Powerful Mode', 'powerful-mode-outlet');
+  this.nightQuietModeService = new Service.Outlet('Night Quiet', 'night-quiet-outlet');
   
   // State for toggle modes
   this.Econo_Mode = false;
@@ -1218,6 +1218,9 @@ getFanSpeed: function (callback) {
         .getCharacteristic(Characteristic.On)
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
+      this.econoModeService
+        .getCharacteristic(Characteristic.OutletInUse)
+        .updateValue(true);
     }
 
     if (this.enablePowerfulMode) {
@@ -1226,6 +1229,9 @@ getFanSpeed: function (callback) {
         .getCharacteristic(Characteristic.On)
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
+      this.powerfulModeService
+        .getCharacteristic(Characteristic.OutletInUse)
+        .updateValue(true);
     }
 
     if (this.enableNightQuietMode) {
@@ -1234,6 +1240,9 @@ getFanSpeed: function (callback) {
         .getCharacteristic(Characteristic.On)
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
+      this.nightQuietModeService
+        .getCharacteristic(Characteristic.OutletInUse)
+        .updateValue(true);
     }
 
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
