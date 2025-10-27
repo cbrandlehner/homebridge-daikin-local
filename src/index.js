@@ -188,6 +188,9 @@ function Daikin(log, config) {
 
   this.uuid = config.uuid || '';
 
+  // Determine if using Faikin (ESP32-Faikin) or traditional Daikin API
+  this.isFaikin = (this.system === 'Faikin');
+
   switch (this.system) {
     case 'Default': {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
@@ -203,6 +206,15 @@ function Daikin(log, config) {
       this.get_model_info = this.apiroute + '/skyfi/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/skyfi/aircon/set_control_info';
       this.basic_info = this.apiroute + '/skyfi/common/basic_info';
+      break;}
+
+    case 'Faikin': {
+      this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
+      this.get_control_info = this.apiroute + '/aircon/get_control_info';
+      this.get_model_info = this.apiroute + '/aircon/get_model_info';
+      this.set_control_info = this.apiroute + '/aircon/set_control_info';
+      this.basic_info = this.apiroute + '/common/basic_info';
+      this.faikin_control = this.apiroute + '/control'; // Faikin JSON control endpoint
       break;}
 
     default: {
@@ -490,6 +502,60 @@ Daikin.prototype = {
 
     if (!(callback === undefined)) callback(null, cachedResponse);
     return true;
+  },
+
+  sendFaikinControl(controlData, callback) {
+    this.log.debug('sendFaikinControl: Sending control command to Faikin: %s', JSON.stringify(controlData));
+    
+    const path = this.apiroute + '/control';
+    
+    // Determine protocol for agent selection
+    let urlProtocol = 'https:';
+    try {
+      urlProtocol = new URL(path).protocol;
+    } catch {
+      urlProtocol = 'https:';
+    }
+
+    let request = superagent
+      .post(path)
+      .send(controlData)
+      .set('Content-Type', 'application/json')
+      .set('User-Agent', 'superagent')
+      .set('Host', this.apiIP)
+      .retry(this.retries)
+      .timeout({
+        response: this.response,
+        deadline: this.deadline,
+      });
+
+    if (this.uuid !== '') {
+      request = request.set('X-Daikin-uuid', this.uuid);
+    }
+
+    // Apply appropriate agent based on protocol
+    if (urlProtocol === 'https:') {
+      if (isOpenSSL3()) {
+        request = request.agent(getLegacyAgent());
+      } else if (typeof request.disableTLSCerts === 'function') {
+        request = request.disableTLSCerts();
+      } else {
+        request = request.agent(getDefaultAgent());
+      }
+    } else {
+      request = request.agent(getDefaultHttpAgent());
+    }
+
+    request.end((error, response) => {
+      if (error) {
+        this.log.error('sendFaikinControl: ERROR: API request to %s returned error %s', path, error);
+        return callback && callback(error);
+      }
+
+      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+      this.log.debug('sendFaikinControl: response from API: %s', body);
+      return callback && callback(null, body);
+    });
   },
 
   getActive(callback) {
@@ -891,12 +957,23 @@ Daikin.prototype = {
   },
 
   getEconoMode: function (callback) {
-    this.sendGetRequest(this.get_control_info, body => {
-      const responseValues = this.parseResponse(body);
-      this.log.debug('getEconoMode: en_economode is: %s', responseValues.en_economode);
-      const isEnabled = responseValues.en_economode === '1';
-      callback(null, isEnabled);
-    });
+    if (this.isFaikin) {
+      // Faikin uses JSON control API
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getEconoMode (Faikin): econo is: %s', responseValues.econo);
+        const isEnabled = responseValues.econo === '1' || responseValues.econo === 'true' || responseValues.econo === true;
+        callback(null, isEnabled);
+      });
+    } else {
+      // Traditional Daikin API
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getEconoMode: en_economode is: %s', responseValues.en_economode);
+        const isEnabled = responseValues.en_economode === '1';
+        callback(null, isEnabled);
+      });
+    }
   },
 
   getEconoModeFV: function (callback) {
@@ -912,27 +989,56 @@ Daikin.prototype = {
 
   setEconoMode: function (value, callback) {
     this.log.info('setEconoMode: HomeKit requested to turn Econo mode %s.', value ? 'ON' : 'OFF');
-    this.sendGetRequest(this.get_control_info, body => {
-      const targetValue = value ? '1' : '0';
-      const query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
-      this.log.debug('setEconoMode: Query is: %s', query);
+    if (this.isFaikin) {
+      // Faikin uses JSON control API - send POST to /control endpoint
+      const controlData = {
+        econo: value
+      };
+      this.log.debug('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Econo_Mode = value;
       this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+      
+      // For Faikin, we need to send a POST request with JSON payload
+      this.sendFaikinControl(controlData, () => {
         this.Econo_Mode = value;
         this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
         if (callback) callback();
-      }, {skipCache: true, skipQueue: true});
-    }, {skipCache: true});
+      });
+    } else {
+      // Traditional Daikin API
+      this.sendGetRequest(this.get_control_info, body => {
+        const targetValue = value ? '1' : '0';
+        const query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
+        this.log.debug('setEconoMode: Query is: %s', query);
+        this.Econo_Mode = value;
+        this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
+        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this.Econo_Mode = value;
+          this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
+          if (callback) callback();
+        }, {skipCache: true, skipQueue: true});
+      }, {skipCache: true});
+    }
   },
 
   getPowerfulMode: function (callback) {
-    this.sendGetRequest(this.get_control_info, body => {
-      const responseValues = this.parseResponse(body);
-      this.log.debug('getPowerfulMode: en_powerful is: %s', responseValues.en_powerful);
-      const isEnabled = responseValues.en_powerful === '1';
-      callback(null, isEnabled);
-    });
+    if (this.isFaikin) {
+      // Faikin uses JSON control API
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getPowerfulMode (Faikin): powerful is: %s', responseValues.powerful);
+        const isEnabled = responseValues.powerful === '1' || responseValues.powerful === 'true' || responseValues.powerful === true;
+        callback(null, isEnabled);
+      });
+    } else {
+      // Traditional Daikin API
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getPowerfulMode: en_powerful is: %s', responseValues.en_powerful);
+        const isEnabled = responseValues.en_powerful === '1';
+        callback(null, isEnabled);
+      });
+    }
   },
 
   getPowerfulModeFV: function (callback) {
@@ -948,27 +1054,55 @@ Daikin.prototype = {
 
   setPowerfulMode: function (value, callback) {
     this.log.info('setPowerfulMode: HomeKit requested to turn Powerful mode %s.', value ? 'ON' : 'OFF');
-    this.sendGetRequest(this.get_control_info, body => {
-      const targetValue = value ? '1' : '0';
-      const query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
-      this.log.debug('setPowerfulMode: Query is: %s', query);
+    if (this.isFaikin) {
+      // Faikin uses JSON control API - send POST to /control endpoint
+      const controlData = {
+        powerful: value
+      };
+      this.log.debug('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Powerful_Mode = value;
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+      
+      this.sendFaikinControl(controlData, () => {
         this.Powerful_Mode = value;
         this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
         if (callback) callback();
-      }, {skipCache: true, skipQueue: true});
-    }, {skipCache: true});
+      });
+    } else {
+      // Traditional Daikin API
+      this.sendGetRequest(this.get_control_info, body => {
+        const targetValue = value ? '1' : '0';
+        const query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
+        this.log.debug('setPowerfulMode: Query is: %s', query);
+        this.Powerful_Mode = value;
+        this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
+        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this.Powerful_Mode = value;
+          this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
+          if (callback) callback();
+        }, {skipCache: true, skipQueue: true});
+      }, {skipCache: true});
+    }
   },
 
   getNightQuietMode: function (callback) {
-    this.sendGetRequest(this.get_control_info, body => {
-      const responseValues = this.parseResponse(body);
-      this.log.debug('getNightQuietMode: en_streamer is: %s', responseValues.en_streamer);
-      const isEnabled = responseValues.en_streamer === '1';
-      callback(null, isEnabled);
-    });
+    if (this.isFaikin) {
+      // Faikin uses fan='Q' for night/quiet mode
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getNightQuietMode (Faikin): fan is: %s', responseValues.fan);
+        const isEnabled = responseValues.fan === 'Q';
+        callback(null, isEnabled);
+      });
+    } else {
+      // Traditional Daikin API uses en_streamer
+      this.sendGetRequest(this.get_control_info, body => {
+        const responseValues = this.parseResponse(body);
+        this.log.debug('getNightQuietMode: en_streamer is: %s', responseValues.en_streamer);
+        const isEnabled = responseValues.en_streamer === '1';
+        callback(null, isEnabled);
+      });
+    }
   },
 
   getNightQuietModeFV: function (callback) {
@@ -984,18 +1118,36 @@ Daikin.prototype = {
 
   setNightQuietMode: function (value, callback) {
     this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
-    this.sendGetRequest(this.get_control_info, body => {
-      const targetValue = value ? '1' : '0';
-      const query = body.replace(/,/g, '&').replace(/en_streamer=[01]/, `en_streamer=${targetValue}`);
-      this.log.debug('setNightQuietMode: Query is: %s', query);
+    if (this.isFaikin) {
+      // Faikin uses fan='Q' for night/quiet mode
+      // When turning off, we should restore to auto fan mode 'A'
+      const controlData = {
+        fan: value ? 'Q' : 'A'
+      };
+      this.log.debug('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.NightQuiet_Mode = value;
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+      
+      this.sendFaikinControl(controlData, () => {
         this.NightQuiet_Mode = value;
         this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
         if (callback) callback();
-      }, {skipCache: true, skipQueue: true});
-    }, {skipCache: true});
+      });
+    } else {
+      // Traditional Daikin API uses en_streamer
+      this.sendGetRequest(this.get_control_info, body => {
+        const targetValue = value ? '1' : '0';
+        const query = body.replace(/,/g, '&').replace(/en_streamer=[01]/, `en_streamer=${targetValue}`);
+        this.log.debug('setNightQuietMode: Query is: %s', query);
+        this.NightQuiet_Mode = value;
+        this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
+        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this.NightQuiet_Mode = value;
+          this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
+          if (callback) callback();
+        }, {skipCache: true, skipQueue: true});
+      }, {skipCache: true});
+    }
   },
 
 

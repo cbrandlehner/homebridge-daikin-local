@@ -89,7 +89,12 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 
 # Supported devices
 
-Currently, this plugin supports Daikin wifi controllers supporting the "aircon" URLs (System: Default) and "skyfi" URLs (System: Skyfi).
+Currently, this plugin supports:
+- **Daikin wifi controllers** supporting the "aircon" URLs (System: Default)
+- **Skyfi controllers** supporting the "skyfi" URLs (System: Skyfi)
+- **ESP32-Faikin** chipset (System: Faikin) - An open-source alternative WiFi controller for Daikin units
+
+## Testing Standard Daikin/Skyfi Controllers
 
 To test `http` connectivity, use your browser to connect to your device using one of these URLs:
  ```
@@ -103,6 +108,22 @@ Your browser should return a line like this:
 ret=OK,model=0AB9,type=N,pv=2,cpv=2,cpv_minor=00,mid=NA,humd=0,s_humd=0,acled=0,land=0,elec=0,temp=1,temp_rng=0,m_dtct=1,ac_dst=--,disp_dry=0,dmnd=0,en_scdltmr=1,en_frate=1,en_fdir=1,s_fdir=3,en_rtemp_a=0,en_spmode=0,en_ipw_sep=0,en_mompow=0
  ```
 If it does not, your device is not yet supported.
+
+## ESP32-Faikin Support
+
+If you're using the [ESP32-Faikin](https://github.com/revk/ESP32-Faikin) open-source WiFi controller, select "Faikin" as the system type in the configuration. The Faikin system provides:
+
+- Local control without cloud dependencies
+- MQTT and Home Assistant integration
+- Enhanced features and faster response times
+- Full compatibility with this plugin's special modes (Econo, Powerful, Night Quiet)
+
+For Faikin devices, the plugin automatically uses the JSON-based control API. The special modes work as follows:
+- **Econo Mode**: Controlled via the `econo` parameter
+- **Powerful Mode**: Controlled via the `powerful` parameter  
+- **Night Quiet Mode**: Controlled via the `fan` parameter set to 'Q' (Quiet mode)
+
+To test Faikin connectivity, access your Faikin device's web interface at `http://<faikin-ip>.local` or check the `/aircon/get_control_info` endpoint.
 
 To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)
 

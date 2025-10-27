@@ -34,9 +34,9 @@
       },
       "system": {
         "type": "string",
-        "title": "Default Daikin device or Skyfi-model?",
-        "description": "Try with Default first before choosing the Skyfi-option. Consult the documentation for more information.",
-        "enum": [ "Default", "Skyfi" ],
+        "title": "Default Daikin device, Skyfi-model, or Faikin (ESP32-Faikin)?",
+        "description": "Select 'Faikin' if using ESP32-Faikin chipset. Try with 'Default' first for standard Daikin WiFi modules before choosing other options. Consult the documentation for more information.",
+        "enum": [ "Default", "Skyfi", "Faikin" ],
         "default": "Default",
         "required": true
       },
