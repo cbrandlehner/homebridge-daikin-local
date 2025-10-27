@@ -1095,11 +1095,13 @@ Daikin.prototype = {
         callback(null, isEnabled);
       });
     } else {
-      // Traditional Daikin API uses en_streamer
+      // Traditional Daikin API: Night quiet is typically fan rate 'B' (silent mode)
+      // Some models may use f_rate='B', others may have a dedicated parameter
       this.sendGetRequest(this.get_control_info, body => {
         const responseValues = this.parseResponse(body);
-        this.log.debug('getNightQuietMode: en_streamer is: %s', responseValues.en_streamer);
-        const isEnabled = responseValues.en_streamer === '1';
+        this.log.debug('getNightQuietMode: f_rate is: %s', responseValues.f_rate);
+        // 'B' or 'A' typically represents silent/night mode on Daikin controllers
+        const isEnabled = responseValues.f_rate === 'B';
         callback(null, isEnabled);
       });
     }
@@ -1134,11 +1136,13 @@ Daikin.prototype = {
         if (callback) callback();
       });
     } else {
-      // Traditional Daikin API uses en_streamer
+      // Traditional Daikin API: Set fan rate to 'B' (silent) for night quiet mode
+      // When turning off, restore to 'A' (auto) or previous fan speed
       this.sendGetRequest(this.get_control_info, body => {
-        const targetValue = value ? '1' : '0';
-        const query = body.replace(/,/g, '&').replace(/en_streamer=[01]/, `en_streamer=${targetValue}`);
-        this.log.debug('setNightQuietMode: Query is: %s', query);
+        const targetFanRate = value ? 'B' : 'A'; // 'B' is typically silent mode, 'A' is auto
+        let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${targetFanRate}`);
+        query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${targetFanRate}`);
+        this.log.debug('setNightQuietMode: Setting fan rate to %s. Query is: %s', targetFanRate, query);
         this.NightQuiet_Mode = value;
         this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
         this.sendGetRequest(this.set_control_info + '?' + query, _response => {

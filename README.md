@@ -123,6 +123,11 @@ For Faikin devices, the plugin automatically uses the JSON-based control API. Th
 - **Powerful Mode**: Controlled via the `powerful` parameter  
 - **Night Quiet Mode**: Controlled via the `fan` parameter set to 'Q' (Quiet mode)
 
+For traditional Daikin controllers, the special modes work as follows:
+- **Econo Mode**: Controlled via the `en_economode` parameter
+- **Powerful Mode**: Controlled via the `en_powerful` parameter
+- **Night Quiet Mode**: Controlled via the `f_rate` parameter set to 'B' (Silent/Night mode)
+
 To test Faikin connectivity, access your Faikin device's web interface at `http://<faikin-ip>.local` or check the `/aircon/get_control_info` endpoint.
 
 To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)
