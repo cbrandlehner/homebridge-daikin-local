@@ -1214,6 +1214,7 @@ getFanSpeed: function (callback) {
 
     if (this.enableEconoMode) {
       this.econoModeService
+        .setCharacteristic(Characteristic.Name, 'Econo Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getEconoModeFV.bind(this))
         .on('set', this.setEconoMode.bind(this));
@@ -1221,6 +1222,7 @@ getFanSpeed: function (callback) {
 
     if (this.enablePowerfulMode) {
       this.powerfulModeService
+        .setCharacteristic(Characteristic.Name, 'Powerful Mode')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getPowerfulModeFV.bind(this))
         .on('set', this.setPowerfulMode.bind(this));
@@ -1228,6 +1230,7 @@ getFanSpeed: function (callback) {
 
     if (this.enableNightQuietMode) {
       this.nightQuietModeService
+        .setCharacteristic(Characteristic.Name, 'Night Quiet')
         .getCharacteristic(Characteristic.On)
         .on('get', this.getNightQuietModeFV.bind(this))
         .on('set', this.setNightQuietMode.bind(this));
