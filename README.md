@@ -64,6 +64,9 @@ When enabled in the configuration, a switch will appear in HomeKit to toggle the
 Powerful Mode:
 When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Powerful mode. This mode provides maximum cooling or heating output for rapid temperature change.
 
+Night Quiet Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Night Quiet mode. This mode reduces noise for silent operation during nighttime.
+
 **Note:** Econo mode and Powerful mode are typically mutually exclusive - activating one may automatically disable the other on most Daikin units.
 
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">

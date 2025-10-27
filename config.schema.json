@@ -126,6 +126,12 @@
         "type": "boolean",
         "default": false
       },
+      "enableNightQuietMode": {
+        "title": "Night Quiet Mode switch enabled",
+        "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation for nighttime).",
+        "type": "boolean",
+        "default": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",

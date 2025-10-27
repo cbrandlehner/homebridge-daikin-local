@@ -259,14 +259,17 @@ function Daikin(log, config) {
   this.humidityService = new Service.HumiditySensor(this.name);
   this.econoModeService = new Service.Switch('Econo Mode', 'econo-mode');
   this.powerfulModeService = new Service.Switch('Powerful Mode', 'powerful-mode');
+  this.nightQuietModeService = new Service.Switch('Night Quiet Mode', 'night-quiet-mode');
   
   // State for econo and powerful modes
   this.Econo_Mode = false;
   this.Powerful_Mode = false;
+  this.NightQuiet_Mode = false;
   
   // Config options for enabling these features
   this.enableEconoMode = !!config.enableEconoMode;
   this.enablePowerfulMode = !!config.enablePowerfulMode;
+  this.enableNightQuietMode = !!config.enableNightQuietMode;
 }
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -952,6 +955,42 @@ Daikin.prototype = {
     }, {skipCache: true});
   },
 
+  getNightQuietMode: function (callback) {
+    this.sendGetRequest(this.get_control_info, body => {
+      const responseValues = this.parseResponse(body);
+      this.log.debug('getNightQuietMode: en_streamer is: %s', responseValues.en_streamer);
+      const isEnabled = responseValues.en_streamer === '1';
+      callback(null, isEnabled);
+    });
+  },
+
+  getNightQuietModeFV: function (callback) {
+    const counter = ++this.counter;
+    this.log.debug('getNightQuietModeFV: early callback with cached NightQuietMode: %s (%d).', this.NightQuiet_Mode, counter);
+    callback(null, this.NightQuiet_Mode);
+    this.getNightQuietMode((error, state) => {
+      this.NightQuiet_Mode = state;
+      this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
+      this.log.debug('getNightQuietModeFV: update NightQuietMode: %s (%d).', this.NightQuiet_Mode, counter);
+    });
+  },
+
+  setNightQuietMode: function (value, callback) {
+    this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
+    this.sendGetRequest(this.get_control_info, body => {
+      const targetValue = value ? '1' : '0';
+      const query = body.replace(/,/g, '&').replace(/en_streamer=[01]/, `en_streamer=${targetValue}`);
+      this.log.debug('setNightQuietMode: Query is: %s', query);
+      this.NightQuiet_Mode = value;
+      this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
+      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this.NightQuiet_Mode = value;
+        this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
+        if (callback) callback();
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
+  },
+
   getFanStatus: function (callback) {
     this.sendGetRequest(this.basic_info, body => {
       const responseValues = this.parseResponse(body);
@@ -1183,6 +1222,13 @@ getFanSpeed: function (callback) {
         .on('set', this.setPowerfulMode.bind(this));
     }
 
+    if (this.enableNightQuietMode) {
+      this.nightQuietModeService
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getNightQuietModeFV.bind(this))
+        .on('set', this.setNightQuietMode.bind(this));
+    }
+
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
     const services = [informationService, this.heaterCoolerService];
     // if (this.disableFan === false)
@@ -1197,6 +1243,8 @@ getFanSpeed: function (callback) {
       services.push(this.econoModeService);
     if (this.enablePowerfulMode === true)
       services.push(this.powerfulModeService);
+    if (this.enableNightQuietMode === true)
+      services.push(this.nightQuietModeService);
     return services;
   },
 
