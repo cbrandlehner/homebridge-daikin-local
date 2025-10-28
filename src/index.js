@@ -1679,6 +1679,12 @@ getFanSpeed: function (callback) {
       .on('get', this.getSwingModeFV.bind(this)) // FV210510
       .on('set', this.setSwingMode.bind(this));
 
+    // Add RotationSpeed (fan speed) to HeaterCooler - always visible in settings
+    this.heaterCoolerService
+      .getCharacteristic(Characteristic.RotationSpeed)
+      .on('get', this.getFanSpeedFV.bind(this))
+      .on('set', this.setFanSpeed.bind(this));
+
     this.heaterCoolerService
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
     .on('get', this.getTemperatureDisplayUnits.bind(this))
