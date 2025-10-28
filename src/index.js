@@ -1045,7 +1045,7 @@ Daikin.prototype = {
       if (value) {
         controlData.powerful = false;
       }
-      this.log.debug('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
+      this.log.info('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Econo_Mode = value;
       this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
       
@@ -1128,7 +1128,7 @@ Daikin.prototype = {
       if (value) {
         controlData.econo = false;
       }
-      this.log.debug('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
+      this.log.info('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Powerful_Mode = value;
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
       
@@ -1194,12 +1194,13 @@ Daikin.prototype = {
   setNightQuietMode: function (value, callback) {
     this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
     if (this.isFaikin) {
-      // Faikin uses fan='Q' for night/quiet mode
+      // Faikin uses both 'quiet' boolean (G6 bit 7) and fan='Q' for night/quiet mode
       // When turning off, we should restore to auto fan mode 'A'
       const controlData = {
-        fan: value ? 'Q' : 'A'
+        fan: value ? 'Q' : 'A',
+        quiet: value
       };
-      this.log.debug('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
+      this.log.info('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.NightQuiet_Mode = value;
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
       
