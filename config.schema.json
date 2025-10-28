@@ -182,7 +182,7 @@
   "layout": [
     {
       "type": "help",
-      "helpvalue": "<div style='background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;'><h5 style='margin-top: 0;'>🔌 Controller Type Selection</h5><ul style='margin-bottom: 0;'><li><strong>Default:</strong> Standard Daikin WiFi modules (BRP069xxx series)</li><li><strong>Skyfi:</strong> Skyfi WiFi controller models</li><li><strong>Faikin:</strong> ESP32-Faikin open-source controller (uses JSON API instead of query strings)</li></ul><p style='margin-bottom: 0; margin-top: 10px;'><em>Faikin controllers automatically use separate horizontal/vertical swing controls and JSON-based API endpoints.</em></p></div>"
+      "helpvalue": "<div style='background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;'><h5 style='margin-top: 0;'>🔌 Controller Type Selection</h5><ul style='margin-bottom: 0;'><li><strong>Default:</strong> Standard Daikin WiFi modules (BRP069xxx series)</li><li><strong>Skyfi:</strong> Skyfi WiFi controller models</li><li><strong>Faikin:</strong> ESP32-Faikin open-source controller (uses JSON API instead of query strings)</li></ul><p style='margin-bottom: 0; margin-top: 10px;'><em>Faikin controllers automatically use separate horizontal/vertical swing controls and JSON-based API endpoints.</em></p><p style='margin-bottom: 0; margin-top: 8px;'><strong>📋 Need help identifying your controller?</strong><br><a href='https://github.com/revk/ESP32-Faikin' target='_blank' style='color: #1565c0;'>Visit ESP32-Faikin GitHub →</a> for installation guides and compatible hardware lists.</p></div>"
     },
     {
       "type": "section",
