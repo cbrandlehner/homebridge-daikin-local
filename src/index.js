@@ -671,29 +671,36 @@ Daikin.prototype = {
       this.faikinWs.on('message', (data) => {
         try {
           const message = JSON.parse(data.toString());
-          this.log.debug('connectFaikinWebSocket: Received message: %s', JSON.stringify(message));
+          this.log.info('connectFaikinWebSocket: <<<< Received status from Faikin: %s', JSON.stringify(message));
           
           // Update local state based on received status
           if (message.econo !== undefined) {
-            this.Econo_Mode = !!message.econo;
+            const econoState = !!message.econo;
+            this.log.info('connectFaikinWebSocket: Econo mode is now: %s', econoState);
+            this.Econo_Mode = econoState;
             if (this.enableEconoMode) {
               this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
             }
           }
           if (message.powerful !== undefined) {
-            this.Powerful_Mode = !!message.powerful;
+            const powerfulState = !!message.powerful;
+            this.log.info('connectFaikinWebSocket: Powerful mode is now: %s', powerfulState);
+            this.Powerful_Mode = powerfulState;
             if (this.enablePowerfulMode) {
               this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
             }
           }
           if (message.quiet !== undefined) {
-            this.NightQuiet_Mode = !!message.quiet;
+            const quietState = !!message.quiet;
+            this.log.info('connectFaikinWebSocket: Quiet mode is now: %s', quietState);
+            this.NightQuiet_Mode = quietState;
             if (this.enableNightQuietMode) {
               this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
             }
           }
         } catch (error) {
           this.log.warn('connectFaikinWebSocket: Error parsing message: %s', error.message);
+          this.log.warn('connectFaikinWebSocket: Raw data was: %s', data.toString());
         }
       });
 
@@ -730,7 +737,7 @@ Daikin.prototype = {
     }
 
     const message = JSON.stringify(controlData);
-    this.log.info('sendFaikinWebSocketCommand: Sending command: %s', message);
+    this.log.info('sendFaikinWebSocketCommand: >>>> Sending to Faikin: %s', message);
     
     try {
       this.faikinWs.send(message, (error) => {
@@ -738,7 +745,7 @@ Daikin.prototype = {
           this.log.error('sendFaikinWebSocketCommand: Error sending command: %s', error.message);
           if (callback) callback(error);
         } else {
-          this.log.debug('sendFaikinWebSocketCommand: Command sent successfully');
+          this.log.info('sendFaikinWebSocketCommand: Command sent successfully, waiting for Faikin response...');
           if (callback) callback(null);
         }
       });
