@@ -6,6 +6,10 @@
 /* eslint quotes: ["error", "single", { "avoidEscape": true }] */
 /* eslint quote-props: ["error", "consistent-as-needed"] */
 /* eslint @stylistic/brace-style: ["off"] */
+/* eslint unicorn/prevent-abbreviations: "off" */
+/* eslint @stylistic/no-trailing-spaces: ["error", { "skipBlankLines": true }] */
+/* eslint no-unused-expressions: "warn" */
+/* eslint @stylistic/arrow-parens: ["warn", "as-needed"] */
 
 let Service;
 let Characteristic;
@@ -275,32 +279,32 @@ function Daikin(log, config) {
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
   this.humidityService = new Service.HumiditySensor(this.name);
-  
+
   // Special modes switches - these toggle on/off
   // Note: Names stored in config for user identification
   this.econoModeName = config.econoModeName || 'Econo Mode';
   this.powerfulModeName = config.powerfulModeName || 'Powerful Mode';
   this.nightQuietModeName = config.nightQuietModeName || 'Night Quiet';
-  
+
   this.econoModeService = new Service.Switch(this.econoModeName, 'econo-mode-switch');
   this.econoModeService.setCharacteristic(Characteristic.ConfiguredName, this.econoModeName);
-  
+
   this.powerfulModeService = new Service.Switch(this.powerfulModeName, 'powerful-mode-switch');
   this.powerfulModeService.setCharacteristic(Characteristic.ConfiguredName, this.powerfulModeName);
-  
+
   this.nightQuietModeService = new Service.Switch(this.nightQuietModeName, 'night-quiet-switch');
   this.nightQuietModeService.setCharacteristic(Characteristic.ConfiguredName, this.nightQuietModeName);
-  
+
   // State for toggle modes
   this.Econo_Mode = false;
   this.Powerful_Mode = false;
   this.NightQuiet_Mode = false;
-  
+
   // Config options for enabling these features
   this.enableEconoMode = !!config.enableEconoMode;
   this.enablePowerfulMode = !!config.enablePowerfulMode;
   this.enableNightQuietMode = !!config.enableNightQuietMode;
-  
+
   // WebSocket connection for Faikin (used for econo/powerful/quiet control)
   this.faikinWs = null;
   this.faikinWsReconnectTimer = null;
@@ -525,9 +529,9 @@ Daikin.prototype = {
 
   sendFaikinControl(controlData, callback) {
     this.log.debug('sendFaikinControl: Sending control command to Faikin: %s', JSON.stringify(controlData));
-    
+
     const path = this.apiroute + '/control';
-    
+
     // Determine protocol for agent selection
     let urlProtocol = 'https:';
     try {
@@ -581,29 +585,35 @@ Daikin.prototype = {
 
   sendFaikinControlFallback(controlData, callback) {
     this.log.info('sendFaikinControlFallback: Converting JSON to traditional Daikin API: %s', JSON.stringify(controlData));
-    
+
     // Get current status first, then modify it with our changes
     this.sendGetRequest(this.get_control_info, body => {
       let query = body.replace(/,/g, '&');
-      
+
       // Convert JSON control data to query string parameters
       if (controlData.power !== undefined) {
         query = query.replace(/pow=[01]/, `pow=${controlData.power ? '1' : '0'}`);
       }
+
       if (controlData.mode !== undefined) {
-        const modeMap = { 'H': '4', 'C': '3', 'A': '1', 'D': '2', 'F': '6' };
+        const modeMap = {
+          H: '4', C: '3', A: '1', D: '2', F: '6',
+        };
         const mode = modeMap[controlData.mode] || controlData.mode;
         query = query.replace(/mode=[01234567]/, `mode=${mode}`);
       }
+
       if (controlData.temp !== undefined) {
-        const temp = parseFloat(controlData.temp).toFixed(1);
+        const temp = Number.parseFloat(controlData.temp).toFixed(1);
         query = query.replace(/stemp=[\d.]+/, `stemp=${temp}`);
         query = query.replace(/dt3=[\d.]+/, `dt3=${temp}`);
       }
+
       if (controlData.fan !== undefined) {
         query = query.replace(/f_rate=[01234567ABQ]/, `f_rate=${controlData.fan}`);
         query = query.replace(/b_f_rate=[01234567ABQ]/, `b_f_rate=${controlData.fan}`);
       }
+
       if (controlData.swingh !== undefined || controlData.swingv !== undefined) {
         // For traditional API, use f_dir: 0=no swing, 1=vertical, 2=horizontal, 3=both
         const swingH = controlData.swingh;
@@ -615,6 +625,7 @@ Daikin.prototype = {
         query = query.replace(/f_dir=[0123]/, `f_dir=${swingMode}`);
         query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${swingMode}`);
       }
+
       if (controlData.econo !== undefined) {
         // Add en_economode parameter if not present in response
         if (query.includes('en_economode=')) {
@@ -623,6 +634,7 @@ Daikin.prototype = {
           query += `&en_economode=${controlData.econo ? '1' : '0'}`;
         }
       }
+
       if (controlData.powerful !== undefined) {
         // Add en_powerful parameter if not present in response
         if (query.includes('en_powerful=')) {
@@ -631,7 +643,7 @@ Daikin.prototype = {
           query += `&en_powerful=${controlData.powerful ? '1' : '0'}`;
         }
       }
-      
+
       this.log.info('sendFaikinControlFallback: Using traditional API query: %s', query);
       this.sendGetRequest(this.set_control_info + '?' + query, response => {
         callback && callback(null, response);
@@ -655,7 +667,7 @@ Daikin.prototype = {
     // Determine WebSocket URL (ws:// or wss://)
     const protocol = this.apiroute.startsWith('https') ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${this.apiIP}/status`;
-    
+
     this.log.info('connectFaikinWebSocket: Connecting to %s', wsUrl);
 
     try {
@@ -665,7 +677,7 @@ Daikin.prototype = {
 
       this.faikinWs.on('open', () => {
         this.log.info('connectFaikinWebSocket: WebSocket connected to Faikin');
-        
+
         // Send any pending commands
         if (this.faikinWsPendingCommands.length > 0) {
           this.log.debug('connectFaikinWebSocket: Sending %d pending commands', this.faikinWsPendingCommands.length);
@@ -690,6 +702,7 @@ Daikin.prototype = {
               this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
             }
           }
+
           if (message.powerful !== undefined) {
             const powerfulState = !!message.powerful;
             this.log.info('connectFaikinWebSocket: Powerful mode is now: %s', powerfulState);
@@ -700,6 +713,7 @@ Daikin.prototype = {
           }
           // Night Quiet mode is controlled by fan speed 'Q', not the 'quiet' field
           // The 'quiet' field controls outdoor unit quiet mode (different feature)
+
           if (message.fan !== undefined) {
             const nightQuietState = (message.fan === 'Q');
             this.log.info('connectFaikinWebSocket: Fan speed is: %s (Night Quiet: %s)', message.fan, nightQuietState);
@@ -727,21 +741,20 @@ Daikin.prototype = {
           this.connectFaikinWebSocket();
         }, 5000);
       });
-
     } catch (error) {
       this.log.error('connectFaikinWebSocket: Failed to create WebSocket: %s', error.message);
       
       // Retry connection after 10 seconds
       this.faikinWsReconnectTimer = setTimeout(() => {
         this.connectFaikinWebSocket();
-      }, 10000);
+      }, 10_000);
     }
   },
 
   sendFaikinWebSocketCommand(controlData, callback) {
     if (!this.faikinWs || this.faikinWs.readyState !== WebSocket.OPEN) {
       this.log.debug('sendFaikinWebSocketCommand: WebSocket not connected, queuing command');
-      this.faikinWsPendingCommands.push({ data: controlData, callback });
+      this.faikinWsPendingCommands.push({data: controlData, callback});
       this.connectFaikinWebSocket();
       return;
     }
@@ -902,10 +915,14 @@ Daikin.prototype = {
       const enableSwing = (swing !== Characteristic.SwingMode.SWING_DISABLED);
       const controlData = {
         swingh: enableSwing,
-        swingv: enableSwing
+        swingv: enableSwing,
       };
-      this.log.info('setSwingMode (Faikin): HomeKit requested swing mode: %s (swingh=%s, swingv=%s)', 
-        swing, enableSwing, enableSwing);
+      this.log.info(
+        'setSwingMode (Faikin): HomeKit requested swing mode: %s (swingh=%s, swingv=%s)',
+        swing,
+        enableSwing,
+        enableSwing,
+      );
       this.HeaterCooler_SwingMode = swing;
       this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode);
       
@@ -1251,6 +1268,7 @@ Daikin.prototype = {
           this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(false);
         }
       }
+
       if (this.NightQuiet_Mode) {
         this.log.info('setEconoMode: Turning off Night Quiet mode (mutually exclusive)');
         this.NightQuiet_Mode = false;
@@ -1263,13 +1281,14 @@ Daikin.prototype = {
     if (this.isFaikin) {
       // Faikin uses JSON control API - send POST to /control endpoint
       const controlData = {
-        econo: value
+        econo: value,
       };
       // If turning on Econo, also disable Powerful and reset fan from 'Q'
       if (value) {
         controlData.powerful = false;
         controlData.fan = 'A'; // Reset fan to Auto if it was in Quiet mode
       }
+
       this.log.info('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Econo_Mode = value;
       this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
@@ -1289,6 +1308,7 @@ Daikin.prototype = {
         if (value) {
           query = query.replace(/en_powerful=[01]/, 'en_powerful=0');
         }
+
         this.log.debug('setEconoMode: Query is: %s', query);
         this.Econo_Mode = value;
         this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
@@ -1344,6 +1364,7 @@ Daikin.prototype = {
           this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
         }
       }
+
       if (this.NightQuiet_Mode) {
         this.log.info('setPowerfulMode: Turning off Night Quiet mode (mutually exclusive)');
         this.NightQuiet_Mode = false;
@@ -1356,13 +1377,14 @@ Daikin.prototype = {
     if (this.isFaikin) {
       // Faikin uses JSON control API - send POST to /control endpoint
       const controlData = {
-        powerful: value
+        powerful: value,
       };
       // If turning on Powerful, also disable Econo and reset fan from 'Q'
       if (value) {
         controlData.econo = false;
         controlData.fan = 'A'; // Reset fan to Auto if it was in Quiet mode
       }
+
       this.log.info('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Powerful_Mode = value;
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
@@ -1381,6 +1403,7 @@ Daikin.prototype = {
         if (value) {
           query = query.replace(/en_economode=[01]/, 'en_economode=0');
         }
+
         this.log.debug('setPowerfulMode: Query is: %s', query);
         this.Powerful_Mode = value;
         this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
@@ -1439,6 +1462,7 @@ Daikin.prototype = {
           this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
         }
       }
+
       if (this.Powerful_Mode) {
         this.log.info('setNightQuietMode: Turning off Powerful mode (mutually exclusive)');
         this.Powerful_Mode = false;
@@ -1452,13 +1476,14 @@ Daikin.prototype = {
       // Faikin uses fan='Q' for night/quiet mode, 'A' for auto
       // According to Faikin API docs: fan can be 'A' (Auto), 'Q' (Night), or '1'-'5' for manual levels
       const controlData = {
-        fan: value ? 'Q' : 'A'
+        fan: value ? 'Q' : 'A',
       };
       // If turning on Night Quiet, also disable Econo and Powerful
       if (value) {
         controlData.econo = false;
         controlData.powerful = false;
       }
+
       this.log.info('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.NightQuiet_Mode = value;
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
@@ -1486,8 +1511,6 @@ Daikin.prototype = {
       }, {skipCache: true});
     }
   },
-
-
 
   getFanStatus: function (callback) {
     this.sendGetRequest(this.basic_info, body => {
