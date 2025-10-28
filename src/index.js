@@ -1378,6 +1378,12 @@ getFanSpeed: function (callback) {
 			.on('get', this.getFanSpeedFV.bind(this))
 			.on('set', this.setFanSpeed.bind(this));
 
+		// Add SwingMode to Fan service for easier access in HomeKit
+		this.FanService
+			.getCharacteristic(Characteristic.SwingMode)
+			.on('get', this.getSwingModeFV.bind(this))
+			.on('set', this.setSwingMode.bind(this));
+
     this.heaterCoolerService
       .getCharacteristic(Characteristic.Active)
       .on('get', this.getActiveFV.bind(this))
