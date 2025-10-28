@@ -553,14 +553,66 @@ Daikin.prototype = {
 
     request.end((error, response) => {
       if (error) {
-        this.log.error('sendFaikinControl: ERROR: API request to %s returned error %s', path, error);
-        return callback && callback(error);
+        this.log.warn('sendFaikinControl: JSON control endpoint failed (%s), falling back to traditional Daikin API', error.message);
+        // Fallback to traditional Daikin API if /control endpoint doesn't work
+        this.sendFaikinControlFallback(controlData, callback);
+        return;
       }
 
       const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
       this.log.debug('sendFaikinControl: response from API: %s', body);
       return callback && callback(null, body);
     });
+  },
+
+  sendFaikinControlFallback(controlData, callback) {
+    this.log.info('sendFaikinControlFallback: Converting JSON to traditional Daikin API: %s', JSON.stringify(controlData));
+    
+    // Get current status first, then modify it with our changes
+    this.sendGetRequest(this.get_control_info, body => {
+      let query = body.replace(/,/g, '&');
+      
+      // Convert JSON control data to query string parameters
+      if (controlData.power !== undefined) {
+        query = query.replace(/pow=[01]/, `pow=${controlData.power ? '1' : '0'}`);
+      }
+      if (controlData.mode !== undefined) {
+        const modeMap = { 'H': '4', 'C': '3', 'A': '1', 'D': '2', 'F': '6' };
+        const mode = modeMap[controlData.mode] || controlData.mode;
+        query = query.replace(/mode=[01234567]/, `mode=${mode}`);
+      }
+      if (controlData.temp !== undefined) {
+        const temp = parseFloat(controlData.temp).toFixed(1);
+        query = query.replace(/stemp=[\d.]+/, `stemp=${temp}`);
+        query = query.replace(/dt3=[\d.]+/, `dt3=${temp}`);
+      }
+      if (controlData.fan !== undefined) {
+        query = query.replace(/f_rate=[01234567ABQ]/, `f_rate=${controlData.fan}`);
+        query = query.replace(/b_f_rate=[01234567ABQ]/, `b_f_rate=${controlData.fan}`);
+      }
+      if (controlData.swingh !== undefined || controlData.swingv !== undefined) {
+        // For traditional API, use f_dir: 0=no swing, 1=vertical, 2=horizontal, 3=both
+        const swingH = controlData.swingh;
+        const swingV = controlData.swingv;
+        let swingMode = '0';
+        if (swingH && swingV) swingMode = '3';
+        else if (swingV) swingMode = '1';
+        else if (swingH) swingMode = '2';
+        query = query.replace(/f_dir=[0123]/, `f_dir=${swingMode}`);
+        query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${swingMode}`);
+      }
+      if (controlData.econo !== undefined) {
+        query = query.replace(/en_economode=[01]/, `en_economode=${controlData.econo ? '1' : '0'}`);
+      }
+      if (controlData.powerful !== undefined) {
+        query = query.replace(/en_powerful=[01]/, `en_powerful=${controlData.powerful ? '1' : '0'}`);
+      }
+      
+      this.log.info('sendFaikinControlFallback: Using traditional API query: %s', query);
+      this.sendGetRequest(this.set_control_info + '?' + query, response => {
+        callback && callback(null, response);
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
   },
 
   getActive(callback) {
