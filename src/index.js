@@ -1234,12 +1234,21 @@ Daikin.prototype = {
   setEconoMode: function (value, callback) {
     this.log.info('setEconoMode: HomeKit requested to turn Econo mode %s.', value ? 'ON' : 'OFF');
     
-    // Econo and Powerful modes are mutually exclusive
-    if (value && this.Powerful_Mode) {
-      this.log.info('setEconoMode: Turning off Powerful mode (mutually exclusive with Econo mode)');
-      this.Powerful_Mode = false;
-      if (this.enablePowerfulMode) {
-        this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(false);
+    // Econo, Powerful, and Night Quiet modes are mutually exclusive
+    if (value) {
+      if (this.Powerful_Mode) {
+        this.log.info('setEconoMode: Turning off Powerful mode (mutually exclusive)');
+        this.Powerful_Mode = false;
+        if (this.enablePowerfulMode) {
+          this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
+      }
+      if (this.NightQuiet_Mode) {
+        this.log.info('setEconoMode: Turning off Night Quiet mode (mutually exclusive)');
+        this.NightQuiet_Mode = false;
+        if (this.enableNightQuietMode) {
+          this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
       }
     }
     
@@ -1248,9 +1257,10 @@ Daikin.prototype = {
       const controlData = {
         econo: value
       };
-      // If turning on Econo, also disable Powerful
+      // If turning on Econo, also disable Powerful and reset fan from 'Q'
       if (value) {
         controlData.powerful = false;
+        controlData.fan = 'A'; // Reset fan to Auto if it was in Quiet mode
       }
       this.log.info('setEconoMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Econo_Mode = value;
@@ -1317,12 +1327,21 @@ Daikin.prototype = {
   setPowerfulMode: function (value, callback) {
     this.log.info('setPowerfulMode: HomeKit requested to turn Powerful mode %s.', value ? 'ON' : 'OFF');
     
-    // Econo and Powerful modes are mutually exclusive
-    if (value && this.Econo_Mode) {
-      this.log.info('setPowerfulMode: Turning off Econo mode (mutually exclusive with Powerful mode)');
-      this.Econo_Mode = false;
-      if (this.enableEconoMode) {
-        this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
+    // Econo, Powerful, and Night Quiet modes are mutually exclusive
+    if (value) {
+      if (this.Econo_Mode) {
+        this.log.info('setPowerfulMode: Turning off Econo mode (mutually exclusive)');
+        this.Econo_Mode = false;
+        if (this.enableEconoMode) {
+          this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
+      }
+      if (this.NightQuiet_Mode) {
+        this.log.info('setPowerfulMode: Turning off Night Quiet mode (mutually exclusive)');
+        this.NightQuiet_Mode = false;
+        if (this.enableNightQuietMode) {
+          this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
       }
     }
     
@@ -1331,9 +1350,10 @@ Daikin.prototype = {
       const controlData = {
         powerful: value
       };
-      // If turning on Powerful, also disable Econo
+      // If turning on Powerful, also disable Econo and reset fan from 'Q'
       if (value) {
         controlData.econo = false;
+        controlData.fan = 'A'; // Reset fan to Auto if it was in Quiet mode
       }
       this.log.info('setPowerfulMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.Powerful_Mode = value;
@@ -1401,12 +1421,36 @@ Daikin.prototype = {
 
   setNightQuietMode: function (value, callback) {
     this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
+    
+    // Econo, Powerful, and Night Quiet modes are mutually exclusive
+    if (value) {
+      if (this.Econo_Mode) {
+        this.log.info('setNightQuietMode: Turning off Econo mode (mutually exclusive)');
+        this.Econo_Mode = false;
+        if (this.enableEconoMode) {
+          this.econoModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
+      }
+      if (this.Powerful_Mode) {
+        this.log.info('setNightQuietMode: Turning off Powerful mode (mutually exclusive)');
+        this.Powerful_Mode = false;
+        if (this.enablePowerfulMode) {
+          this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(false);
+        }
+      }
+    }
+    
     if (this.isFaikin) {
       // Faikin uses fan='Q' for night/quiet mode, 'A' for auto
       // According to Faikin API docs: fan can be 'A' (Auto), 'Q' (Night), or '1'-'5' for manual levels
       const controlData = {
         fan: value ? 'Q' : 'A'
       };
+      // If turning on Night Quiet, also disable Econo and Powerful
+      if (value) {
+        controlData.econo = false;
+        controlData.powerful = false;
+      }
       this.log.info('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.NightQuiet_Mode = value;
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
