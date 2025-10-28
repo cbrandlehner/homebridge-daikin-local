@@ -690,10 +690,12 @@ Daikin.prototype = {
               this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
             }
           }
-          if (message.quiet !== undefined) {
-            const quietState = !!message.quiet;
-            this.log.info('connectFaikinWebSocket: Quiet mode is now: %s', quietState);
-            this.NightQuiet_Mode = quietState;
+          // Night Quiet mode is controlled by fan speed 'Q', not the 'quiet' field
+          // The 'quiet' field controls outdoor unit quiet mode (different feature)
+          if (message.fan !== undefined) {
+            const nightQuietState = (message.fan === 'Q');
+            this.log.info('connectFaikinWebSocket: Fan speed is: %s (Night Quiet: %s)', message.fan, nightQuietState);
+            this.NightQuiet_Mode = nightQuietState;
             if (this.enableNightQuietMode) {
               this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
             }
