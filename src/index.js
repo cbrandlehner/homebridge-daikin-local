@@ -1,7 +1,12 @@
+/* eslint @stylistic/indent: "off" */
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 /* eslint brace-style: ["warn"] */
 /* eslint curly: "off" */
 /* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
+/* eslint quotes: ["error", "single", { "avoidEscape": true }] */
+/* eslint quote-props: ["error", "consistent-as-needed"] */
+/* eslint @stylistic/brace-style: ["off"] */
+
 let Service;
 let Characteristic;
 // Use node: protocol for core modules
@@ -308,9 +313,11 @@ function Daikin(log, config) {
   Bitmask to (a) allow unsafe legacy renegotiation and (b) tolerate legacy servers.
   Using `|| 0` keeps this safe on builds where a constant might be missing.
 */
+/* eslint @stylistic/indent-binary-ops: ["error", 2] */
+
 const SECURE_OPS
   = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)
-  | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
+    | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
 /* eslint-enable no-bitwise */
 
 // Runtime check for OpenSSL 3 (Node 18+/20 typically link to OpenSSL 3.x)
@@ -455,9 +462,10 @@ Daikin.prototype = {
     // --- END: protocol-aware agent selection ---
 
     // Use end(...) to get a single error/result callback and maintain compatibility.
+
     request.end((error, response) => {
       if (error) {
-        if (error.timeout) { /* timed out */ }
+        if (error.timeout) {/* timed out */}
         else if (error.code === 'ECONNRESET') {
           this.log.debug('_doSendGetRequest: eConnreset filtered');
         } else {

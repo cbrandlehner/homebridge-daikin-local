@@ -1,4 +1,6 @@
 /* eslint comma-dangle: ["warn", "never"] */
+/* eslint @stylistic/indent: "off" */
+/* eslint @stylistic/comma-dangle: ["error", "never"] */
 
 function Cache(expiration /* seconds */) {
   this.entries = {};
