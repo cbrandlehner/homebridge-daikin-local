@@ -1164,6 +1164,7 @@ Daikin.prototype = {
       this.sendGetRequest(this.get_control_info, body => {
         const responseValues = this.parseResponse(body);
         this.log.debug('getNightQuietMode (Faikin): fan is: %s', responseValues.fan);
+        // Check if fan is set to 'Q' (Night/Quiet mode)
         const isEnabled = responseValues.fan === 'Q';
         callback(null, isEnabled);
       });
@@ -1194,11 +1195,10 @@ Daikin.prototype = {
   setNightQuietMode: function (value, callback) {
     this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
     if (this.isFaikin) {
-      // Faikin uses both 'quiet' boolean (G6 bit 7) and fan='Q' for night/quiet mode
-      // When turning off, we should restore to auto fan mode 'A'
+      // Faikin uses fan='Q' for night/quiet mode, 'A' for auto
+      // According to Faikin API docs: fan can be 'A' (Auto), 'Q' (Night), or '1'-'5' for manual levels
       const controlData = {
-        fan: value ? 'Q' : 'A',
-        quiet: value
+        fan: value ? 'Q' : 'A'
       };
       this.log.info('setNightQuietMode (Faikin): Sending control data: %s', JSON.stringify(controlData));
       this.NightQuiet_Mode = value;
