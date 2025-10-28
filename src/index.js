@@ -11,6 +11,7 @@ const crypto = require('node:crypto');
 const process = require('node:process');
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
+const WebSocket = require('ws');
 const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
@@ -294,6 +295,11 @@ function Daikin(log, config) {
   this.enableEconoMode = !!config.enableEconoMode;
   this.enablePowerfulMode = !!config.enablePowerfulMode;
   this.enableNightQuietMode = !!config.enableNightQuietMode;
+  
+  // WebSocket connection for Faikin (used for econo/powerful/quiet control)
+  this.faikinWs = null;
+  this.faikinWsReconnectTimer = null;
+  this.faikinWsPendingCommands = [];
 }
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -553,9 +559,9 @@ Daikin.prototype = {
 
     request.end((error, response) => {
       if (error) {
-        this.log.warn('sendFaikinControl: JSON control endpoint failed (%s), falling back to traditional Daikin API', error.message);
-        // Fallback to traditional Daikin API if /control endpoint doesn't work
-        this.sendFaikinControlFallback(controlData, callback);
+        this.log.warn('sendFaikinControl: JSON control endpoint failed (%s), trying WebSocket fallback', error.message);
+        // Fallback to WebSocket for Faikin S21 protocol (econo/powerful/quiet modes)
+        this.sendFaikinWebSocketCommand(controlData, callback);
         return;
       }
 
@@ -623,6 +629,136 @@ Daikin.prototype = {
         callback && callback(null, response);
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
+  },
+
+  // WebSocket connection management for Faikin
+  connectFaikinWebSocket() {
+    if (this.faikinWs && this.faikinWs.readyState === WebSocket.OPEN) {
+      this.log.debug('connectFaikinWebSocket: Already connected');
+      return;
+    }
+
+    // Clear any existing reconnect timer
+    if (this.faikinWsReconnectTimer) {
+      clearTimeout(this.faikinWsReconnectTimer);
+      this.faikinWsReconnectTimer = null;
+    }
+
+    // Determine WebSocket URL (ws:// or wss://)
+    const protocol = this.apiroute.startsWith('https') ? 'wss://' : 'ws://';
+    const wsUrl = `${protocol}${this.apiIP}/status`;
+    
+    this.log.info('connectFaikinWebSocket: Connecting to %s', wsUrl);
+
+    try {
+      this.faikinWs = new WebSocket(wsUrl, {
+        rejectUnauthorized: false, // Allow self-signed certificates
+      });
+
+      this.faikinWs.on('open', () => {
+        this.log.info('connectFaikinWebSocket: WebSocket connected to Faikin');
+        
+        // Send any pending commands
+        if (this.faikinWsPendingCommands.length > 0) {
+          this.log.debug('connectFaikinWebSocket: Sending %d pending commands', this.faikinWsPendingCommands.length);
+          while (this.faikinWsPendingCommands.length > 0) {
+            const cmd = this.faikinWsPendingCommands.shift();
+            this.sendFaikinWebSocketCommand(cmd.data, cmd.callback);
+          }
+        }
+      });
+
+      this.faikinWs.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          this.log.debug('connectFaikinWebSocket: Received message: %s', JSON.stringify(message));
+          
+          // Update local state based on received status
+          if (message.econo !== undefined) {
+            this.Econo_Mode = !!message.econo;
+            if (this.enableEconoMode) {
+              this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
+            }
+          }
+          if (message.powerful !== undefined) {
+            this.Powerful_Mode = !!message.powerful;
+            if (this.enablePowerfulMode) {
+              this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
+            }
+          }
+          if (message.quiet !== undefined) {
+            this.NightQuiet_Mode = !!message.quiet;
+            if (this.enableNightQuietMode) {
+              this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
+            }
+          }
+        } catch (error) {
+          this.log.warn('connectFaikinWebSocket: Error parsing message: %s', error.message);
+        }
+      });
+
+      this.faikinWs.on('error', (error) => {
+        this.log.warn('connectFaikinWebSocket: WebSocket error: %s', error.message);
+      });
+
+      this.faikinWs.on('close', () => {
+        this.log.info('connectFaikinWebSocket: WebSocket closed, will reconnect in 5 seconds');
+        this.faikinWs = null;
+        
+        // Reconnect after 5 seconds
+        this.faikinWsReconnectTimer = setTimeout(() => {
+          this.connectFaikinWebSocket();
+        }, 5000);
+      });
+
+    } catch (error) {
+      this.log.error('connectFaikinWebSocket: Failed to create WebSocket: %s', error.message);
+      
+      // Retry connection after 10 seconds
+      this.faikinWsReconnectTimer = setTimeout(() => {
+        this.connectFaikinWebSocket();
+      }, 10000);
+    }
+  },
+
+  sendFaikinWebSocketCommand(controlData, callback) {
+    if (!this.faikinWs || this.faikinWs.readyState !== WebSocket.OPEN) {
+      this.log.debug('sendFaikinWebSocketCommand: WebSocket not connected, queuing command');
+      this.faikinWsPendingCommands.push({ data: controlData, callback });
+      this.connectFaikinWebSocket();
+      return;
+    }
+
+    const message = JSON.stringify(controlData);
+    this.log.info('sendFaikinWebSocketCommand: Sending command: %s', message);
+    
+    try {
+      this.faikinWs.send(message, (error) => {
+        if (error) {
+          this.log.error('sendFaikinWebSocketCommand: Error sending command: %s', error.message);
+          if (callback) callback(error);
+        } else {
+          this.log.debug('sendFaikinWebSocketCommand: Command sent successfully');
+          if (callback) callback(null);
+        }
+      });
+    } catch (error) {
+      this.log.error('sendFaikinWebSocketCommand: Exception sending command: %s', error.message);
+      if (callback) callback(error);
+    }
+  },
+
+  closeFaikinWebSocket() {
+    if (this.faikinWsReconnectTimer) {
+      clearTimeout(this.faikinWsReconnectTimer);
+      this.faikinWsReconnectTimer = null;
+    }
+    
+    if (this.faikinWs) {
+      this.log.info('closeFaikinWebSocket: Closing WebSocket connection');
+      this.faikinWs.close();
+      this.faikinWs = null;
+    }
   },
 
   getActive(callback) {
