@@ -602,10 +602,20 @@ Daikin.prototype = {
         query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${swingMode}`);
       }
       if (controlData.econo !== undefined) {
-        query = query.replace(/en_economode=[01]/, `en_economode=${controlData.econo ? '1' : '0'}`);
+        // Add en_economode parameter if not present in response
+        if (query.includes('en_economode=')) {
+          query = query.replace(/en_economode=[01]/, `en_economode=${controlData.econo ? '1' : '0'}`);
+        } else {
+          query += `&en_economode=${controlData.econo ? '1' : '0'}`;
+        }
       }
       if (controlData.powerful !== undefined) {
-        query = query.replace(/en_powerful=[01]/, `en_powerful=${controlData.powerful ? '1' : '0'}`);
+        // Add en_powerful parameter if not present in response
+        if (query.includes('en_powerful=')) {
+          query = query.replace(/en_powerful=[01]/, `en_powerful=${controlData.powerful ? '1' : '0'}`);
+        } else {
+          query += `&en_powerful=${controlData.powerful ? '1' : '0'}`;
+        }
       }
       
       this.log.info('sendFaikinControlFallback: Using traditional API query: %s', query);
