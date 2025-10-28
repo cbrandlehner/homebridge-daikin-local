@@ -678,7 +678,7 @@ Daikin.prototype = {
             const econoState = !!message.econo;
             this.log.info('connectFaikinWebSocket: Econo mode is now: %s', econoState);
             this.Econo_Mode = econoState;
-            if (this.enableEconoMode) {
+            if (this.enableEconoMode && this.econoModeService) {
               this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
             }
           }
@@ -686,7 +686,7 @@ Daikin.prototype = {
             const powerfulState = !!message.powerful;
             this.log.info('connectFaikinWebSocket: Powerful mode is now: %s', powerfulState);
             this.Powerful_Mode = powerfulState;
-            if (this.enablePowerfulMode) {
+            if (this.enablePowerfulMode && this.powerfulModeService) {
               this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
             }
           }
@@ -696,7 +696,7 @@ Daikin.prototype = {
             const nightQuietState = (message.fan === 'Q');
             this.log.info('connectFaikinWebSocket: Fan speed is: %s (Night Quiet: %s)', message.fan, nightQuietState);
             this.NightQuiet_Mode = nightQuietState;
-            if (this.enableNightQuietMode) {
+            if (this.enableNightQuietMode && this.nightQuietModeService) {
               this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
             }
           }
