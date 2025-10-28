@@ -35,5 +35,10 @@ node_modules
 # IDE directories
 .idea
 
+# Faikin documentation (local reference only)
+ESP32-Faikin-main/
+espi32-faikin-main/
+
 # Scripts
 *.sh
+esp32-faikin-main/
