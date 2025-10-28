@@ -58,6 +58,26 @@ This plugin translates this percentage value as follows:
 The AC:
 Apple HomeKit settings allow you to enable or disable the swing aka oscillation mode. As HomeKit is limited to a true or false value, the plugin's configuration allows you to configure the type of swing mode. Available modes are "horizontal swing", "vertical swing" and "3D".
 
+Econo Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Econo mode. This energy-saving mode reduces power consumption by moderating the cooling/heating output.
+
+Powerful Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Powerful mode. This mode provides maximum cooling or heating output for rapid temperature change.
+
+**Important:** Econo mode and Powerful mode are mutually exclusive - they cannot both be active simultaneously. Turning on one will automatically turn off the other, as they have opposite effects on power consumption and performance.
+
+Night Quiet Mode:
+When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Night Quiet mode. This mode reduces noise for silent operation during nighttime.
+
+AC Modes (Dry/Fan):
+When enabled in the configuration, a fan slider will appear in HomeKit to switch between special AC modes:
+- 0-20%: Off
+- 21-49%: Dry mode (dehumidification)
+- 50-79%: Fan-only mode
+- 80-100%: Return to normal operation (Cool/Heat/Auto)
+
+**Note:** Night Quiet Mode can be used independently with either Econo or Powerful modes.
+
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">
 
 
@@ -71,7 +91,12 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 
 # Supported devices
 
-Currently, this plugin supports Daikin wifi controllers supporting the "aircon" URLs (System: Default) and "skyfi" URLs (System: Skyfi).
+Currently, this plugin supports:
+- **Daikin wifi controllers** supporting the "aircon" URLs (System: Default)
+- **Skyfi controllers** supporting the "skyfi" URLs (System: Skyfi)
+- **ESP32-Faikin** chipset (System: Faikin) - An open-source alternative WiFi controller for Daikin units
+
+## Testing Standard Daikin/Skyfi Controllers
 
 To test `http` connectivity, use your browser to connect to your device using one of these URLs:
  ```
@@ -85,6 +110,45 @@ Your browser should return a line like this:
 ret=OK,model=0AB9,type=N,pv=2,cpv=2,cpv_minor=00,mid=NA,humd=0,s_humd=0,acled=0,land=0,elec=0,temp=1,temp_rng=0,m_dtct=1,ac_dst=--,disp_dry=0,dmnd=0,en_scdltmr=1,en_frate=1,en_fdir=1,s_fdir=3,en_rtemp_a=0,en_spmode=0,en_ipw_sep=0,en_mompow=0
  ```
 If it does not, your device is not yet supported.
+
+## ESP32-Faikin Support
+
+If you're using the [ESP32-Faikin](https://github.com/revk/ESP32-Faikin) open-source WiFi controller, select "Faikin" as the system type in the configuration. The Faikin system provides:
+
+- Local control without cloud dependencies
+- MQTT and Home Assistant integration
+- Enhanced features and faster response times
+- Full compatibility with this plugin's special modes (Econo, Powerful, Night Quiet)
+
+For Faikin devices, the plugin automatically uses the JSON-based control API. The special modes work as follows:
+- **Econo Mode**: Controlled via the `econo` parameter (boolean)
+- **Powerful Mode**: Controlled via the `powerful` parameter (boolean)
+- **Night Quiet Mode**: Controlled via the `fan` parameter set to 'Q' (Quiet mode)
+- **Swing Mode**: Controlled via `swingh` and `swingv` parameters (separate horizontal and vertical swing booleans)
+
+For traditional Daikin controllers, the special modes work as follows:
+- **Econo Mode**: Controlled via the `en_economode` parameter
+- **Powerful Mode**: Controlled via the `en_powerful` parameter
+- **Night Quiet Mode**: Controlled via the `f_rate` parameter set to 'B' (Silent/Night mode)
+- **Swing Mode**: Controlled via the `f_dir` parameter (0=No swing, 1=Vertical, 2=Horizontal, 3=3D)
+
+**Faikin Attribute Support:**
+The plugin currently supports these Faikin control attributes:
+- `power` (boolean) - AC on/off state
+- `mode` (H/C/A/D/F) - Heat, Cool, Auto, Dry, Fan modes
+- `temp` (number) - Target temperature in Celsius
+- `fan` (A/Q/1-5) - Auto, Quiet, or manual fan levels 1-5
+- `swingh` (boolean) - Horizontal louvre swing
+- `swingv` (boolean) - Vertical louvre swing
+- `powerful` (boolean) - Powerful mode
+- `econo` (boolean) - Economy mode
+
+Not yet implemented:
+- `target` - Single temp or min/max array for Faikin auto mode
+- `env` - Temperature reference for Faikin auto mode
+- `streamer` - Air purifier/ionizer boolean
+
+To test Faikin connectivity, access your Faikin device's web interface at `http://<faikin-ip>.local` or check the `/aircon/get_control_info` endpoint.
 
 To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)
 
