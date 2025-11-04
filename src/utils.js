@@ -1,4 +1,3 @@
-/* eslint @stylistic/indent: "off" */
 /* eslint quotes: ["error", "single", { "avoidEscape": true }] */
 /* eslint quote-props: ["error", "consistent-as-needed"] */
 

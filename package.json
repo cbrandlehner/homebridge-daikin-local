@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "daikin plugin for homebridge: https://github.com/homebridge/homebridge",
   "license": "MIT",
   "keywords": [
@@ -48,18 +48,35 @@
   ],
   "main": "src/index.js",
   "scripts": {
-    "lint:json": "eslint --ext .json --plugin json --rule \"json/*: error\" .",
+    "lint:json": "eslint --ext .json .",
     "pretest": "npm run lint:json",
     "test": "xo"
   },
   "devDependencies": {
-    "xo": "^1.2.3",
-    "eslint": "^8.49.0",
-    "eslint-plugin-json": "^4.0.1"
+    "@eslint/json": "^0.13.2",
+    "eslint": "^9.39.1",
+    "xo": "^1.2.3"
   },
   "xo": {
     "rules": {
       "stylistic/indent-binary-ops": "off",
+      "@stylistic/indent": "off",
+      "@stylistic/no-trailing-spaces": [
+        "error",
+        {
+          "skipBlankLines": true
+        }
+      ],
+      "@stylistic/comma-dangle": "off",
+      "@stylistic/arrow-parens": [
+        "warn",
+        "as-needed"
+      ],
+      "@stylistic/brace-style": "off",
+      "@stylistic/indent-binary-ops": [
+        "warn",
+        2
+      ],
       "camelcase": "off",
       "capitalized-comments": "off",
       "curly": [
@@ -87,14 +104,15 @@
       "prefer-arrow-callback": "warn",
       "prefer-destructuring": "warn",
       "promise/prefer-await-to-then": "off",
-      "quotes": "warn",
-      "quote-props": "error",
+      "quotes": "off",
+      "quote-props": "off",
       "unicorn/expiring-todo-comments": "off",
       "unicorn/no-anonymous-default-export": "off",
       "unicorn/prefer-module": "off",
       "unicorn/prefer-string-replace-all": "warn",
       "unicorn/prefer-switch": "warn",
-      "unicorn/prefer-ternary": "off"
+      "unicorn/prefer-ternary": "off",
+      "unicorn/prevent-abbreviations": "off"
     }
   }
 }

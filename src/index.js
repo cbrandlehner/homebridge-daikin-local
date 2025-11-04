@@ -1,15 +1,9 @@
-/* eslint @stylistic/indent: "off" */
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
-/* eslint brace-style: ["warn"] */
 /* eslint curly: "off" */
 /* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
 /* eslint quotes: ["error", "single", { "avoidEscape": true }] */
 /* eslint quote-props: ["error", "consistent-as-needed"] */
-/* eslint @stylistic/brace-style: ["off"] */
-/* eslint unicorn/prevent-abbreviations: "off" */
-/* eslint @stylistic/no-trailing-spaces: ["error", { "skipBlankLines": true }] */
 /* eslint no-unused-expressions: "warn" */
-/* eslint @stylistic/arrow-parens: ["warn", "as-needed"] */
 
 let Service;
 let Characteristic;
@@ -317,7 +311,6 @@ function Daikin(log, config) {
   Bitmask to (a) allow unsafe legacy renegotiation and (b) tolerate legacy servers.
   Using `|| 0` keeps this safe on builds where a constant might be missing.
 */
-/* eslint @stylistic/indent-binary-ops: ["error", 2] */
 
 const SECURE_OPS
   = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)

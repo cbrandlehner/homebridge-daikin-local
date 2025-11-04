@@ -1,5 +1,3 @@
-/* eslint @stylistic/indent: "off" */
-
 function Queue() {
   this.queue = [];
   this.running = false;
