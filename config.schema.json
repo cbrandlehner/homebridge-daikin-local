@@ -19,12 +19,32 @@
         "format": "uri"
       },
       "temperature_unit": {
-          "title": "Define Temperature Unit",
-          "type": "string",
-          "required": true,
-          "default": "C",
-          "oneOf": [{"title": "Fahrenheit", "enum": ["F"]},
-                    {"title": "Celsius", "enum": ["C"]}]
+        "title": "Define Temperature Unit",
+        "type": "string",
+        "required": true,
+        "default": "C",
+        "oneOf": [{"title": "Fahrenheit", "enum": ["F"]},
+                  {"title": "Celsius", "enum": ["C"]}]
+      },
+      "temperatureOffsetOutside": {
+        "title": "Temperature-Offset-Outside",
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": -10.0,
+        "maximum": 10.0,
+        "step": 0.1,
+        "description": "Allows an offset to calibrate the measurement."
+      },
+      "temperatureOffsetInside": {
+        "title": "Temperature-Offset-Inside",
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": -10.0,
+        "maximum": 10.0,
+        "step": 0.1,
+        "description": "Allows an offset to calibrate the measurement."
       },
       "uuid": {
         "title": "Client UUID token if needed",

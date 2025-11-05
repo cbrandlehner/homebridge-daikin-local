@@ -58,6 +58,24 @@ function Daikin(log, config) {
     this.log.debug('Config: temperature_unit is %s', config.temperature_unit);
   }
 
+    if (config.temperatureOffsetOutside === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "temperatureOffsetOutside", using default zero');
+    this.temperatureOffsetOutside = 0;
+    this.log.debug('Config: temperatureOffsetOutside is %s', this.temperatureOffsetOutside);
+  } else {
+    this.log.debug('Config: temperatureOffsetOutside is %s', config.temperatureOffsetOutside);
+    this.temperatureOffsetOutside = config.temperatureOffsetOutside;
+  }
+
+    if (config.temperatureOffsetInside === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "temperatureOffsetInside", using default zero');
+    this.temperatureOffsetInside = 0;
+    this.log.debug('Config: temperatureOffsetInside is %s', this.temperatureOffsetInside);
+  } else {
+    this.log.debug('Config: temperatureOffsetInside is %s', config.temperatureOffsetInside);
+    this.temperatureOffsetInside = config.temperatureOffsetInside;
+  }
+
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
     this.apiroute = 'http://127.0.0.1';
@@ -1076,13 +1094,21 @@ Daikin.prototype = {
         },
 
   getCurrentTemperature(callback) {
-          this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
-          this.sendGetRequest(this.get_sensor_info, body => {
-                  const responseValues = this.parseResponse(body);
-                  const currentTemperature = Number.parseFloat(responseValues.htemp);
-                  callback(null, currentTemperature);
-          });
-        },
+    this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, body => {
+      const responseValues = this.parseResponse(body);
+      const rawTemperature = Number.parseFloat(responseValues.htemp);
+      const adjustedTemperature = rawTemperature + this.temperatureOffsetInside;
+      this.log.debug(
+        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
+        rawTemperature.toFixed(1),
+        this.temperatureOffsetInside.toFixed(1),
+        adjustedTemperature.toFixed(1)
+        );
+      callback(null, adjustedTemperature);
+    });
+  },
+
   getCurrentTemperatureFV(callback) { // FV 210510: Wrapper for service call to early return
     const counter = ++this.counter;
     this.log.debug('getCurrentTemperatureFV: early callback with cached CurrentTemperature: %s (%d).', this.HeaterCooler_CurrentTemperature, counter);
@@ -1113,13 +1139,20 @@ Daikin.prototype = {
   },
 
   getCurrentOutsideTemperature(callback) {
-                this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
-                this.sendGetRequest(this.get_sensor_info, body => {
-                        const responseValues = this.parseResponse(body);
-                        const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
-                        callback(null, currentOutsideTemperature);
-                });
-              },
+    this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, body => {
+      const responseValues = this.parseResponse(body);
+      const rawTemperature = Number.parseFloat(responseValues.otemp);
+      const adjustedTemperature = rawTemperature + this.temperatureOffsetOutside;
+      this.log.debug(
+        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
+        rawTemperature.toFixed(1),
+        this.temperatureOffsetOutside.toFixed(1),
+        adjustedTemperature.toFixed(1)
+        );
+      callback(null, adjustedTemperature);
+    });
+  },
 
   getCoolingTemperature(callback) {
           this.sendGetRequest(this.get_control_info, body => {
