@@ -1876,10 +1876,9 @@ getFanSpeed: function (callback) {
         }
 
         // Link the fan service to the HeaterCooler service
+        // DO NOT add linkedFanService to services array - linked services are automatically included
         this.heaterCoolerService.addLinkedService(this.linkedFanService);
-
-        // Add the linked service to the services array so it's available
-        services.push(this.linkedFanService);
+        this.log.info('Linked fan service to HeaterCooler (will appear in settings only)');
 
     } else {
         // Fan accessory enabled - it will appear in main view
