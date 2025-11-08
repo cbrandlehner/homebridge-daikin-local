@@ -28,8 +28,8 @@ This guide documents the implementation of fan controls and Faikin WebSocket imp
 
 **Case 1: disableFan = true**
 - No separate fan tile in main view
-- Fan controls appear directly in HeaterCooler settings via linked Fanv2 service
-- Uses linked service approach to ensure visibility in HomeKit
+- Fan controls (RotationSpeed, SwingMode) added directly as characteristics on HeaterCooler service
+- Controls appear in HeaterCooler settings in HomeKit
 
 **Case 2: disableFan = false** 
 - Separate fan tile appears in main view
@@ -45,8 +45,8 @@ this.heaterCoolerService = new Service.HeaterCooler(this.name);
 this.temperatureService = new Service.TemperatureSensor(this.name);
 this.humidityService = new Service.HumiditySensor(this.name);
 
-// Note: Optional characteristics are now handled via linked services
-// when disableFan=true to ensure they appear in HeaterCooler settings
+// Note: Characteristics are added directly to HeaterCooler service
+// when disableFan=true (see fan controls logic below)
 ```
 
 **Services Array Initialization (line ~1779):**
@@ -61,46 +61,37 @@ const services = [informationService, this.heaterCoolerService];
 //
 // When disableFan = true:
 //   - No separate fan accessory in main view
-//   - Fan controls appear directly in HeaterCooler settings via linked service
+//   - Fan controls (RotationSpeed, SwingMode) added directly to HeaterCooler settings
 //
 // When disableFan = false:
 //   - Separate fan accessory visible in main view
 //   - Optionally also add controls to HeaterCooler settings if enabled
 
 if (this.disableFan) {
-    // Fan accessory disabled - create linked fan service for HeaterCooler settings
-    this.log.info('Fan accessory disabled. Creating linked fan service for HeaterCooler settings.');
-
-        // Create a linked fan service that will appear in HeaterCooler settings
-        this.linkedFanService = new Service.Fan(this.fanName + ' Controls', 'linked-fan-service');    // Configure the linked fan service
-    this.linkedFanService
-        .getCharacteristic(Characteristic.Active)
-        .on('get', this.getFanStatusFV.bind(this))
-        .on('set', this.setFanStatus.bind(this));
+    // Fan accessory disabled - add controls directly to HeaterCooler settings
+    this.log.info('Fan accessory disabled. Adding fan controls directly to HeaterCooler settings.');
 
     if (this.enableFanSpeedInSettings) {
-        this.log.info('Adding RotationSpeed to linked fan service.');
-        this.linkedFanService
-            .getCharacteristic(Characteristic.RotationSpeed)
+        this.log.info('Adding RotationSpeed to HeaterCooler settings.');
+        this.heaterCoolerService.getCharacteristic(Characteristic.RotationSpeed)
             .on('get', this.getFanSpeedFV.bind(this))
             .on('set', this.setFanSpeed.bind(this));
     }
 
     if (this.enableOscillationInSettings) {
-        this.log.info('Adding SwingMode to linked fan service.');
-        this.linkedFanService
-            .getCharacteristic(Characteristic.SwingMode)
+        this.log.info('Adding SwingMode to HeaterCooler settings.');
+        this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
             .on('get', this.getSwingModeFV.bind(this))
             .on('set', this.setSwingMode.bind(this));
     }
 
-    // Link the fan service to the HeaterCooler service
-    this.heaterCoolerService.addLinkedService(this.linkedFanService);
-
 } else {
     // Fan accessory enabled - it will appear in main view
+    // Add the regular fan service to services array
+    this.log.info('Fan accessory enabled. Fan will appear in main view.');
+    services.push(this.FanService);
+
     // Optionally also add controls to HeaterCooler settings
-    
     if (this.enableOscillationInSettings) {
         this.log.info('Adding SwingMode (Oscillation) to HeaterCooler settings.');
         this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
@@ -120,20 +111,14 @@ if (this.disableFan) {
 **Services Array Population (line ~1900):**
 ```javascript
 // Only add the regular Fan service if disableFan is false
-// When disableFan is true, we use a linked fan service instead
-if (this.disableFan) {
-  // disableFan is true - add linked service if it exists
-  if (this.linkedFanService) {
-    services.push(this.linkedFanService);
-    this.log.info('Added linked fan service to services array (disableFan=true)');
-  } else {
-    this.log.warn('disableFan is true but linkedFanService was not created');
-  }
-} else {
+// When disableFan is true, fan controls are added as characteristics on HeaterCooler
+if (this.disableFan === false) {
   // disableFan is false - add regular fan service
   services.push(this.FanService);
   this.log.info('Added regular fan service to services array (disableFan=false)');
 }
+// Note: When disableFan=true, no fan service is added to the array
+// Fan controls are handled via characteristics on the HeaterCooler service
 ```
 
 ---
@@ -295,9 +280,9 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
 ### Verification Checklist
 
 - [x] Services array initialized at top of getServices()
-- [x] Fan controls logic uses linked Fanv2 service when disableFan=true
+- [x] Fan controls logic uses direct characteristics on HeaterCooler when disableFan=true
 - [x] disableFan controls fan tile visibility correctly
-- [x] Linked fan service added to HeaterCooler when disableFan=true
+- [x] RotationSpeed and SwingMode added directly to HeaterCooler when disableFan=true
 - [x] WebSocket heartbeat implemented (1s interval)
 - [x] State synchronization uses updateCharacteristic
 - [x] Heartbeat timer cleanup on disconnect
@@ -311,10 +296,10 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
 
 ## Files Modified
 
-1. **src/index.js** (2036 lines)
-   - Line ~291: Removed optional characteristics initialization (now uses linked services)
-   - Line ~1840-1890: Fan controls with linked Fanv2 service when disableFan=true
-   - Line ~1900: Conditional linkedFanService addition to services array
+1. **src/index.js** (2040 lines)
+   - Line ~291: Service initialization with note about direct characteristics
+   - Line ~1840-1880: Fan controls with direct characteristics when disableFan=true
+   - Line ~1900: Conditional FanService addition to services array (only when disableFan=false)
    - Line ~328: Added quietWebSocketLogging config
    - Line ~333: Added faikinWsHeartbeat timer
    - Line ~705: Heartbeat mechanism in WebSocket open handler
