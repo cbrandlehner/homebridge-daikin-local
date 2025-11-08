@@ -317,9 +317,21 @@ function Daikin(log, config) {
   this.enablePowerfulMode = !!config.enablePowerfulMode;
   this.enableNightQuietMode = !!config.enableNightQuietMode;
 
+  // Config options for fan controls in settings (v1.5.1)
+  this.enableFanSpeedInSettings = config.enableFanSpeedInSettings !== undefined ? config.enableFanSpeedInSettings : true;
+  this.enableOscillationInSettings = config.enableOscillationInSettings !== undefined ? config.enableOscillationInSettings : true;
+
+  // Config options for temperature ranges (v1.5.2)
+  this.minTemperature = config.minTemperature !== undefined ? config.minTemperature : 18;
+  this.maxTemperature = config.maxTemperature !== undefined ? config.maxTemperature : 30;
+
+  // Config option for quiet WebSocket logging (v1.5.2)
+  this.quietWebSocketLogging = config.quietWebSocketLogging !== undefined ? config.quietWebSocketLogging : true;
+
   // WebSocket connection for Faikin (used for econo/powerful/quiet control)
   this.faikinWs = null;
   this.faikinWsReconnectTimer = null;
+  this.faikinWsHeartbeat = null;
   this.faikinWsPendingCommands = [];
 }
 
@@ -679,7 +691,8 @@ Daikin.prototype = {
     const protocol = this.apiroute.startsWith('https') ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${this.apiIP}/status`;
 
-    this.log.info('connectFaikinWebSocket: Connecting to %s', wsUrl);
+    const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
+    this.log[logMethod]('connectFaikinWebSocket: Connecting to %s', wsUrl);
 
     try {
       this.faikinWs = new WebSocket(wsUrl, {
@@ -687,7 +700,21 @@ Daikin.prototype = {
       });
 
       this.faikinWs.on('open', () => {
-        this.log.info('connectFaikinWebSocket: WebSocket connected to Faikin');
+        this.log[logMethod]('connectFaikinWebSocket: WebSocket connected to Faikin');
+        if (this.quietWebSocketLogging) {
+          this.log.info('connectFaikinWebSocket: Quiet WebSocket logging enabled - status updates will use debug level');
+        } else {
+          this.log.info('connectFaikinWebSocket: Verbose WebSocket logging enabled - all status updates will be logged');
+        }
+
+        // Start heartbeat to receive status updates (required by Faikin)
+        // Based on Faikin web UI: setInterval(function() {if(!ws)c();else ws.send('');}, 1000);
+        this.faikinWsHeartbeat = setInterval(() => {
+          if (this.faikinWs && this.faikinWs.readyState === 1) {
+            this.faikinWs.send(''); // Send empty heartbeat message
+            this.log.debug('connectFaikinWebSocket: Sent heartbeat to Faikin');
+          }
+        }, 1000);
 
         // Send any pending commands
         if (this.faikinWsPendingCommands.length > 0) {
@@ -702,24 +729,64 @@ Daikin.prototype = {
       this.faikinWs.on('message', (data) => {
         try {
           const message = JSON.parse(data.toString());
-          this.log.info('connectFaikinWebSocket: <<<< Received status from Faikin: %s', JSON.stringify(message));
           
-          // Update local state based on received status
+          // Only log WebSocket messages if verbose logging is enabled
+          if (!this.quietWebSocketLogging) {
+            this.log.info('connectFaikinWebSocket: <<<< Received status from Faikin: %s', JSON.stringify(message));
+          } else {
+            this.log.debug('connectFaikinWebSocket: <<<< Received status from Faikin: %s', JSON.stringify(message));
+          }
+          
+          // Update local state based on received status from Faikin (including rejections)
           if (message.econo !== undefined) {
             const econoState = !!message.econo;
-            this.log.info('connectFaikinWebSocket: Econo mode is now: %s', econoState);
+            const oldState = this.Econo_Mode;
+            
+            // Only log when state actually changes
+            if (oldState !== econoState) {
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: Econo mode: %s → %s', oldState, econoState);
+              } else {
+                this.log.debug('connectFaikinWebSocket: Econo mode: %s → %s', oldState, econoState);
+              }
+            }
+            
             this.Econo_Mode = econoState;
-            if (this.enableEconoMode && this.econoModeService) {
-              this.econoModeService.getCharacteristic(Characteristic.On).updateValue(this.Econo_Mode);
+            
+            if (this.enableEconoMode && this.econoModeService && oldState !== econoState) {
+              this.econoModeService.updateCharacteristic(Characteristic.On, this.Econo_Mode);
+              
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
+              } else {
+                this.log.debug('connectFaikinWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
+              }
             }
           }
 
           if (message.powerful !== undefined) {
             const powerfulState = !!message.powerful;
-            this.log.info('connectFaikinWebSocket: Powerful mode is now: %s', powerfulState);
+            const oldState = this.Powerful_Mode;
+            
+            // Only log when state actually changes
+            if (oldState !== powerfulState) {
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: Powerful mode: %s → %s', oldState, powerfulState);
+              } else {
+                this.log.debug('connectFaikinWebSocket: Powerful mode: %s → %s', oldState, powerfulState);
+              }
+            }
+            
             this.Powerful_Mode = powerfulState;
-            if (this.enablePowerfulMode && this.powerfulModeService) {
-              this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(this.Powerful_Mode);
+            
+            if (this.enablePowerfulMode && this.powerfulModeService && oldState !== powerfulState) {
+              this.powerfulModeService.updateCharacteristic(Characteristic.On, this.Powerful_Mode);
+              
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: ✅ Updated Powerful switch to: %s', this.Powerful_Mode);
+              } else {
+                this.log.debug('connectFaikinWebSocket: ✅ Updated Powerful switch to: %s', this.Powerful_Mode);
+              }
             }
           }
           // Night Quiet mode is controlled by fan speed 'Q', not the 'quiet' field
@@ -727,10 +794,27 @@ Daikin.prototype = {
 
           if (message.fan !== undefined) {
             const nightQuietState = (message.fan === 'Q');
-            this.log.info('connectFaikinWebSocket: Fan speed is: %s (Night Quiet: %s)', message.fan, nightQuietState);
+            const oldState = this.NightQuiet_Mode;
+            
+            // Only log when state actually changes
+            if (oldState !== nightQuietState) {
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: Night Quiet mode: %s → %s (fan: %s)', oldState, nightQuietState, message.fan);
+              } else {
+                this.log.debug('connectFaikinWebSocket: Night Quiet mode: %s → %s (fan: %s)', oldState, nightQuietState, message.fan);
+              }
+            }
+            
             this.NightQuiet_Mode = nightQuietState;
-            if (this.enableNightQuietMode && this.nightQuietModeService) {
-              this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(this.NightQuiet_Mode);
+            
+            if (this.enableNightQuietMode && this.nightQuietModeService && oldState !== nightQuietState) {
+              this.nightQuietModeService.updateCharacteristic(Characteristic.On, this.NightQuiet_Mode);
+              
+              if (!this.quietWebSocketLogging) {
+                this.log.info('connectFaikinWebSocket: ✅ Updated Night Quiet switch to: %s', this.NightQuiet_Mode);
+              } else {
+                this.log.debug('connectFaikinWebSocket: ✅ Updated Night Quiet switch to: %s', this.NightQuiet_Mode);
+              }
             }
           }
         } catch (error) {
@@ -744,7 +828,15 @@ Daikin.prototype = {
       });
 
       this.faikinWs.on('close', () => {
-        this.log.info('connectFaikinWebSocket: WebSocket closed, will reconnect in 5 seconds');
+        const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
+        this.log[logMethod]('connectFaikinWebSocket: WebSocket closed, will reconnect in 5 seconds');
+        
+        // Clear heartbeat timer
+        if (this.faikinWsHeartbeat) {
+          clearInterval(this.faikinWsHeartbeat);
+          this.faikinWsHeartbeat = null;
+        }
+        
         this.faikinWs = null;
         
         // Reconnect after 5 seconds
@@ -771,7 +863,8 @@ Daikin.prototype = {
     }
 
     const message = JSON.stringify(controlData);
-    this.log.info('sendFaikinWebSocketCommand: >>>> Sending to Faikin: %s', message);
+    const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
+    this.log[logMethod]('sendFaikinWebSocketCommand: >>>> Sending to Faikin: %s', message);
     
     try {
       this.faikinWs.send(message, (error) => {
@@ -779,7 +872,7 @@ Daikin.prototype = {
           this.log.error('sendFaikinWebSocketCommand: Error sending command: %s', error.message);
           if (callback) callback(error);
         } else {
-          this.log.info('sendFaikinWebSocketCommand: Command sent successfully, waiting for Faikin response...');
+          this.log[logMethod]('sendFaikinWebSocketCommand: Command sent successfully, waiting for Faikin response...');
           if (callback) callback(null);
         }
       });
@@ -795,8 +888,14 @@ Daikin.prototype = {
       this.faikinWsReconnectTimer = null;
     }
     
+    if (this.faikinWsHeartbeat) {
+      clearInterval(this.faikinWsHeartbeat);
+      this.faikinWsHeartbeat = null;
+    }
+    
     if (this.faikinWs) {
-      this.log.info('closeFaikinWebSocket: Closing WebSocket connection');
+      const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
+      this.log[logMethod]('closeFaikinWebSocket: Closing WebSocket connection');
       this.faikinWs.close();
       this.faikinWs = null;
     }
@@ -1677,6 +1776,9 @@ getFanSpeed: function (callback) {
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
 			.setCharacteristic(Characteristic.SerialNumber, this.name);
 
+		// Initialize services array early so it can be used throughout the function
+		const services = [informationService, this.heaterCoolerService];
+
 		this.FanService
 			.getCharacteristic(Characteristic.On)
 			.on('get', this.getFanStatusFV.bind(this))
@@ -1714,8 +1816,8 @@ getFanSpeed: function (callback) {
     this.heaterCoolerService
       .getCharacteristic(Characteristic.CoolingThresholdTemperature)
       .setProps({
-        minValue: Number.parseFloat('18'),
-        maxValue: Number.parseFloat('32'),
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
         minStep: Number.parseFloat('0.5'),
       })
       .on('get', this.getCoolingTemperatureFV.bind(this))
@@ -1724,23 +1826,64 @@ getFanSpeed: function (callback) {
     this.heaterCoolerService
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
       .setProps({
-        minValue: Number.parseFloat('10'),
-        maxValue: Number.parseFloat('30'),
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
         minStep: Number.parseFloat('0.5'),
       })
       .on('get', this.getHeatingTemperatureFV.bind(this))
       .on('set', this.setHeatingTemperature.bind(this));
 
-    this.heaterCoolerService
-      .getCharacteristic(Characteristic.SwingMode)
-      .on('get', this.getSwingModeFV.bind(this)) // FV210510
-      .on('set', this.setSwingMode.bind(this));
+    // Conditionally add fan controls based on configuration:
+    // 
+    // When disableFan = true:
+    //   - No separate fan accessory in main view
+    //   - Fan controls (RotationSpeed, SwingMode) added directly to HeaterCooler settings
+    // 
+    // When disableFan = false:
+    //   - Separate fan accessory visible in main view
+    //   - Optionally also add controls to HeaterCooler settings if enabled
+    
+    if (this.disableFan) {
+        // Fan accessory disabled - add controls directly to HeaterCooler if enabled
+        this.log.info('Fan accessory disabled. Adding fan controls to HeaterCooler settings.');
+        
+        if (this.enableOscillationInSettings) {
+            this.log.info('Adding SwingMode (Oscillation) to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
+                .on('get', this.getSwingModeFV.bind(this))
+                .on('set', this.setSwingMode.bind(this));
+        }
 
-    // Add RotationSpeed (fan speed) to HeaterCooler - always visible in settings
-    this.heaterCoolerService
-      .getCharacteristic(Characteristic.RotationSpeed)
-      .on('get', this.getFanSpeedFV.bind(this))
-      .on('set', this.setFanSpeed.bind(this));
+        if (this.enableFanSpeedInSettings) {
+            this.log.info('Adding RotationSpeed (Fan Speed) to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.RotationSpeed)
+                .on('get', this.getFanSpeedFV.bind(this))
+                .on('set', this.setFanSpeed.bind(this));
+        }
+        
+    } else {
+        // Fan accessory enabled - it will appear in main view
+        // Optionally also add controls to HeaterCooler settings
+        this.log.info('Fan accessory enabled. Fan will appear in main view.');
+        
+        if (this.enableFanSpeedInSettings || this.enableOscillationInSettings) {
+            this.log.info('Also adding fan controls to HeaterCooler settings.');
+        }
+        
+        if (this.enableOscillationInSettings) {
+            this.log.info('Adding SwingMode (Oscillation) to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
+                .on('get', this.getSwingModeFV.bind(this))
+                .on('set', this.setSwingMode.bind(this));
+        }
+
+        if (this.enableFanSpeedInSettings) {
+            this.log.info('Adding RotationSpeed (Fan Speed) to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.RotationSpeed)
+                .on('get', this.getFanSpeedFV.bind(this))
+                .on('set', this.setFanSpeed.bind(this));
+        }
+    }
 
     this.heaterCoolerService
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
@@ -1831,11 +1974,14 @@ getFanSpeed: function (callback) {
     }
 
     // const services = [informationService, this.heaterCoolerService, this.temperatureService];
-    const services = [informationService, this.heaterCoolerService];
-    // if (this.disableFan === false)
-    //   services.splice(services.indexOf(this.temperatureService), 0, this.FanService);
-    if (this.disableFan === false)
+    // Services array already initialized at the top of getServices()
+    
+    // Only add the regular Fan service if disableFan is false
+    // When disableFan is true, we may have added a linked Fanv2 service instead (see above)
+    if (this.disableFan === false) {
       services.push(this.FanService);
+    }
+    
     if (this.enableHumiditySensor === true)
       services.push(this.humidityService);
     if (this.enableTemperatureSensor === true)
