@@ -292,6 +292,9 @@ function Daikin(log, config) {
   this.temperatureService = new Service.TemperatureSensor(this.name);
   this.humidityService = new Service.HumiditySensor(this.name);
 
+  // Note: Optional characteristics are now handled via linked services
+  // when disableFan=true to ensure they appear in HeaterCooler settings
+
   // Special modes switches - these toggle on/off
   // Note: Names stored in config for user identification
   this.econoModeName = config.econoModeName || 'Econo Mode';
@@ -1834,42 +1837,57 @@ getFanSpeed: function (callback) {
       .on('set', this.setHeatingTemperature.bind(this));
 
     // Conditionally add fan controls based on configuration:
-    // 
+    //
     // When disableFan = true:
     //   - No separate fan accessory in main view
-    //   - Fan controls (RotationSpeed, SwingMode) added directly to HeaterCooler settings
-    // 
+    //   - Fan controls appear directly in HeaterCooler settings via linked service
+    //
     // When disableFan = false:
     //   - Separate fan accessory visible in main view
     //   - Optionally also add controls to HeaterCooler settings if enabled
-    
+
     if (this.disableFan) {
-        // Fan accessory disabled - add controls directly to HeaterCooler if enabled
-        this.log.info('Fan accessory disabled. Adding fan controls to HeaterCooler settings.');
-        
+        // Fan accessory disabled - create linked fan service for HeaterCooler settings
+        this.log.info('Fan accessory disabled. Creating linked fan service for HeaterCooler settings.');
+
+        // Create a linked fan service that will appear in HeaterCooler settings
+        this.linkedFanService = new Service.Fan(this.fanName + ' Controls', 'linked-fan-service');
+
+        // Configure the linked fan service
+        this.linkedFanService
+            .getCharacteristic(Characteristic.Active)
+            .on('get', this.getFanStatusFV.bind(this))
+            .on('set', this.setFanStatus.bind(this));
+
+        if (this.enableFanSpeedInSettings) {
+            this.log.info('Adding RotationSpeed to linked fan service.');
+            this.linkedFanService
+                .getCharacteristic(Characteristic.RotationSpeed)
+                .on('get', this.getFanSpeedFV.bind(this))
+                .on('set', this.setFanSpeed.bind(this));
+        }
+
         if (this.enableOscillationInSettings) {
-            this.log.info('Adding SwingMode (Oscillation) to HeaterCooler settings.');
-            this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
+            this.log.info('Adding SwingMode to linked fan service.');
+            this.linkedFanService
+                .getCharacteristic(Characteristic.SwingMode)
                 .on('get', this.getSwingModeFV.bind(this))
                 .on('set', this.setSwingMode.bind(this));
         }
 
-        if (this.enableFanSpeedInSettings) {
-            this.log.info('Adding RotationSpeed (Fan Speed) to HeaterCooler settings.');
-            this.heaterCoolerService.getCharacteristic(Characteristic.RotationSpeed)
-                .on('get', this.getFanSpeedFV.bind(this))
-                .on('set', this.setFanSpeed.bind(this));
-        }
-        
+        // Link the fan service to the HeaterCooler service
+        this.heaterCoolerService.addLinkedService(this.linkedFanService);
+
+        // Add the linked service to the services array so it's available
+        services.push(this.linkedFanService);
+
     } else {
         // Fan accessory enabled - it will appear in main view
-        // Optionally also add controls to HeaterCooler settings
+        // Add the regular fan service to services array
         this.log.info('Fan accessory enabled. Fan will appear in main view.');
-        
-        if (this.enableFanSpeedInSettings || this.enableOscillationInSettings) {
-            this.log.info('Also adding fan controls to HeaterCooler settings.');
-        }
-        
+        services.push(this.FanService);
+
+        // Optionally also add controls to HeaterCooler settings
         if (this.enableOscillationInSettings) {
             this.log.info('Adding SwingMode (Oscillation) to HeaterCooler settings.');
             this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
@@ -1891,107 +1909,96 @@ getFanSpeed: function (callback) {
     .on('set', this.setTemperatureDisplayUnits.bind(this));
 
     if (this.enableTemperatureSensor) {
-      this.temperatureService
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({
-          minValue: Number.parseFloat('-50'),
-          maxValue: Number.parseFloat('100'),
-        })
-        .on('get', this.getCurrentTemperatureFV.bind(this));
+        this.temperatureService
+            .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({
+                minValue: Number.parseFloat('-50'),
+                maxValue: Number.parseFloat('100'),
+            })
+            .on('get', this.getCurrentTemperatureFV.bind(this));
+        services.push(this.temperatureService);
     }
 
     if (this.enableHumiditySensor) {
-      this.humidityService
-        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-        .setProps({
-          minValue: Number.parseFloat('0'),
-          maxValue: Number.parseFloat('100'),
-        })
-        .on('get', this.getCurrentHumidityFV.bind(this));
+        this.humidityService
+            .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+            .setProps({
+                minValue: Number.parseFloat('0'),
+                maxValue: Number.parseFloat('100'),
+            })
+            .on('get', this.getCurrentHumidityFV.bind(this));
+        services.push(this.humidityService);
     }
 
     if (this.enableEconoMode) {
-      this.econoModeService
-        .getCharacteristic(Characteristic.On)
-        .on('get', this.getEconoModeFV.bind(this))
-        .on('set', this.setEconoMode.bind(this));
-      
-      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
-      this.econoModeService
-        .getCharacteristic(Characteristic.ConfiguredName)
-        .on('set', (value, callback) => {
-          this.log.info('Econo Mode switch renamed to: "%s"', value);
-          callback();
-        });
-      
-      this.log.info('===== ECONO MODE SWITCH ENABLED =====');
-      this.log.info('Switch name configured as: "%s"', this.econoModeName);
-      this.log.info('Toggle this switch ON and check the logs to identify it');
-      this.log.info('You can rename this switch in the Home app');
-      this.log.info('=====================================');
+        this.econoModeService
+            .getCharacteristic(Characteristic.On)
+            .on('get', this.getEconoModeFV.bind(this))
+            .on('set', this.setEconoMode.bind(this));
+        
+        // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+        this.econoModeService
+            .getCharacteristic(Characteristic.ConfiguredName)
+            .on('set', (value, callback) => {
+                this.log.info('Econo Mode switch renamed to: "%s"', value);
+                callback();
+            });
+        
+        services.push(this.econoModeService);
+        
+        this.log.info('===== ECONO MODE SWITCH ENABLED =====');
+        this.log.info('Switch name configured as: "%s"', this.econoModeName);
+        this.log.info('Toggle this switch ON and check the logs to identify it');
+        this.log.info('You can rename this switch in the Home app');
+        this.log.info('=====================================');
     }
 
     if (this.enablePowerfulMode) {
-      this.powerfulModeService
-        .getCharacteristic(Characteristic.On)
-        .on('get', this.getPowerfulModeFV.bind(this))
-        .on('set', this.setPowerfulMode.bind(this));
-      
-      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
-      this.powerfulModeService
-        .getCharacteristic(Characteristic.ConfiguredName)
-        .on('set', (value, callback) => {
-          this.log.info('Powerful Mode switch renamed to: "%s"', value);
-          callback();
-        });
-      
-      this.log.info('===== POWERFUL MODE SWITCH ENABLED =====');
-      this.log.info('Switch name configured as: "%s"', this.powerfulModeName);
-      this.log.info('Toggle this switch ON and check the logs to identify it');
-      this.log.info('You can rename this switch in the Home app');
-      this.log.info('========================================');
+        this.powerfulModeService
+            .getCharacteristic(Characteristic.On)
+            .on('get', this.getPowerfulModeFV.bind(this))
+            .on('set', this.setPowerfulMode.bind(this));
+        
+        // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+        this.powerfulModeService
+            .getCharacteristic(Characteristic.ConfiguredName)
+            .on('set', (value, callback) => {
+                this.log.info('Powerful Mode switch renamed to: "%s"', value);
+                callback();
+            });
+        
+        services.push(this.powerfulModeService);
+        
+        this.log.info('===== POWERFUL MODE SWITCH ENABLED =====');
+        this.log.info('Switch name configured as: "%s"', this.powerfulModeName);
+        this.log.info('Toggle this switch ON and check the logs to identify it');
+        this.log.info('You can rename this switch in the Home app');
+        this.log.info('========================================');
     }
 
     if (this.enableNightQuietMode) {
-      this.nightQuietModeService
-        .getCharacteristic(Characteristic.On)
-        .on('get', this.getNightQuietModeFV.bind(this))
-        .on('set', this.setNightQuietMode.bind(this));
-      
-      // Set ConfiguredName to allow HomeKit to rename the switch and persist it
-      this.nightQuietModeService
-        .getCharacteristic(Characteristic.ConfiguredName)
-        .on('set', (value, callback) => {
-          this.log.info('Night Quiet Mode switch renamed to: "%s"', value);
-          callback();
-        });
-      
-      this.log.info('===== NIGHT QUIET SWITCH ENABLED =====');
-      this.log.info('Switch name configured as: "%s"', this.nightQuietModeName);
-      this.log.info('Toggle this switch ON and check the logs to identify it');
-      this.log.info('You can rename this switch in the Home app');
-      this.log.info('======================================');
+        this.nightQuietModeService
+            .getCharacteristic(Characteristic.On)
+            .on('get', this.getNightQuietModeFV.bind(this))
+            .on('set', this.setNightQuietMode.bind(this));
+        
+        // Set ConfiguredName to allow HomeKit to rename the switch and persist it
+        this.nightQuietModeService
+            .getCharacteristic(Characteristic.ConfiguredName)
+            .on('set', (value, callback) => {
+                this.log.info('Night Quiet Mode switch renamed to: "%s"', value);
+                callback();
+            });
+        
+        services.push(this.nightQuietModeService);
+        
+        this.log.info('===== NIGHT QUIET SWITCH ENABLED =====');
+        this.log.info('Switch name configured as: "%s"', this.nightQuietModeName);
+        this.log.info('Toggle this switch ON and check the logs to identify it');
+        this.log.info('You can rename this switch in the Home app');
+        this.log.info('======================================');
     }
 
-    // const services = [informationService, this.heaterCoolerService, this.temperatureService];
-    // Services array already initialized at the top of getServices()
-    
-    // Only add the regular Fan service if disableFan is false
-    // When disableFan is true, we may have added a linked Fanv2 service instead (see above)
-    if (this.disableFan === false) {
-      services.push(this.FanService);
-    }
-    
-    if (this.enableHumiditySensor === true)
-      services.push(this.humidityService);
-    if (this.enableTemperatureSensor === true)
-      services.push(this.temperatureService);
-    if (this.enableEconoMode === true)
-      services.push(this.econoModeService);
-    if (this.enablePowerfulMode === true)
-      services.push(this.powerfulModeService);
-    if (this.enableNightQuietMode === true)
-      services.push(this.nightQuietModeService);
     return services;
   },
 
