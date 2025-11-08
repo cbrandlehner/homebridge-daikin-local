@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-local",
-  "version": "1.5.1.dev012",
+  "version": "1.5.1",
   "description": "daikin plugin for homebridge: https://github.com/homebridge/homebridge",
   "license": "MIT",
   "keywords": [

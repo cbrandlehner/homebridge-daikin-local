@@ -1,4 +1,4 @@
-# Implementation Guide for v1.5.1.dev012
+# Implementation Guide for v1.5.1
 ## Fan Controls and WebSocket Improvements
 
 ---
@@ -290,7 +290,7 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
 - [x] Config schema aligned with faikin_master
 - [x] Temperature ranges configurable (18-30°C defaults)
 - [x] No linting errors
-- [x] Version updated to 1.5.1.dev012
+- [x] Version updated to 1.5.1
 
 ---
 
@@ -320,7 +320,7 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
    - Updated code examples and verification checklist
 
 4. **package.json**
-   - Version: 1.5.1.dev012
+   - Version: 1.5.1
    - Added @Badroboot to contributors
 
 5. **.gitignore**
