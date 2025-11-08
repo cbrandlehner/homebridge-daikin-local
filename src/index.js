@@ -1840,45 +1840,29 @@ getFanSpeed: function (callback) {
     //
     // When disableFan = true:
     //   - No separate fan accessory in main view
-    //   - Fan controls appear directly in HeaterCooler settings via linked service
+    //   - Fan controls (RotationSpeed, SwingMode) added directly to HeaterCooler settings
     //
     // When disableFan = false:
     //   - Separate fan accessory visible in main view
     //   - Optionally also add controls to HeaterCooler settings if enabled
 
     if (this.disableFan) {
-        // Fan accessory disabled - create linked fan service for HeaterCooler settings
-        this.log.info('Fan accessory disabled. Creating linked fan service for HeaterCooler settings.');
-
-        // Create a linked fan service that will appear in HeaterCooler settings
-        this.linkedFanService = new Service.Fan(this.fanName + ' Controls', 'linked-fan-service');
-
-        // Configure the linked fan service
-        this.linkedFanService
-            .getCharacteristic(Characteristic.Active)
-            .on('get', this.getFanStatusFV.bind(this))
-            .on('set', this.setFanStatus.bind(this));
+        // Fan accessory disabled - add controls directly to HeaterCooler settings
+        this.log.info('Fan accessory disabled. Adding fan controls directly to HeaterCooler settings.');
 
         if (this.enableFanSpeedInSettings) {
-            this.log.info('Adding RotationSpeed to linked fan service.');
-            this.linkedFanService
-                .getCharacteristic(Characteristic.RotationSpeed)
+            this.log.info('Adding RotationSpeed to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.RotationSpeed)
                 .on('get', this.getFanSpeedFV.bind(this))
                 .on('set', this.setFanSpeed.bind(this));
         }
 
         if (this.enableOscillationInSettings) {
-            this.log.info('Adding SwingMode to linked fan service.');
-            this.linkedFanService
-                .getCharacteristic(Characteristic.SwingMode)
+            this.log.info('Adding SwingMode to HeaterCooler settings.');
+            this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode)
                 .on('get', this.getSwingModeFV.bind(this))
                 .on('set', this.setSwingMode.bind(this));
         }
-
-        // Link the fan service to the HeaterCooler service
-        // DO NOT add linkedFanService to services array - linked services are automatically included
-        this.heaterCoolerService.addLinkedService(this.linkedFanService);
-        this.log.info('Linked fan service to HeaterCooler (will appear in settings only)');
 
     } else {
         // Fan accessory enabled - it will appear in main view
