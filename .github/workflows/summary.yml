@@ -21,7 +21,7 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           prompt: |
-            Summarize the following GitHub issue in one paragraph:
+            Summarize the following GitHub issue in one paragraph but avoid using quotes or single quotes:
             Title: ${{ github.event.issue.title }}
             Body: ${{ github.event.issue.body }}
 
