@@ -67,20 +67,20 @@
         "default": false
       },
       "swingMode": {
-        "title": "Swing mode (Traditional Daikin only)",
-        "description": "For traditional Daikin controllers: Choose the swing mode when oscillation is enabled. Faikin controllers automatically handle both horizontal and vertical swing (3D swing).",
+        "title": "Swing Direction Preference",
+        "description": "Choose your preferred swing direction when oscillation is enabled in HomeKit. All controller types support this setting.",
         "type": "string",
         "default": "1",
         "required": true,
         "oneOf": [       
           { "title": "Vertical Swing (default)", "enum": ["1"] },
           { "title": "Horizontal Swing", "enum": ["2"] },
-          { "title": "3D Swing", "enum": ["3"] }
+          { "title": "3D Swing (Both Directions)", "enum": ["3"] }
         ]
       },
       "disableFan": {
-        "title": "Fan disabled",
-        "description": "Whether to have both AC and Fan or only AC",
+        "title": "Disable Separate Fan Accessory",
+        "description": "When enabled (true), hides the separate Fan accessory from HomeKit main view. Fan speed and oscillation controls in AC settings remain available based on the settings below.",
         "type": "boolean",
         "default": false
       },
@@ -173,6 +173,47 @@
         "required": false,
         "placeholder": "Night Quiet"
       },
+      "enableFanSpeedInSettings": {
+        "title": "Enable Fan Speed in AC Settings",
+        "description": "When enabled (default), adds a fan speed slider directly in the AC accessory settings for easy access. Disable this if you only want to use the separate Fan accessory for fan speed control.",
+        "type": "boolean",
+        "default": true,
+        "required": false
+      },
+      "enableOscillationInSettings": {
+        "title": "Enable Oscillation in AC Settings",
+        "description": "When enabled (default), adds an oscillation toggle directly in the AC accessory settings. This is independent of fan speed and separate Fan accessory settings.",
+        "type": "boolean",
+        "default": true,
+        "required": false
+      },
+      "quietWebSocketLogging": {
+        "title": "Quiet WebSocket Logging (Faikin only)",
+        "description": "When enabled (default), reduces log noise from WebSocket heartbeat and button status updates. Status messages will use debug level instead of info level. Set to false for verbose debugging.",
+        "type": "boolean",
+        "default": true,
+        "required": false
+      },
+      "minTemperature": {
+        "title": "Minimum Temperature",
+        "description": "Minimum temperature setting for your AC unit in Celsius. Most Daikin units support 10°C for heating and 18°C for cooling.",
+        "type": "number",
+        "default": 18,
+        "minimum": 5,
+        "maximum": 20,
+        "multipleOf": 0.5,
+        "required": false
+      },
+      "maxTemperature": {
+        "title": "Maximum Temperature", 
+        "description": "Maximum temperature setting for your AC unit in Celsius. Most Daikin units support 30-32°C.",
+        "type": "number",
+        "default": 30,
+        "minimum": 25,
+        "maximum": 40,
+        "multipleOf": 0.5,
+        "required": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
@@ -221,12 +262,13 @@
       "title": "Swing & Fan Settings",
       "expandable": true,
       "items": [
+        "swingMode",
         {
-          "key": "swingMode",
-          "condition": {
-            "functionBody": "return model.system !== 'Faikin';"
-          }
+          "type": "help",
+          "helpvalue": "<div style='background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>💡 Fan Control Options:</strong><br/><br/>1. <strong>In AC Settings</strong> (recommended): Adds fan speed slider and oscillation toggle directly in your AC accessory settings for quick access<br/><br/>2. <strong>Separate Fan Accessory</strong>: Creates a standalone fan accessory in HomeKit main view<br/><br/>You can enable both, just one, or neither based on your preference. The AC settings options work independently of the separate fan accessory.</div>"
         },
+        "enableFanSpeedInSettings",
+        "enableOscillationInSettings",
         "disableFan",
         "fanMode",
         "fanPowerMode",
@@ -272,7 +314,13 @@
       "items": [
         "defaultMode",
         "enableHumiditySensor",
-        "enableTemperatureSensor"
+        "enableTemperatureSensor",
+        {
+          "type": "help",
+          "helpvalue": "<div style='background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>🌡️ Temperature Range Settings:</strong><br/>Configure the minimum and maximum temperature limits for your specific Daikin AC unit. Different models support different ranges.</div>"
+        },
+        "minTemperature",
+        "maxTemperature"
       ]
     },
     {
@@ -280,6 +328,11 @@
       "title": "Advanced Settings",
       "expandable": true,
       "items": [
+        {
+          "type": "help",
+          "helpvalue": "<div style='background-color: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>🌐 Faikin WebSocket Settings:</strong><br/>For Faikin controllers (ESP32-Faikin), quiet logging reduces log noise from status updates while maintaining full functionality.</div>"
+        },
+        "quietWebSocketLogging",
         "OpenSSL3",
         "response",
         "deadline",
