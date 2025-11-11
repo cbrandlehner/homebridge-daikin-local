@@ -21,14 +21,16 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           prompt: |
-            Summarize the following GitHub issue in one paragraph but avoid using quotes or single quotes:
+            Summarize the following GitHub issue in one paragraph. 
+            Use simple language. Avoid using any quotation marks (", ', `). 
+            Do not use contractions with apostrophes (use "have not" instead of "haven't").
             Title: ${{ github.event.issue.title }}
             Body: ${{ github.event.issue.body }}
 
       - name: Comment with AI summary
-        run: |
-          gh issue comment $ISSUE_NUMBER --body "${{ steps.inference.outputs.response }}"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          RESPONSE: ${{ steps.inference.outputs.response }}
+          AI_SUMMARY: ${{ steps.inference.outputs.response }}
+        run: |
+          # Double-quote the body to preserve newlines and spaces
+          gh issue comment "$ISSUE_NUMBER" --body "$AI_SUMMARY"
