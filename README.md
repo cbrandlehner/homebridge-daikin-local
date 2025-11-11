@@ -6,6 +6,8 @@
 
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/Node.js%20CI/badge.svg)
 ![CodeQL](https://github.com/cbrandlehner/homebridge-daikin-local/workflows/CodeQL/badge.svg)
+[![Dependency review](https://github.com/cbrandlehner/homebridge-daikin-local/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/cbrandlehner/homebridge-daikin-local/actions/workflows/dependency-review.yml)
+
 # homebridge-daikin-local
 
 Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg)
