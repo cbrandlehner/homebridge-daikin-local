@@ -4,6 +4,8 @@
 /* eslint quotes: ["error", "single", { "avoidEscape": true }] */
 /* eslint quote-props: ["error", "consistent-as-needed"] */
 /* eslint no-unused-expressions: "warn" */
+/* eslint complexity: ["error", 40] */
+/* eslint no-negated-condition: "warn" */
 
 let Service;
 let Characteristic;
@@ -19,8 +21,6 @@ const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./utils.js');
-
-/* eslint complexity: ["error", 30] */
 
 function Daikin(log, config) {
   this.log = log;
@@ -1863,7 +1863,6 @@ getFanSpeed: function (callback) {
                 .on('get', this.getSwingModeFV.bind(this))
                 .on('set', this.setSwingMode.bind(this));
         }
-
     } else {
         // Fan accessory enabled - it will appear in main view
         // Add the regular fan service to services array
