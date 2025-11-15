@@ -5,12 +5,12 @@
 
 ## Overview
 
-This guide documents the implementation of fan controls and Faikin WebSocket improvements in v1.5.1.
+This guide documents the implementation of fan controls and ESP32-Faikout WebSocket improvements in v1.5.1.
 
 ### Key Features:
 1. **Fan Controls**: Proper visibility logic for fan controls based on configuration
 2. **WebSocket Improvements**: Heartbeat mechanism and state synchronization
-3. **Config Schema**: Aligned with faikin_master implementation
+3. **Config Schema**: Aligned with ESP32-faikout_master implementation
 4. **Bug Fixes**: State synchronization and resource cleanup
 
 ---
@@ -127,29 +127,29 @@ if (this.disableFan === false) {
 
 ### Heartbeat Mechanism
 
-**Purpose**: Maintain connection and receive status updates from Faikin
+**Purpose**: Maintain connection and receive status updates from ESP32-Faikout
 
 **Implementation (line ~705):**
 ```javascript
-this.faikinWsHeartbeat = setInterval(() => {
-  if (this.faikinWs && this.faikinWs.readyState === 1) {
-    this.faikinWs.send(''); // Send empty heartbeat message
-    this.log.debug('connectFaikinWebSocket: Sent heartbeat to Faikin');
+this.faikoutWsHeartbeat = setInterval(() => {
+  if (this.faikoutWs && this.faikoutWs.readyState === 1) {
+    this.faikoutWs.send(''); // Send empty heartbeat message
+    this.log.debug('connectfaikoutWebSocket: Sent heartbeat to faikout');
   }
 }, 1000); // Every 1 second
 ```
 
 **Cleanup (line ~835, ~890):**
 ```javascript
-if (this.faikinWsHeartbeat) {
-  clearInterval(this.faikinWsHeartbeat);
-  this.faikinWsHeartbeat = null;
+if (this.faikoutWsHeartbeat) {
+  clearInterval(this.faikoutWsHeartbeat);
+  this.faikoutWsHeartbeat = null;
 }
 ```
 
 ### State Synchronization
 
-**Problem**: Econo/Powerful/NightQuiet buttons not syncing with Faikin UI changes
+**Problem**: Econo/Powerful/NightQuiet buttons not syncing with faikout UI changes
 
 **Solution**: Use `updateCharacteristic` and track state changes
 
@@ -161,14 +161,14 @@ if (message.econo !== undefined) {
   
   // Only log when state actually changes
   if (oldState !== econoState) {
-    this.log[logMethod]('connectFaikinWebSocket: Econo mode: %s → %s', oldState, econoState);
+    this.log[logMethod]('connectfaikoutWebSocket: Econo mode: %s → %s', oldState, econoState);
   }
   
   this.Econo_Mode = econoState;
   
   if (this.enableEconoMode && this.econoModeService && oldState !== econoState) {
     this.econoModeService.updateCharacteristic(Characteristic.On, this.Econo_Mode);
-    this.log[logMethod]('connectFaikinWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
+    this.log[logMethod]('connectfaikoutWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
   }
 }
 ```
@@ -187,7 +187,7 @@ this.quietWebSocketLogging = config.quietWebSocketLogging !== undefined ? config
 **Usage:**
 ```javascript
 const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
-this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %s', JSON.stringify(message));
+this.log[logMethod]('connectfaikoutWebSocket: <<<< Received status from faikout: %s', JSON.stringify(message));
 ```
 
 ---
@@ -241,7 +241,7 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
 ### Layout Improvements
 
 - Removed temperature offsets from UI (still in properties but hidden)
-- Made swingMode visible for all controller types including Faikin
+- Made swingMode visible for all controller types including faikout
 - Added help text banners for user guidance
 - Reorganized sections for better flow
 
@@ -287,7 +287,7 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
 - [x] State synchronization uses updateCharacteristic
 - [x] Heartbeat timer cleanup on disconnect
 - [x] quietWebSocketLogging option added
-- [x] Config schema aligned with faikin_master
+- [x] Config schema aligned with faikout_master
 - [x] Temperature ranges configurable (18-30°C defaults)
 - [x] No linting errors
 - [x] Version updated to 1.5.1
@@ -301,11 +301,11 @@ this.log[logMethod]('connectFaikinWebSocket: <<<< Received status from Faikin: %
    - Line ~1840-1880: Fan controls with direct characteristics when disableFan=true
    - Line ~1900: Conditional FanService addition to services array (only when disableFan=false)
    - Line ~328: Added quietWebSocketLogging config
-   - Line ~333: Added faikinWsHeartbeat timer
+   - Line ~333: Added faikoutWsHeartbeat timer
    - Line ~705: Heartbeat mechanism in WebSocket open handler
    - Line ~720-820: State synchronization with change tracking
    - Line ~835: Heartbeat cleanup on WebSocket close
-   - Line ~890: Heartbeat cleanup in closeFaikinWebSocket
+   - Line ~890: Heartbeat cleanup in closefaikoutWebSocket
 
 2. **config.schema.json** (~344 lines)
    - Added enableFanSpeedInSettings (default: true)
