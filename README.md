@@ -17,7 +17,7 @@ Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/home
 
 <img src="https://user-images.githubusercontent.com/2294359/80783675-b4a79380-8ba4-11ea-9fa8-f48f9bf12585.jpeg" align="center" alt="controller" width="50%" height="50%">
 
-or the alternative [FAIKIN WIFI Controller](https://www.amazon.de/Faikin-Alternative-Daikin-WiFi-Controller/dp/B0C2ZYXNYQ) (no typo).
+or the alternative [Faikout WIFI Controller](https://github.com/revk/ESP32-Faikout). You can find information on how to buy that alternative controller on the Github page.
 
 # WARNING
 
@@ -96,7 +96,7 @@ The `apiroute` is used for two main calls: Get info such as current activity and
 Currently, this plugin supports:
 - **Daikin wifi controllers** supporting the "aircon" URLs (System: Default)
 - **Skyfi controllers** supporting the "skyfi" URLs (System: Skyfi)
-- **ESP32-Faikin** chipset (System: Faikin) - An open-source alternative WiFi controller for Daikin units
+- **ESP32-Faikout** chipset (System: Faikout) - An open-source alternative WiFi controller for Daikin units
 
 ## Testing Standard Daikin/Skyfi Controllers
 
@@ -113,16 +113,16 @@ ret=OK,model=0AB9,type=N,pv=2,cpv=2,cpv_minor=00,mid=NA,humd=0,s_humd=0,acled=0,
  ```
 If it does not, your device is not yet supported.
 
-## ESP32-Faikin Support
+## ESP32-Faikout Support
 
-If you're using the [ESP32-Faikin](https://github.com/revk/ESP32-Faikin) open-source WiFi controller, select "Faikin" as the system type in the configuration. The Faikin system provides:
+If you're using the [ESP32-Faikout](https://github.com/revk/ESP32-Faikout) open-source WiFi controller, select "Faikout" as the system type in the configuration. The Faikout system provides:
 
 - Local control without cloud dependencies
 - MQTT and Home Assistant integration
 - Enhanced features and faster response times
 - Full compatibility with this plugin's special modes (Econo, Powerful, Night Quiet)
 
-For Faikin devices, the plugin automatically uses the JSON-based control API. The special modes work as follows:
+For Faikout devices, the plugin automatically uses the JSON-based control API. The special modes work as follows:
 - **Econo Mode**: Controlled via the `econo` parameter (boolean)
 - **Powerful Mode**: Controlled via the `powerful` parameter (boolean)
 - **Night Quiet Mode**: Controlled via the `fan` parameter set to 'Q' (Quiet mode)
@@ -134,8 +134,8 @@ For traditional Daikin controllers, the special modes work as follows:
 - **Night Quiet Mode**: Controlled via the `f_rate` parameter set to 'B' (Silent/Night mode)
 - **Swing Mode**: Controlled via the `f_dir` parameter (0=No swing, 1=Vertical, 2=Horizontal, 3=3D)
 
-**Faikin Attribute Support:**
-The plugin currently supports these Faikin control attributes:
+**Faikout Attribute Support:**
+The plugin currently supports these Faikout control attributes:
 - `power` (boolean) - AC on/off state
 - `mode` (H/C/A/D/F) - Heat, Cool, Auto, Dry, Fan modes
 - `temp` (number) - Target temperature in Celsius
@@ -146,11 +146,11 @@ The plugin currently supports these Faikin control attributes:
 - `econo` (boolean) - Economy mode
 
 Not yet implemented:
-- `target` - Single temp or min/max array for Faikin auto mode
-- `env` - Temperature reference for Faikin auto mode
+- `target` - Single temp or min/max array for Faikout auto mode
+- `env` - Temperature reference for Faikout auto mode
 - `streamer` - Air purifier/ionizer boolean
 
-To test Faikin connectivity, access your Faikin device's web interface at `http://<faikin-ip>.local` or check the `/aircon/get_control_info` endpoint.
+To test Faikout connectivity, access your Faikout device's web interface at `http://<Faikout-ip>.local` or check the `/aircon/get_control_info` endpoint.
 
 To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)
 

@@ -55,8 +55,8 @@
       "system": {
         "type": "string",
         "title": "Controller Type",
-        "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx), 'Skyfi' for Skyfi controllers, or 'Faikin' for ESP32-Faikin open-source controllers. Choose 'Faikin' if you installed the ESP32-Faikin firmware on an ESP32 chip.",
-        "enum": [ "Default", "Skyfi", "Faikin" ],
+        "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx), 'Skyfi' for Skyfi controllers, or 'Faikout' for ESP32-Faikout open-source controllers. Choose 'Faikout' if you installed the ESP32-Faikout firmware on an ESP32 chip.",
+        "enum": [ "Default", "Skyfi", "Faikout" ],
         "default": "Default",
         "required": true
       },
@@ -136,7 +136,7 @@
       },
       "enableEconoMode": {
         "title": "Econo Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode). Works with both traditional Daikin and Faikin controllers. Mutually exclusive with Powerful mode.",
+        "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode). Works with both traditional Daikin and Faikout controllers. Mutually exclusive with Powerful mode.",
         "type": "boolean",
         "default": false
       },
@@ -149,7 +149,7 @@
       },
       "enablePowerfulMode": {
         "title": "Powerful Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating). Works with both traditional Daikin and Faikin controllers. Mutually exclusive with Econo mode.",
+        "description": "Enables a switch in HomeKit to toggle the AC's Powerful mode (maximum cooling/heating). Works with both traditional Daikin and Faikout controllers. Mutually exclusive with Econo mode.",
         "type": "boolean",
         "default": false
       },
@@ -162,7 +162,7 @@
       },
       "enableNightQuietMode": {
         "title": "Night Quiet Mode switch enabled",
-        "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation). Faikin uses fan='Q', traditional Daikin uses f_rate='B' (silent). Can be used with Econo or Powerful modes.",
+        "description": "Enables a switch in HomeKit to toggle the AC's Night Quiet mode (silent operation). Faikout uses fan='Q', traditional Daikin uses f_rate='B' (silent). Can be used with Econo or Powerful modes.",
         "type": "boolean",
         "default": false
       },
@@ -188,7 +188,7 @@
         "required": false
       },
       "quietWebSocketLogging": {
-        "title": "Quiet WebSocket Logging (Faikin only)",
+        "title": "Quiet WebSocket Logging (Faikout only)",
         "description": "When enabled (default), reduces log noise from WebSocket heartbeat and button status updates. Status messages will use debug level instead of info level. Set to false for verbose debugging.",
         "type": "boolean",
         "default": true,
@@ -243,7 +243,7 @@
   "layout": [
     {
       "type": "help",
-      "helpvalue": "<div style='background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;'><h5 style='margin-top: 0;'>🔌 Controller Type Selection</h5><ul style='margin-bottom: 0;'><li><strong>Default:</strong> Standard Daikin WiFi modules (BRP069xxx series)</li><li><strong>Skyfi:</strong> Skyfi WiFi controller models</li><li><strong>Faikin:</strong> ESP32-Faikin open-source controller (uses JSON API instead of query strings) - <a href='https://github.com/revk/ESP32-Faikin' target='_blank' style='color: #1565c0;'>Visit ESP32-Faikin GitHub →</a> for installation guides and compatible hardware lists.</li></ul><p style='margin-bottom: 0; margin-top: 10px;'><em>Faikin controllers automatically use separate horizontal/vertical swing controls and JSON-based API endpoints.</em></p></div>"
+      "helpvalue": "<div style='background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;'><h5 style='margin-top: 0;'>🔌 Controller Type Selection</h5><ul style='margin-bottom: 0;'><li><strong>Default:</strong> Standard Daikin WiFi modules (BRP069xxx series)</li><li><strong>Skyfi:</strong> Skyfi WiFi controller models</li><li><strong>Faikout:</strong> ESP32-Faikout open-source controller (uses JSON API instead of query strings) - <a href='https://github.com/revk/ESP32-Faikout' target='_blank' style='color: #1565c0;'>Visit ESP32-Faikout GitHub →</a> for installation guides and compatible hardware lists.</li></ul><p style='margin-bottom: 0; margin-top: 10px;'><em>Faikout controllers automatically use separate horizontal/vertical swing controls and JSON-based API endpoints.</em></p></div>"
     },
     {
       "type": "section",
@@ -330,7 +330,7 @@
       "items": [
         {
           "type": "help",
-          "helpvalue": "<div style='background-color: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>🌐 Faikin WebSocket Settings:</strong><br/>For Faikin controllers (ESP32-Faikin), quiet logging reduces log noise from status updates while maintaining full functionality.</div>"
+          "helpvalue": "<div style='background-color: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>🌐 Faikout WebSocket Settings:</strong><br/>For Faikout controllers (ESP32-Faikout), quiet logging reduces log noise from status updates while maintaining full functionality.</div>"
         },
         "quietWebSocketLogging",
         "OpenSSL3",

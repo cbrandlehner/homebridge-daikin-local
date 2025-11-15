@@ -1,12 +1,12 @@
-# ESP32-Faikin Support - Technical Documentation
+# ESP32-Faikout Support - Technical Documentation
 
 ## Overview
 
-This document describes the implementation of ESP32-Faikin controller support in homebridge-daikin-local. ESP32-Faikin controllers use the Daikin S21 protocol, which differs significantly from traditional Daikin WiFi modules and requires WebSocket communication for control commands.
+This document describes the implementation of ESP32-Faikout controller support in homebridge-daikin-local. ESP32-Faikout controllers use the Daikin S21 protocol, which differs significantly from traditional Daikin WiFi modules and requires WebSocket communication for control commands.
 
 **Key Changes**:
-- Dual API architecture supporting both Faikin (S21) and traditional Daikin protocols
-- WebSocket client for Faikin control commands
+- Dual API architecture supporting both Faikout (S21) and traditional Daikin protocols
+- WebSocket client for Faikout control commands
 - Three special mode switches: Econo, Powerful, Night Quiet
 - Enhanced swing mode support with separate horizontal/vertical control
 - Always-accessible fan speed control
@@ -24,7 +24,7 @@ GET /aircon/set_control_info?pow=1&mode=3&stemp=24&f_rate=A
 ```
 HTTP GET requests with query string parameters.
 
-### Faikin S21
+### Faikout S21
 ```
 WebSocket: ws://[IP]/status
 Message: {"power": true, "mode": "C", "temp": 24, "fan": "A"}
@@ -32,8 +32,8 @@ Message: {"power": true, "mode": "C", "temp": 24, "fan": "A"}
 WebSocket connection with JSON message payloads.
 
 **Why WebSocket**: 
-- Faikin does not support REST API `/control` endpoint (returns 405 Method Not Allowed)
-- Native Faikin web UI uses WebSocket for all control commands
+- Faikout does not support REST API `/control` endpoint (returns 405 Method Not Allowed)
+- Native Faikout web UI uses WebSocket for all control commands
 - Provides bidirectional real-time communication for instant status updates
 - Single persistent connection eliminates polling overhead
 
@@ -43,11 +43,11 @@ WebSocket connection with JSON message payloads.
 
 ### 1. Dual-Path Architecture
 
-All setter/getter methods check `this.isFaikin` flag and route to appropriate handler:
+All setter/getter methods check `this.isFaikout` flag and route to appropriate handler:
 
 ```javascript
-if (this.isFaikin) {
-    this.sendFaikinWebSocketCommand({econo: true}, callback);
+if (this.isFaikout) {
+    this.sendFaikoutWebSocketCommand({econo: true}, callback);
 } else {
     this.sendGetRequest('/aircon/set_control_info?en_economode=1', callback);
 }
@@ -57,16 +57,16 @@ if (this.isFaikin) {
 
 **Connection Management**:
 ```javascript
-connectFaikinWebSocket() {
-    this.faikinWs = new WebSocket(`ws://${this.apiIP}/status`);
+connectFaikoutWebSocket() {
+    this.FaikoutWs = new WebSocket(`ws://${this.apiIP}/status`);
     
-    this.faikinWs.on('message', (data) => {
+    this.FaikoutWs.on('message', (data) => {
         const status = JSON.parse(data);
         this.updateHomeKitCharacteristics(status);
     });
     
-    this.faikinWs.on('close', () => {
-        setTimeout(() => this.connectFaikinWebSocket(), 5000); // Auto-reconnect
+    this.FaikoutWs.on('close', () => {
+        setTimeout(() => this.connectFaikoutWebSocket(), 5000); // Auto-reconnect
     });
 }
 ```
@@ -81,7 +81,7 @@ connectFaikinWebSocket() {
 
 Three separate HomeKit Switch accessories:
 
-| Mode | Faikin Command | Traditional Command | Function |
+| Mode | Faikout Command | Traditional Command | Function |
 |------|---------------|---------------------|----------|
 | Econo | `{econo: true}` | `en_economode=1` | Energy-saving mode |
 | Powerful | `{powerful: true}` | `en_powerful=1` | Maximum performance |
@@ -102,7 +102,7 @@ setEconoMode: function(value, callback) {
         }
     }
     
-    this.sendFaikinWebSocketCommand({
+    this.sendFaikoutWebSocketCommand({
         econo: value,
         powerful: false,
         fan: value ? 'A' : undefined
@@ -114,12 +114,12 @@ setEconoMode: function(value, callback) {
 
 **Protocol Mapping**:
 - **Traditional**: Single `f_dir` parameter (0=off, 1=vertical, 2=horizontal, 3=both)
-- **Faikin**: Separate `swingh` and `swingv` boolean flags
+- **Faikout**: Separate `swingh` and `swingv` boolean flags
 
-**Implementation**: Faikin always uses 3D swing (both flags set to same value).
+**Implementation**: Faikout always uses 3D swing (both flags set to same value).
 
 ```javascript
-// Faikin
+// Faikout
 {swingh: true, swingv: true}
 
 // Traditional
@@ -152,7 +152,7 @@ Reorganized into 5 sections with conditional visibility:
 4. Additional Sensors
 5. Special Modes
 
-`swingMode` dropdown hidden when `system = "Faikin"` since swing direction is fixed to 3D
+`swingMode` dropdown hidden when `system = "Faikout"` since swing direction is fixed to 3D
 
 ---
 
@@ -165,7 +165,7 @@ Reorganized into 5 sections with conditional visibility:
     "accessory": "Daikin-Local",
     "name": "Living Room AC",
     "apiroute": "http://192.168.1.50",
-    "system": "Faikin",
+    "system": "Faikout",
     "enableEconoMode": true,
     "enablePowerfulMode": true,
     "enableNightQuietMode": true
@@ -179,7 +179,7 @@ Reorganized into 5 sections with conditional visibility:
     "accessory": "Daikin-Local",
     "name": "Bedroom AC",
     "apiroute": "http://192.168.1.100",
-    "system": "Faikin",
+    "system": "Faikout",
     "temperature_unit": 0,
     "enableEconoMode": true,
     "econoModeName": "Eco Mode",
@@ -195,20 +195,20 @@ Reorganized into 5 sections with conditional visibility:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `system` | String | "Default" | "Default", "Skyfi", or "Faikin" |
+| `system` | String | "Default" | "Default", "Skyfi", or "Faikout" |
 | `enableEconoMode` | Boolean | false | Enable Econo Mode switch |
 | `econoModeName` | String | "Econo Mode" | Custom switch name |
 | `enablePowerfulMode` | Boolean | false | Enable Powerful Mode switch |
 | `powerfulModeName` | String | "Powerful Mode" | Custom switch name |
 | `enableNightQuietMode` | Boolean | false | Enable Night Quiet Mode switch |
 | `nightQuietModeName` | String | "Night Quiet" | Custom switch name |
-| `swingMode` | String | "3" | For traditional controllers only (ignored for Faikin) |
+| `swingMode` | String | "3" | For traditional controllers only (ignored for Faikout) |
 
 ---
 
 ## API Reference
 
-### Faikin S21 Attributes
+### Faikout S21 Attributes
 
 | Attribute | Status | HomeKit Mapping | Notes |
 |-----------|--------|----------------|-------|
@@ -228,7 +228,7 @@ Reorganized into 5 sections with conditional visibility:
 
 ### Command Format Comparison
 
-| Function | Faikin S21 | Traditional Daikin |
+| Function | Faikout S21 | Traditional Daikin |
 |----------|-----------|-------------------|
 | Power ON | `{"power": true}` | `pow=1` |
 | Cool Mode | `{"mode": "C"}` | `mode=3` |
@@ -248,10 +248,10 @@ Some Daikin AC units reject Econo/Powerful mode commands via S21 protocol.
 
 **Symptom**: Switches turn ON briefly, then OFF after a few seconds.
 
-**Cause**: AC firmware does not support these modes. This occurs in both HomeKit and native Faikin web UI.
+**Cause**: AC firmware does not support these modes. This occurs in both HomeKit and native Faikout web UI.
 
 **Verification**:
-1. Open Faikin web UI (http://[IP])
+1. Open Faikout web UI (http://[IP])
 2. Toggle Econo or Powerful button
 3. If button unchecks itself → AC model incompatibility
 
@@ -281,27 +281,27 @@ Some Daikin AC units reject Econo/Powerful mode commands via S21 protocol.
 
 ## Migration
 
-### Traditional Daikin → Faikin
+### Traditional Daikin → Faikout
 
-1. Install ESP32-Faikin controller: https://github.com/revk/ESP32-Faikin
+1. Install ESP32-Faikout controller: https://github.com/revk/ESP32-Faikout
 2. Update config:
    ```json
    {
-       "apiroute": "http://[FAIKIN_IP]",
-       "system": "Faikin"
+       "apiroute": "http://[Faikout_IP]",
+       "system": "Faikout"
    }
    ```
 3. Optional: Enable special modes
 4. Restart Homebridge
 5. Verify WebSocket connection in logs:
    ```
-   [Daikin] Connecting to Faikin WebSocket at ws://192.168.1.50/status
-   [Daikin] Faikin WebSocket connected successfully
+   [Daikin] Connecting to Faikout WebSocket at ws://192.168.1.50/status
+   [Daikin] Faikout WebSocket connected successfully
    ```
 
-### Faikin → Traditional Daikin
+### Faikout → Traditional Daikin
 
-Change `"system": "Faikin"` to `"system": "Default"`
+Change `"system": "Faikout"` to `"system": "Default"`
 
 Special mode switches will not function (not supported by traditional controllers).
 
@@ -312,7 +312,7 @@ Special mode switches will not function (not supported by traditional controller
 ### WebSocket Connection Failed
 
 **Checks**:
-1. Verify Faikin accessible: `curl http://[IP]/status`
+1. Verify Faikout accessible: `curl http://[IP]/status`
 2. Check firewall rules
 3. Enable debug logging
 4. Review error details in logs
@@ -324,18 +324,18 @@ Special mode switches will not function (not supported by traditional controller
 **Diagnosis**:
 Check logs for:
 ```
->>>> Sending to Faikin: {"econo":true}
-<<<< Received status from Faikin: {"econo":false}
+>>>> Sending to Faikout: {"econo":true}
+<<<< Received status from Faikout: {"econo":false}
 ```
 
-If `econo` returns `false` → AC model incompatibility. Test in Faikin web UI to confirm.
+If `econo` returns `false` → AC model incompatibility. Test in Faikout web UI to confirm.
 
 ### Basic Controls Not Working
 
 **Checks**:
 1. Verify `apiroute` is correct
 2. Test WebSocket: `wscat -c ws://[IP]/status`
-3. Update Faikin firmware if outdated
+3. Update Faikout firmware if outdated
 
 ---
 
@@ -354,21 +354,21 @@ If `econo` returns `false` → AC model incompatibility. Test in Faikin web UI t
 ### State Variables
 
 ```javascript
-this.isFaikin = (this.system === 'Faikin');
+this.isFaikout = (this.system === 'Faikout');
 this.Econo_Mode = false;
 this.Powerful_Mode = false;
 this.NightQuiet_Mode = false;
-this.faikinWs = null;
-this.faikinWsConnecting = false;
-this.faikinWsCommandQueue = [];
+this.FaikoutWs = null;
+this.FaikoutWsConnecting = false;
+this.FaikoutWsCommandQueue = [];
 ```
 
 ### Helper Methods
 
 **WebSocket**:
-- `connectFaikinWebSocket()`: Establish persistent connection
-- `sendFaikinWebSocketCommand()`: Send commands, queue if connecting
-- `closeFaikinWebSocket()`: Cleanup on shutdown
+- `connectFaikoutWebSocket()`: Establish persistent connection
+- `sendFaikoutWebSocketCommand()`: Send commands, queue if connecting
+- `closeFaikoutWebSocket()`: Cleanup on shutdown
 
 **Dual-Path**:
 - `getEconoMode()` / `setEconoMode()`
@@ -383,9 +383,9 @@ this.faikinWsCommandQueue = [];
 3. **e92a95a**: Fix Night Quiet WebSocket status
 4. **41f7cac**: Enhanced WebSocket logging
 5. **3cac189**: WebSocket implementation
-6. **e51b2a9**: Fix Faikin fallback API parameters
+6. **e51b2a9**: Fix Faikout fallback API parameters
 7. **d641391**: Fallback mechanism
-8. **30eaf9f**: ESP32-Faikin GitHub link in UI
+8. **30eaf9f**: ESP32-Faikout GitHub link in UI
 9. **0a10d58**: SwingMode on Fan service
 10. **f1c661f**: ConfiguredName characteristic
 11. **45dd261**: UI reorganization
@@ -405,7 +405,7 @@ this.faikinWsCommandQueue = [];
 
 ### Code Improvements
 - Consolidate dual-path logic
-- Unit tests for Faikin code paths
+- Unit tests for Faikout code paths
 - JSDoc documentation
 - TypeScript migration
 
@@ -413,7 +413,7 @@ this.faikinWsCommandQueue = [];
 
 ## Credits
 
-- **ESP32-Faikin**: RevK - https://github.com/revk/ESP32-Faikin
+- **ESP32-Faikout**: RevK - https://github.com/revk/ESP32-Faikout
 - **Original Plugin**: cbrandlehner/homebridge-daikin-local
 - **Implementation**: October 2025
 
@@ -430,7 +430,7 @@ this.faikinWsCommandQueue = [];
     "accessory": "Daikin-Local",
     "name": "Living Room AC",
     "apiroute": "http://192.168.1.50",
-    "system": "Faikin",
+    "system": "Faikout",
     "temperature_unit": 0,
     "enableEconoMode": true,
     "econoModeName": "Eco Mode",
@@ -444,7 +444,7 @@ this.faikinWsCommandQueue = [];
 ### Using with Homebridge Config UI X
 
 In the configuration interface, you'll find:
-1. **Controller Type** dropdown - Select "Faikin" for ESP32-Faikin controllers
+1. **Controller Type** dropdown - Select "Faikout" for ESP32-Faikout controllers
 2. **Special Modes** section with checkboxes:
    - **Econo Mode switch enabled** - Adds energy-saving mode toggle
    - **Powerful Mode switch enabled** - Adds maximum output mode toggle
@@ -454,29 +454,29 @@ In the configuration interface, you'll find:
 ### Important Notes
 
 - **Mutual Exclusivity**: Econo and Powerful modes cannot be active simultaneously - enabling one automatically disables the other
-- **Faikin Swing**: When using Faikin controllers, swing mode automatically uses 3D swing (both horizontal and vertical)
+- **Faikout Swing**: When using Faikout controllers, swing mode automatically uses 3D swing (both horizontal and vertical)
 - **Switch Naming**: Switches may initially show as "Switch 1/2/3" in HomeKit - toggle them to identify via logs, then rename in the Home app
 
 ---
 
 ## Major Features Added
 
-> **Note**: This document consolidates all Faikin-related enhancements including Econo Mode and Powerful Mode features.
+> **Note**: This document consolidates all Faikout-related enhancements including Econo Mode and Powerful Mode features.
 
-### 1. **ESP32-Faikin Controller Support**
+### 1. **ESP32-Faikout Controller Support**
 - **Date**: October 2025
-- **Description**: Added full support for ESP32-Faikin open-source controllers
+- **Description**: Added full support for ESP32-Faikout open-source controllers
 - **Changes**:
-  - Dual API architecture supporting both traditional Daikin and Faikin controllers
-  - New configuration option: `"system": "Faikin"` (alongside existing "Default" and "Skyfi")
-  - Automatic API selection based on controller type (`this.isFaikin` flag)
-  - JSON POST endpoint support for Faikin `/control` API
+  - Dual API architecture supporting both traditional Daikin and Faikout controllers
+  - New configuration option: `"system": "Faikout"` (alongside existing "Default" and "Skyfi")
+  - Automatic API selection based on controller type (`this.isFaikout` flag)
+  - JSON POST endpoint support for Faikout `/control` API
   - Traditional query string support maintained for legacy controllers
 
 **Technical Implementation**:
 ```javascript
-// Faikin uses JSON POST requests
-this.sendFaikinControl(controlData, callback);
+// Faikout uses JSON POST requests
+this.sendFaikoutControl(controlData, callback);
 // Traditional uses query string GET requests  
 this.sendGetRequest(this.set_control_info + '?' + query, callback);
 ```
@@ -486,7 +486,7 @@ this.sendGetRequest(this.set_control_info + '?' + query, callback);
 ### 2. **Econo Mode Support**
 - **Feature**: Energy-saving economy mode toggle
 - **Implementation**: 
-  - **Faikin**: Uses `econo` boolean in JSON payload
+  - **Faikout**: Uses `econo` boolean in JSON payload
   - **Traditional Daikin**: Uses `en_economode` parameter (0/1)
 - **HomeKit Integration**: Exposed as a separate Switch accessory
 - **Config Options**:
@@ -496,7 +496,7 @@ this.sendGetRequest(this.set_control_info + '?' + query, callback);
 
 **API Examples**:
 ```javascript
-// Faikin
+// Faikout
 POST /control
 {"econo": true, "powerful": false}
 
@@ -509,7 +509,7 @@ GET /aircon/set_control_info?...&en_economode=1&en_powerful=0
 ### 3. **Powerful Mode Support**
 - **Feature**: Maximum performance/turbo mode toggle
 - **Implementation**:
-  - **Faikin**: Uses `powerful` boolean in JSON payload
+  - **Faikout**: Uses `powerful` boolean in JSON payload
   - **Traditional Daikin**: Uses `en_powerful` parameter (0/1)
 - **HomeKit Integration**: Exposed as a separate Switch accessory
 - **Config Options**:
@@ -522,7 +522,7 @@ GET /aircon/set_control_info?...&en_economode=1&en_powerful=0
 ### 4. **Night Quiet Mode Support**
 - **Feature**: Silent operation mode for nighttime use
 - **Implementation**:
-  - **Faikin**: Sets fan speed to `"Q"` (quiet mode)
+  - **Faikout**: Sets fan speed to `"Q"` (quiet mode)
   - **Traditional Daikin**: Sets fan rate to `"B"` (silent mode)
   - When disabled, reverts to `"A"` (auto fan speed)
 - **HomeKit Integration**: Exposed as a separate Switch accessory
@@ -535,7 +535,7 @@ GET /aircon/set_control_info?...&en_economode=1&en_powerful=0
 ### 5. **Enhanced Swing Mode Support**
 - **Feature**: Air direction swing control with dual-API support
 - **Implementation**:
-  - **Faikin**: Uses separate `swingh` and `swingv` booleans for horizontal/vertical swing
+  - **Faikout**: Uses separate `swingh` and `swingv` booleans for horizontal/vertical swing
     - When enabled, both are set to `true` (3D swing)
     - When disabled, both are set to `false`
   - **Traditional Daikin**: Uses `f_dir` parameter
@@ -547,7 +547,7 @@ GET /aircon/set_control_info?...&en_economode=1&en_powerful=0
 
 **Code Example**:
 ```javascript
-// Faikin - always 3D swing when enabled
+// Faikout - always 3D swing when enabled
 const controlData = {
   swingh: enableSwing,
   swingv: enableSwing
@@ -559,28 +559,28 @@ const query = `f_dir=${this.swingMode}`; // 1, 2, or 3
 
 ---
 
-### 6. **WebSocket Support for Faikin S21 Protocol**: 
-Real-time bidirectional communication with ESP32-Faikin controllers
-- **Problem Solved**: Faikin controllers don't support the `/control` JSON POST endpoint; they use WebSocket for control commands
+### 6. **WebSocket Support for Faikout S21 Protocol**: 
+Real-time bidirectional communication with ESP32-Faikout controllers
+- **Problem Solved**: Faikout controllers don't support the `/control` JSON POST endpoint; they use WebSocket for control commands
 - **Implementation**:
   - Added `ws` npm package (v8.18.0) for WebSocket client
   - Persistent WebSocket connection to `ws://[IP]/status` endpoint
   - Auto-reconnect on disconnection (5-second delay)
   - Command queueing when WebSocket is connecting
-  - Real-time status updates from Faikin controller
+  - Real-time status updates from Faikout controller
 - **Fallback Strategy**:
   1. Try JSON POST to `/control` endpoint
   2. On "Method Not Allowed" error → Use WebSocket
-  3. Send control commands via WebSocket just like the native Faikin web UI
+  3. Send control commands via WebSocket just like the native Faikout web UI
 - **Benefits**:
   - ✅ Econo, Powerful, and Night Quiet modes now work correctly
   - ✅ Instant status updates when modes change
-  - ✅ Matches native Faikin web UI behavior exactly
+  - ✅ Matches native Faikout web UI behavior exactly
   - ✅ Bidirectional communication for better state synchronization
 
 **WebSocket Message Format**:
 ```javascript
-// Sending (matches Faikin web UI):
+// Sending (matches Faikout web UI):
 ws.send(JSON.stringify({econo: true}))
 ws.send(JSON.stringify({powerful: true, econo: false}))
 ws.send(JSON.stringify({fan: "Q"}))
@@ -601,20 +601,20 @@ ws.send(JSON.stringify({fan: "Q"}))
 
 **Code Implementation**:
 ```javascript
-connectFaikinWebSocket() {
+connectFaikoutWebSocket() {
   const protocol = this.apiroute.startsWith('https') ? 'wss://' : 'ws://';
   const wsUrl = `${protocol}${this.apiIP}/status`;
-  this.faikinWs = new WebSocket(wsUrl, { rejectUnauthorized: false });
+  this.FaikoutWs = new WebSocket(wsUrl, { rejectUnauthorized: false });
   
-  this.faikinWs.on('open', () => {
+  this.FaikoutWs.on('open', () => {
     // Connection established, send pending commands
   });
   
-  this.faikinWs.on('message', (data) => {
+  this.FaikoutWs.on('message', (data) => {
     // Process status updates, update HomeKit characteristics
   });
   
-  this.faikinWs.on('close', () => {
+  this.FaikoutWs.on('close', () => {
     // Auto-reconnect after 5 seconds
   });
 }
@@ -677,12 +677,12 @@ HomeKit → AC Accessory → Settings (⚙️) → Fan Speed slider
 ### 9. **Enhanced Debug Logging**
 - **Feature**: Comprehensive logging for WebSocket communication
 - **Added Logs**:
-  - `>>>> Sending to Faikin:` - Outgoing WebSocket commands
-  - `<<<< Received status from Faikin:` - Incoming status updates
+  - `>>>> Sending to Faikout:` - Outgoing WebSocket commands
+  - `<<<< Received status from Faikout:` - Incoming status updates
   - State change notifications for econo/powerful/quiet modes
   - Connection/reconnection status
   - Raw data on parse errors
-- **Benefits**: Easy troubleshooting of Faikin controller communication
+- **Benefits**: Easy troubleshooting of Faikout controller communication
 
 ---
 
@@ -721,9 +721,9 @@ this.econoModeService
     4. Additional Sensors
     5. Special Modes (Econo, Powerful, Night Quiet with custom names)
   - Added **conditional field visibility**:
-    - `swingMode` dropdown hidden when `system = "Faikin"` (auto 3D swing)
+    - `swingMode` dropdown hidden when `system = "Faikout"` (auto 3D swing)
     - Custom name fields appear only when corresponding mode is enabled
-  - Added **help banner** explaining controller types and Faikin features
+  - Added **help banner** explaining controller types and Faikout features
   - Improved descriptions for all fields
 
 **Conditional Visibility Example**:
@@ -731,7 +731,7 @@ this.econoModeService
 {
   "key": "swingMode",
   "condition": {
-    "functionBody": "return model.system !== 'Faikin';"
+    "functionBody": "return model.system !== 'Faikout';"
   }
 }
 ```
@@ -743,10 +743,10 @@ this.econoModeService
 ### API Abstraction Layer
 ```javascript
 // Dual-path implementation throughout all setters/getters
-if (this.isFaikin) {
+if (this.isFaikout) {
   // JSON POST to /control endpoint
   const controlData = { attribute: value };
-  this.sendFaikinControl(controlData, callback);
+  this.sendFaikoutControl(controlData, callback);
 } else {
   // Query string GET to /aircon/set_control_info
   const query = body.replace(/,/g, '&').replace(/param=old/, `param=${value}`);
@@ -755,7 +755,7 @@ if (this.isFaikin) {
 ```
 
 ### New Helper Methods
-1. **sendFaikinControl()**: POST JSON payloads to Faikin `/control` endpoint
+1. **sendFaikoutControl()**: POST JSON payloads to Faikout `/control` endpoint
 2. Dual-path implementations for:
    - `getEconoMode()` / `setEconoMode()`
    - `getPowerfulMode()` / `setPowerfulMode()`
@@ -774,7 +774,7 @@ if (this.isFaikin) {
 ### New Configuration Options
 ```json
 {
-  "system": "Faikin",  // or "Default" or "Skyfi"
+  "system": "Faikout",  // or "Default" or "Skyfi"
   "enableEconoMode": true,
   "econoModeName": "Economy Mode",
   "enablePowerfulMode": true,
@@ -790,7 +790,7 @@ if (this.isFaikin) {
   "accessory": "Daikin-Local",
   "name": "Living Room AC",
   "apiroute": "http://192.168.1.100",
-  "system": "Faikin",
+  "system": "Faikout",
   "swingMode": "3",
   "enableEconoMode": true,
   "econoModeName": "Eco Mode",
@@ -803,7 +803,7 @@ if (this.isFaikin) {
 
 ---
 
-## Faikin API Attributes - Implementation Status
+## Faikout API Attributes - Implementation Status
 
 | Attribute | Status | Description | Implementation |
 |-----------|--------|-------------|----------------|
@@ -811,15 +811,15 @@ if (this.isFaikin) {
 | `mode` | ✅ Implemented | Heat/Cool/Auto/Fan/Dry | Existing `setTargetHeaterCoolerState()` |
 | `temp` | ✅ Implemented | Target temperature | Existing `setCoolingTemperature()` / `setHeatingTemperature()` |
 | `fan` | ✅ Implemented | Fan speed (1-7, A=auto, Q=quiet) | Existing `setFanSpeed()` + Night Quiet |
-| `swingh` | ✅ Implemented | Horizontal swing (boolean) | New `setSwingMode()` Faikin path |
-| `swingv` | ✅ Implemented | Vertical swing (boolean) | New `setSwingMode()` Faikin path |
+| `swingh` | ✅ Implemented | Horizontal swing (boolean) | New `setSwingMode()` Faikout path |
+| `swingv` | ✅ Implemented | Vertical swing (boolean) | New `setSwingMode()` Faikout path |
 | `powerful` | ✅ Implemented | Powerful/turbo mode (boolean) | New `setPowerfulMode()` |
 | `econo` | ✅ Implemented | Economy mode (boolean) | New `setEconoMode()` |
 | `target` | ❌ Not implemented | Target temperature sensor | Future enhancement |
 | `env` | ❌ Not implemented | Environmental settings | Future enhancement |
 | `streamer` | ❌ Not implemented | Streamer air purification | Future enhancement |
 
-**8 out of 11 Faikin attributes fully implemented (73% coverage)**
+**8 out of 11 Faikout attributes fully implemented (73% coverage)**
 
 ---
 
@@ -829,12 +829,12 @@ if (this.isFaikin) {
 - All existing Daikin "Default" and "Skyfi" functionality unchanged
 - No breaking changes to existing configurations
 - Conditional logic ensures correct API calls based on `system` setting
-- Traditional controllers unaffected by new Faikin code paths
+- Traditional controllers unaffected by new Faikout code paths
 
 ### Migration Path
 Users can switch between controller types by simply changing:
 ```json
-"system": "Default"  →  "system": "Faikin"
+"system": "Default"  →  "system": "Faikout"
 ```
 No other configuration changes required.
 
@@ -846,29 +846,29 @@ No other configuration changes required.
 1. **2115263** - "Add fan speed (RotationSpeed) slider to HeaterCooler service"
 2. **9976a00** - "Make Econo, Powerful, and Night Quiet modes mutually exclusive"
 3. **e92a95a** - "Fix Night Quiet mode WebSocket status updates"
-4. **41f7cac** - "Add enhanced WebSocket logging for debugging Faikin communication"
-5. **3cac189** - "Implement WebSocket support for Faikin S21 protocol control"
-6. **e51b2a9** - "Fix missing econo/powerful parameters in Faikin fallback API"
-7. **d641391** - "Add fallback mechanism for Faikin controllers without JSON /control endpoint"
-8. **30eaf9f** - "Add ESP32-Faikin GitHub link to Controller Type section in config UI"
+4. **41f7cac** - "Add enhanced WebSocket logging for debugging Faikout communication"
+5. **3cac189** - "Implement WebSocket support for Faikout S21 protocol control"
+6. **e51b2a9** - "Fix missing econo/powerful parameters in Faikout fallback API"
+7. **d641391** - "Add fallback mechanism for Faikout controllers without JSON /control endpoint"
+8. **30eaf9f** - "Add ESP32-Faikout GitHub link to Controller Type section in config UI"
 9. **0a10d58** - "Add SwingMode to Fan service for easier access in HomeKit"
 10. **f1c661f** - "Add ConfiguredName characteristic to allow manual switch renaming in HomeKit"
 11. **45dd261** - "Reorganize config UI into logical sections with conditional visibility"
-12. **4f4b18a** - "Implement Econo/Powerful mutual exclusivity and Faikin swing mode support"
+12. **4f4b18a** - "Implement Econo/Powerful mutual exclusivity and Faikout swing mode support"
 
 ---
 
 ## Testing & Validation
 
 ### Tested Scenarios
-✅ Faikin controller with all special modes enabled  
+✅ Faikout controller with all special modes enabled  
 ✅ Traditional Daikin controller (no regression)  
 ✅ Skyfi controller (no regression)  
 ✅ Mutual exclusivity between Econo and Powerful  
 ✅ Switch naming and ConfiguredName persistence  
 ✅ Conditional UI visibility in Homebridge Config UI X  
 ✅ Swing mode for both controller types  
-✅ WebSocket communication with Faikin controllers  
+✅ WebSocket communication with Faikout controllers  
 ✅ Three-way mutual exclusivity (Econo, Powerful, Night Quiet)  
 
 ### Known Limitations
@@ -882,8 +882,8 @@ No other configuration changes required.
   - Issue: Some Daikin AC units don't properly acknowledge these S21 protocol commands
   - Symptom: Switches turn ON briefly, then automatically turn OFF after a few seconds
   - Cause: AC unit rejects the mode change via S21 protocol (not a plugin bug)
-  - Verification: Same behavior occurs in native Faikin web UI
-  - Recommendation: If this affects you, report to ESP32-Faikin project with AC model details
+  - Verification: Same behavior occurs in native Faikout web UI
+  - Recommendation: If this affects you, report to ESP32-Faikout project with AC model details
   - Workaround: Disable these switches in config if they don't work with your AC model
   - Note: Night Quiet mode (fan speed) typically works on all models
 
@@ -891,11 +891,11 @@ No other configuration changes required.
 
 ## User-Facing Benefits
 
-### For Faikin Users
+### For Faikout Users
 1. **Full native support** - No need for workarounds or custom configurations
 2. **All major features** - Econo, Powerful, Night Quiet, 3D Swing all accessible
-3. **Easy setup** - Just set `"system": "Faikin"` in config
-4. **Proper JSON API** - Uses native Faikin POST endpoints, not query string hacks
+3. **Easy setup** - Just set `"system": "Faikout"` in config
+4. **Proper JSON API** - Uses native Faikout POST endpoints, not query string hacks
 
 ### For Traditional Daikin Users
 1. **No changes required** - Existing configurations work identically
@@ -913,17 +913,17 @@ No other configuration changes required.
 ## Future Enhancement Opportunities
 
 ### Potential Additions
-1. **Streamer Mode** - Air purification control (Faikin attribute)
-2. **Target Temperature Sensor** - External temperature sensor support (Faikin attribute)
-3. **Environmental Settings** - Advanced Faikin features (Faikin attribute)
+1. **Streamer Mode** - Air purification control (Faikout attribute)
+2. **Target Temperature Sensor** - External temperature sensor support (Faikout attribute)
+3. **Environmental Settings** - Advanced Faikout features (Faikout attribute)
 4. **Swing Mode Switch** - Separate switch accessory for easier access (workaround for HomeKit UI limitation)
-5. **Enhanced Fan Control** - Faikin supports more granular fan speeds
+5. **Enhanced Fan Control** - Faikout supports more granular fan speeds
 6. **Status Indicators** - Real-time mode indicators in HomeKit
 
 ### Code Quality Improvements
 1. Consolidate dual-path implementations into helper methods
-2. Add unit tests for Faikin-specific code paths
-3. Create integration tests with mock Faikin controller
+2. Add unit tests for Faikout-specific code paths
+3. Create integration tests with mock Faikout controller
 4. Add JSDoc documentation for all new methods
 
 ---
@@ -931,7 +931,7 @@ No other configuration changes required.
 ## Documentation Updates Needed
 
 ### README.md
-- ✅ Faikin attribute support table added
+- ✅ Faikout attribute support table added
 - ✅ Controller type explanations documented
 - ⚠️ Consider adding: Full configuration examples section
 - ⚠️ Consider adding: Troubleshooting guide for switch naming
@@ -956,8 +956,8 @@ No other configuration changes required.
 - **New Dependencies**: 1 (`ws` package for WebSocket)
 - **New HomeKit Accessories**: 3 switches (Econo, Powerful, Night Quiet)
 - **New HomeKit Characteristics**: 2 (RotationSpeed on HeaterCooler, ConfiguredName on switches)
-- **API Compatibility**: 3 protocols supported (Faikin WebSocket + Faikin JSON + Traditional)
-- **Faikin Coverage**: 8/11 attributes (73%)
+- **API Compatibility**: 3 protocols supported (Faikout WebSocket + Faikout JSON + Traditional)
+- **Faikout Coverage**: 8/11 attributes (73%)
 - **Backward Compatibility**: 100% maintained
 - **Breaking Changes**: None
 
@@ -965,10 +965,10 @@ No other configuration changes required.
 
 ## Credits & Acknowledgments
 
-- **ESP32-Faikin Project**: RevK's open-source Daikin controller
+- **ESP32-Faikout Project**: RevK's open-source Daikin controller
 - **Original Plugin**: cbrandlehner/homebridge-daikin-local
 - **Implementation**: October 2025 feature additions
-- **Testing**: Faikin controller validation
+- **Testing**: Faikout controller validation
 
 ---
 
