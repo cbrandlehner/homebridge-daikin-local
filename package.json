@@ -59,63 +59,11 @@
   },
   "xo": {
     "rules": {
-      "stylistic/indent-binary-ops": "off",
-      "@stylistic/indent": "off",
-      "@stylistic/no-trailing-spaces": [
-        "error",
-        {
-          "skipBlankLines": true
-        }
-      ],
-      "@stylistic/comma-dangle": "off",
-      "@stylistic/arrow-parens": [
-        "warn",
-        "as-needed"
-      ],
-      "@stylistic/brace-style": "off",
-      "@stylistic/curly-newline": "off",
-      "@stylistic/indent-binary-ops": [
-        "warn",
-        2
-      ],
-      "camelcase": "off",
-      "capitalized-comments": "off",
-      "curly": [
-        "error",
-        "multi-or-nest",
-        "consistent"
-      ],
-      "no-mixed-spaces-and-tabs": "warn",
-      "no-unused-vars": "warn",
-      "no-useless-escape": "warn",
-      "no-use-before-define": [
-        "error",
-        {
-          "classes": false
-        }
-      ],
-      "no-var": "warn",
-      "object-shorthand": [
-        "off",
-        "always",
-        {
-          "ignoreConstructors": true
-        }
-      ],
-      "prefer-arrow-callback": "warn",
-      "prefer-destructuring": "warn",
-      "promise/prefer-await-to-then": "off",
-      "quotes": "off",
-      "quote-props": "off",
-      "unicorn/expiring-todo-comments": "off",
-      "unicorn/no-anonymous-default-export": "off",
-      "unicorn/prefer-module": "off",
-      "unicorn/prefer-string-replace-all": "warn",
-      "unicorn/prefer-switch": "warn",
-      "unicorn/prefer-ternary": "off",
-      "unicorn/prevent-abbreviations": "off",
-      "unicorn/no-negated-condition": "off",
-      "unicorn/require-unicode-regexp": "off"
+    "unicorn/no-array-push-push": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/prefer-node-protocol": "off",
+    "@stylistic/curly-newline": "off",
+    "unicorn/require-unicode-regexp": "off"
     }
   }
 }
