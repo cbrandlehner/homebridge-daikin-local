@@ -58,12 +58,14 @@
     "xo": "^2.0.2"
   },
   "xo": {
-    "rules": {
-    "unicorn/no-array-push-push": "off",
+"unicorn/no-array-push-push": "off",
     "unicorn/prefer-module": "off",
     "unicorn/prefer-node-protocol": "off",
     "@stylistic/curly-newline": "off",
-    "unicorn/require-unicode-regexp": "off"
+    "unicorn/require-unicode-regexp": "off",
+    "@stylistic/indent": "off",
+    "capitalized-comments": "off",
+    "curly": "off"
     }
   }
 }
