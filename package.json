@@ -66,7 +66,13 @@
       "unicorn/require-unicode-regexp": "off",
       "@stylistic/indent": "off",
       "capitalized-comments": "off",
-      "curly": "off"
+      "curly": "off",
+      "@stylistic/no-trailing-spaces": "off",
+      "object-shorthand": "off",
+      "unicorn/no-anonymous-default-export": "off",
+      "prefer-destructuring": "off",
+      "camelcase": "off",
+      "@stylistic/comma-dangle": "off"
     }
   }
 }
