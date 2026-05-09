@@ -55,65 +55,32 @@
   "devDependencies": {
     "@eslint/json": "^1.1.0",
     "eslint": "^10.3.0",
-    "xo": "^1.2.3"
+    "xo": "^2.0.2"
   },
   "xo": {
     "rules": {
-      "stylistic/indent-binary-ops": "off",
-      "@stylistic/indent": "off",
-      "@stylistic/no-trailing-spaces": [
-        "error",
-        {
-          "skipBlankLines": true
-        }
-      ],
-      "@stylistic/comma-dangle": "off",
-      "@stylistic/arrow-parens": [
-        "warn",
-        "as-needed"
-      ],
-      "@stylistic/brace-style": "off",
-      "@stylistic/indent-binary-ops": [
-        "warn",
-        2
-      ],
-      "camelcase": "off",
-      "capitalized-comments": "off",
-      "curly": [
-        "error",
-        "multi-or-nest",
-        "consistent"
-      ],
-      "no-mixed-spaces-and-tabs": "warn",
-      "no-unused-vars": "warn",
-      "no-useless-escape": "warn",
-      "no-use-before-define": [
-        "error",
-        {
-          "classes": false
-        }
-      ],
-      "no-var": "warn",
-      "object-shorthand": [
-        "off",
-        "always",
-        {
-          "ignoreConstructors": true
-        }
-      ],
-      "prefer-arrow-callback": "warn",
-      "prefer-destructuring": "warn",
-      "promise/prefer-await-to-then": "off",
-      "quotes": "off",
-      "quote-props": "off",
-      "unicorn/expiring-todo-comments": "off",
-      "unicorn/no-anonymous-default-export": "off",
+      "unicorn/no-array-push-push": "off",
       "unicorn/prefer-module": "off",
-      "unicorn/prefer-string-replace-all": "warn",
-      "unicorn/prefer-switch": "warn",
-      "unicorn/prefer-ternary": "off",
+      "unicorn/prefer-node-protocol": "off",
+      "@stylistic/curly-newline": "off",
+      "unicorn/require-unicode-regexp": "off",
+      "require-unicode-regexp": "off",
+      "@stylistic/indent": "off",
+      "capitalized-comments": "off",
+      "curly": "off",
+      "@stylistic/no-trailing-spaces": "off",
+      "object-shorthand": "off",
+      "unicorn/no-anonymous-default-export": "off",
+      "prefer-destructuring": "off",
+      "camelcase": "off",
+      "@stylistic/comma-dangle": "off",
+      "unicorn/no-negated-condition": "off",
+      "@stylistic/indent-binary-ops": "off",
+      "@stylistic/brace-style": "off",
+      "unicorn/prefer-string-replace-all": "off",
       "unicorn/prevent-abbreviations": "off",
-      "unicorn/no-negated-condition": "off"
+      "@stylistic/arrow-parens": "off",
+      "unicorn/prefer-ternary": "off"
     }
   }
 }
