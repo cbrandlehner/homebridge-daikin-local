@@ -72,7 +72,14 @@
       "unicorn/no-anonymous-default-export": "off",
       "prefer-destructuring": "off",
       "camelcase": "off",
-      "@stylistic/comma-dangle": "off"
+      "@stylistic/comma-dangle": "off",
+      "unicorn/no-negated-condition": "off",
+      "@stylistic/indent-binary-ops": "off",
+      "@stylistic/brace-style": "off",
+      "unicorn/prefer-string-replace-all": "off",
+      "unicorn/prevent-abbreviations": "off",
+      "@stylistic/arrow-parens": "off",
+      "unicorn/prefer-ternary": "off"
     }
   }
 }
