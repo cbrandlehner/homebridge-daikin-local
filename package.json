@@ -114,7 +114,8 @@
       "unicorn/prefer-switch": "warn",
       "unicorn/prefer-ternary": "off",
       "unicorn/prevent-abbreviations": "off",
-      "unicorn/no-negated-condition": "off"
+      "unicorn/no-negated-condition": "off",
+      "unicorn/require-unicode-regexp": "off"
     }
   }
 }
