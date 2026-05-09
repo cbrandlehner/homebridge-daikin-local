@@ -73,6 +73,7 @@
         "as-needed"
       ],
       "@stylistic/brace-style": "off",
+      "@stylistic/curly-newline": "off",
       "@stylistic/indent-binary-ops": [
         "warn",
         2
