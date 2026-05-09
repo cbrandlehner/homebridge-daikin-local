@@ -55,7 +55,7 @@
   "devDependencies": {
     "@eslint/json": "^1.1.0",
     "eslint": "^10.3.0",
-    "xo": "^1.2.3"
+    "xo": "^2.0.2"
   },
   "xo": {
     "rules": {
