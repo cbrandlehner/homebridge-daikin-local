@@ -13,6 +13,8 @@ let Characteristic;
 const https = require('node:https');
 const http = require('node:http');
 const crypto = require('node:crypto');
+const dns = require('node:dns');
+const net = require('node:net');
 const process = require('node:process');
 const superagent = require('superagent');
 const Throttle = require('superagent-throttle');
@@ -458,81 +460,73 @@ Daikin.prototype = {
     // Preserve old cache behavior if present
     if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
-    this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
+    this._resolveHost((resolvedIP) => {
+      const resolvedPath = this._replaceHostInUrl(path, resolvedIP);
+      this.log.debug('_doSendGetRequest: requesting from API: path: %s', resolvedPath);
 
-    // Handle both throttle styles: { plugin() {..} } or a raw function(req)=>req
-    const throttlePlugin = (this.throttle && typeof this.throttle.plugin === 'function')
-      ? this.throttle.plugin()
-      : (typeof this.throttle === 'function' ? this.throttle : r => r);
+      const throttlePlugin = (this.throttle && typeof this.throttle.plugin === 'function')
+        ? this.throttle.plugin()
+        : (typeof this.throttle === 'function' ? this.throttle : r => r);
 
-    let request = superagent
-      .get(path)
-      .retry(this.retries) // default retry count
-      .timeout({
-        response: this.response, // ms to first byte
-        deadline: this.deadline, // total ms to finish
-      })
-      .use(throttlePlugin)
-      .set('User-Agent', 'superagent')
-      .set('Host', this.apiIP);
+      let request = superagent
+        .get(resolvedPath)
+        .retry(this.retries)
+        .timeout({
+          response: this.response,
+          deadline: this.deadline,
+        })
+        .use(throttlePlugin)
+        .set('User-Agent', 'superagent')
+        .set('Host', resolvedIP);
 
-    if (this.uuid !== '') {
-      request = request.set('X-Daikin-uuid', this.uuid);
-    }
-
-    // --- BEGIN: protocol-aware agent selection (changed) ---
-    let urlProtocol = 'https:';
-    try {
-      urlProtocol = new URL(path).protocol;
-    } catch {
-      // fallback: if parsing fails, assume https for safety
-      urlProtocol = 'https:';
-    }
-
-    if (urlProtocol === 'https:') {
-      if (isOpenSSL3()) {
-        // Node linked against OpenSSL 3: enable legacy reneg + lock to TLS1.2
-        request = request.agent(getLegacyAgent());
-      } else if (typeof request.disableTLSCerts === 'function') {
-        // OpenSSL 1.1.1 path (legacy behavior)
-        request = request.disableTLSCerts();
-      } else {
-        // Some superagent builds dropped disableTLSCerts(); use an agent fallback
-        request = request.agent(getDefaultAgent());
-      }
-    } else {
-      // http: use an http.Agent (do NOT use https.Agent for plain http URLs)
-      request = request.agent(getDefaultHttpAgent());
-    }
-    // --- END: protocol-aware agent selection ---
-
-    // Use end(...) to get a single error/result callback and maintain compatibility.
-
-    request.end((error, response) => {
-      if (error) {
-        if (error.timeout) {/* timed out */}
-        else if (error.code === 'ECONNRESET') {
-          this.log.debug('_doSendGetRequest: eConnreset filtered');
-        } else {
-          this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
-        }
-
-        return callback && callback(error);
+      if (this.uuid !== '') {
+        request = request.set('X-Daikin-uuid', this.uuid);
       }
 
-      // Prefer text when available (keeps compatibility with parseResponse callers)
-      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+      let urlProtocol = 'https:';
       try {
-        if (this.cache && typeof this.cache.set === 'function') {
-          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
-          this.cache.set(path, body);
-        }
-      } catch (error) {
-        this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+        urlProtocol = new URL(resolvedPath).protocol;
+      } catch {
+        urlProtocol = 'https:';
       }
 
-      this.log.debug('_doSendGetRequest: response from API: %s', body);
-      return callback && callback(null, body);
+      if (urlProtocol === 'https:') {
+        if (isOpenSSL3()) {
+          request = request.agent(getLegacyAgent());
+        } else if (typeof request.disableTLSCerts === 'function') {
+          request = request.disableTLSCerts();
+        } else {
+          request = request.agent(getDefaultAgent());
+        }
+      } else {
+        request = request.agent(getDefaultHttpAgent());
+      }
+
+      request.end((error, response) => {
+        if (error) {
+          if (error.timeout) {/* timed out */}
+          else if (error.code === 'ECONNRESET') {
+            this.log.debug('_doSendGetRequest: eConnreset filtered');
+          } else {
+            this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', resolvedPath, error);
+          }
+
+          return callback && callback(error);
+        }
+
+        const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+        try {
+          if (this.cache && typeof this.cache.set === 'function') {
+            this.log.debug('_doSendGetRequest: set cache: path: %s', path);
+            this.cache.set(path, body);
+          }
+        } catch (error) {
+          this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+        }
+
+        this.log.debug('_doSendGetRequest: response from API: %s', body);
+        return callback && callback(null, body);
+      });
     });
   },
 
@@ -568,59 +562,87 @@ Daikin.prototype = {
     return true;
   },
 
+_resolveHost(callback) {
+  if (net.isIP(this.apiIP)) {
+    return callback(this.apiIP);
+  }
+
+  // Modern promise API + force IPv4 (fixes lint + safe for older Daikin devices)
+  dns.promises.lookup(this.apiIP, {family: 4})
+    .then(({address}) => {
+      this.log.debug('Resolved %s to %s', this.apiIP, address);
+      callback(address);
+    })
+    .catch((error) => {
+      this.log.warn('DNS lookup failed for %s: %s, using hostname as-is', this.apiIP, error.message);
+      callback(this.apiIP);
+    });
+},
+
+  _replaceHostInUrl(url, resolvedIP) {
+    try {
+      const parsed = new URL(url);
+      parsed.hostname = resolvedIP;
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  },
+
   sendFaikinControl(controlData, callback) {
     this.log.debug('sendFaikinControl: Sending control command to Faikout: %s', JSON.stringify(controlData));
 
     const path = this.apiroute + '/control';
 
-    // Determine protocol for agent selection
-    let urlProtocol = 'https:';
-    try {
-      urlProtocol = new URL(path).protocol;
-    } catch {
-      urlProtocol = 'https:';
-    }
+    this._resolveHost((resolvedIP) => {
+      const resolvedPath = this._replaceHostInUrl(path, resolvedIP);
 
-    let request = superagent
-      .post(path)
-      .send(controlData)
-      .set('Content-Type', 'application/json')
-      .set('User-Agent', 'superagent')
-      .set('Host', this.apiIP)
-      .retry(this.retries)
-      .timeout({
-        response: this.response,
-        deadline: this.deadline,
-      });
+      let urlProtocol = 'https:';
+      try {
+        urlProtocol = new URL(resolvedPath).protocol;
+      } catch {
+        urlProtocol = 'https:';
+      }
 
-    if (this.uuid !== '') {
-      request = request.set('X-Daikin-uuid', this.uuid);
-    }
+      let request = superagent
+        .post(resolvedPath)
+        .send(controlData)
+        .set('Content-Type', 'application/json')
+        .set('User-Agent', 'superagent')
+        .set('Host', resolvedIP)
+        .retry(this.retries)
+        .timeout({
+          response: this.response,
+          deadline: this.deadline,
+        });
 
-    // Apply appropriate agent based on protocol
-    if (urlProtocol === 'https:') {
-      if (isOpenSSL3()) {
-        request = request.agent(getLegacyAgent());
-      } else if (typeof request.disableTLSCerts === 'function') {
-        request = request.disableTLSCerts();
+      if (this.uuid !== '') {
+        request = request.set('X-Daikin-uuid', this.uuid);
+      }
+
+      if (urlProtocol === 'https:') {
+        if (isOpenSSL3()) {
+          request = request.agent(getLegacyAgent());
+        } else if (typeof request.disableTLSCerts === 'function') {
+          request = request.disableTLSCerts();
+        } else {
+          request = request.agent(getDefaultAgent());
+        }
       } else {
-        request = request.agent(getDefaultAgent());
-      }
-    } else {
-      request = request.agent(getDefaultHttpAgent());
-    }
-
-    request.end((error, response) => {
-      if (error) {
-        this.log.warn('sendFaikinControl: JSON control endpoint failed (%s), trying WebSocket fallback', error.message);
-        // Fallback to WebSocket for Faikout S21 protocol (econo/powerful/quiet modes)
-        this.sendFaikinWebSocketCommand(controlData, callback);
-        return;
+        request = request.agent(getDefaultHttpAgent());
       }
 
-      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
-      this.log.debug('sendFaikinControl: response from API: %s', body);
-      return callback && callback(null, body);
+      request.end((error, response) => {
+        if (error) {
+          this.log.warn('sendFaikinControl: JSON control endpoint failed (%s), trying WebSocket fallback', error.message);
+          this.sendFaikinWebSocketCommand(controlData, callback);
+          return;
+        }
+
+        const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+        this.log.debug('sendFaikinControl: response from API: %s', body);
+        return callback && callback(null, body);
+      });
     });
   },
 
@@ -705,16 +727,17 @@ Daikin.prototype = {
       this.faikinWsReconnectTimer = null;
     }
 
+    this._resolveHost((resolvedIP) => {
     // Determine WebSocket URL (ws:// or wss://)
     const protocol = this.apiroute.startsWith('https') ? 'wss://' : 'ws://';
-    const wsUrl = `${protocol}${this.apiIP}/status`;
+    const wsUrl = `${protocol}${resolvedIP}/status`;
 
     const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
     this.log[logMethod]('connectFaikinWebSocket: Connecting to %s', wsUrl);
 
     try {
       this.faikinWs = new WebSocket(wsUrl, {
-        rejectUnauthorized: false, // Allow self-signed certificates
+        rejectUnauthorized: false,
       });
 
       this.faikinWs.on('open', () => {
@@ -870,6 +893,7 @@ Daikin.prototype = {
         this.connectFaikinWebSocket();
       }, 10_000);
     }
+    }); // _resolveHost
   },
 
   sendFaikinWebSocketCommand(controlData, callback) {
