@@ -53,6 +53,14 @@ function daikinSpeedToRaw(daikinSpeed) {
   return raw;
 }
 
+function parseTemperatureDisplayUnits(value, units) {
+  if (value === units.FAHRENHEIT || value === 1 || value === '1' || value === 'F' || value === 'f') {
+    return units.FAHRENHEIT;
+  }
+
+  return units.CELSIUS;
+}
+
 function rawToDaikinSpeed(rawFanSpeed) {
   let f_rate = 'A';
   rawFanSpeed = Number(rawFanSpeed);
@@ -78,6 +86,7 @@ function rawToDaikinSpeed(rawFanSpeed) {
 
 module.exports = {
   parseResponse,
+  parseTemperatureDisplayUnits,
   daikinSpeedToRaw,
   rawToDaikinSpeed,
 };

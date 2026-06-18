@@ -20,7 +20,7 @@ const WebSocket = require('ws');
 const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
-const {parseResponse, daikinSpeedToRaw, rawToDaikinSpeed} = require('./utils.js');
+const {parseResponse, parseTemperatureDisplayUnits, daikinSpeedToRaw, rawToDaikinSpeed} = require('./utils.js');
 
 function Daikin(log, config) {
   this.log = log;
@@ -54,8 +54,15 @@ function Daikin(log, config) {
     this.log.error('ERROR: your configuration is missing the parameter "temperature_unit"');
     this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
   } else {
-    this.temperatureDisplayUnits = config.temperature_unit;
-    this.log.debug('Config: temperature_unit is %s', config.temperature_unit);
+    this.temperatureDisplayUnits = parseTemperatureDisplayUnits(
+      config.temperature_unit,
+      Characteristic.TemperatureDisplayUnits,
+    );
+    this.log.debug(
+      'Config: temperature_unit is %s (HomeKit value: %s)',
+      config.temperature_unit,
+      this.temperatureDisplayUnits,
+    );
   }
 
     if (config.temperatureOffsetOutside === undefined) {
