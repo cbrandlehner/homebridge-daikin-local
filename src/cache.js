@@ -40,8 +40,7 @@ Cache.prototype.expired = function (key) {
     return true;
 
   const entry = this.entries[key];
-  const delta = Math.abs(entry.timestamp - Date.now()) / 1000;
-  const seconds = delta % 60;
+  const seconds = Math.abs(entry.timestamp - Date.now()) / 1000;
 
   if (seconds > this.expiration) {
     this.remove(key);

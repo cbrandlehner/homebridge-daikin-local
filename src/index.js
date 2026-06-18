@@ -116,7 +116,7 @@ function Daikin(log, config) {
 
   if (config.retries === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
-      this.retries = 3;
+      this.retries = 5;
       this.log.debug('Config: retries is %s', this.retries);
     } else {
       this.log.debug('Config: retries is %s', config.retries);
@@ -256,7 +256,6 @@ function Daikin(log, config) {
 
   this.firmwareRevision = packageFile.version;
 
-  this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
   this.log.info('Display Units: ', this.displayUnitsDescription[this.temperatureDisplayUnits]);
 
 //  this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
@@ -924,7 +923,7 @@ Daikin.prototype = {
           const responseValues = this.parseResponse(body);
           this.log.debug('getActive: Power is: %s, Mode is %s', responseValues.pow, responseValues.mode);
           let HomeKitState = '0';
-          if (responseValues.mode === '6' || responseValues.mode === '2' || responseValues.mode === '1') // If AC is in Fan-mode, or in Humidity-mode then show AC OFF in HomeKit
+          if (responseValues.mode === '6' || responseValues.mode === '2') // If AC is in Fan-mode or Dehumidification-mode then show AC OFF in HomeKit
             HomeKitState = '0';
           else
             if (responseValues.pow === '1')
@@ -1308,7 +1307,7 @@ Daikin.prototype = {
                   switch (state) {
                       case Characteristic.TargetHeaterCoolerState.AUTO: {
                           this.log.info('HomeKit requested the AC to operate in AUTO mode.');
-                          mode = 0;
+                          mode = 1;
                           break;}
 
                       case Characteristic.TargetHeaterCoolerState.COOL: {
