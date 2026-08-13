@@ -368,6 +368,7 @@ function Daikin(log, config) {
 
   // WebSocket connection for Faikout (used for econo/powerful/quiet control)
   this.faikinWs = null;
+  this.WebSocket = WebSocket;
   this.faikinWsReconnectTimer = null;
   this.faikinWsHeartbeat = null;
   this.faikinWsPendingCommands = [];
@@ -632,230 +633,127 @@ Daikin.prototype = {
     this.sendFaikinWebSocketCommand(controlData, callback);
   },
 
-  // WebSocket connection management for Faikout
   connectFaikinWebSocket() {
-    if (this.faikinWs && this.faikinWs.readyState === WebSocket.OPEN) {
-      this.log.debug('connectFaikinWebSocket: Already connected');
+    if (this.faikinWs && [this.WebSocket.CONNECTING, this.WebSocket.OPEN].includes(this.faikinWs.readyState)) {
       return;
     }
 
-    // Clear any existing reconnect timer
-    if (this.faikinWsReconnectTimer) {
-      clearTimeout(this.faikinWsReconnectTimer);
-      this.faikinWsReconnectTimer = null;
-    }
+    clearTimeout(this.faikinWsReconnectTimer);
+    this.faikinWsReconnectTimer = null;
 
     this._resolveHost(resolvedIP => {
-    const wsUrl = buildWebSocketStatusUrl(this.apiroute, resolvedIP);
+      if (this.faikinWs && [this.WebSocket.CONNECTING, this.WebSocket.OPEN].includes(this.faikinWs.readyState)) return;
 
-    const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
-    this.log[logMethod]('connectFaikinWebSocket: Connecting to %s', wsUrl);
+      const wsUrl = buildWebSocketStatusUrl(this.apiroute, resolvedIP);
+      const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
+      let socket;
+      try {
+        socket = new this.WebSocket(wsUrl, {rejectUnauthorized: false, handshakeTimeout: Math.min(this.deadline, 9000)});
+      } catch (error) {
+        this.log.warn('connectFaikinWebSocket: %s', error.message);
+        this.faikinWsReconnectTimer = setTimeout(() => this.connectFaikinWebSocket(), 5000);
+        return;
+      }
+      this.faikinWs = socket;
+      this.log[logMethod]('connectFaikinWebSocket: Connecting to %s', wsUrl);
 
-    try {
-      this.faikinWs = new WebSocket(wsUrl, {
-        rejectUnauthorized: false, // Allow self-signed certificates
-      });
-
-      this.faikinWs.on('open', () => {
-        this.log[logMethod]('connectFaikinWebSocket: WebSocket connected to Faikout');
-        if (this.quietWebSocketLogging) {
-          this.log.info('connectFaikinWebSocket: Quiet WebSocket logging enabled - status updates will use debug level');
-        } else {
-          this.log.info('connectFaikinWebSocket: Verbose WebSocket logging enabled - all status updates will be logged');
-        }
-
-        // Start heartbeat to receive status updates (required by Faikout)
-        // Based on Faikout web UI: setInterval(function() {if(!ws)c();else ws.send('');}, 1000);
+      socket.on('open', () => {
+        if (socket !== this.faikinWs) return;
+        this.log[logMethod]('connectFaikinWebSocket: Connected to Faikout');
+        clearInterval(this.faikinWsHeartbeat);
         this.faikinWsHeartbeat = setInterval(() => {
-          if (this.faikinWs && this.faikinWs.readyState === 1) {
-            this.faikinWs.send(''); // Send empty heartbeat message
-            this.log.debug('connectFaikinWebSocket: Sent heartbeat to Faikout');
-          }
+          if (socket.readyState === this.WebSocket.OPEN) socket.send('');
         }, 1000);
 
-        // Send any pending commands
-        if (this.faikinWsPendingCommands.length > 0) {
-          this.log.debug('connectFaikinWebSocket: Sending %d pending commands', this.faikinWsPendingCommands.length);
-          while (this.faikinWsPendingCommands.length > 0) {
-            const cmd = this.faikinWsPendingCommands.shift();
-            this.sendFaikinWebSocketCommand(cmd.data, cmd.callback);
-          }
-        }
+        const pending = this.faikinWsPendingCommands.splice(0);
+        for (const command of pending) this._sendFaikinCommand(socket, command);
       });
 
-      this.faikinWs.on('message', (data) => {
+      socket.on('message', data => {
         try {
           const message = JSON.parse(data.toString());
-          
-          // Only log WebSocket messages if verbose logging is enabled
-          if (!this.quietWebSocketLogging) {
-            this.log.info('connectFaikinWebSocket: <<<< Received status from Faikout: %s', JSON.stringify(message));
-          } else {
-            this.log.debug('connectFaikinWebSocket: <<<< Received status from Faikout: %s', JSON.stringify(message));
-          }
-          
-          // Update local state based on received status from Faikout (including rejections)
-          if (message.econo !== undefined) {
-            const econoState = !!message.econo;
-            const oldState = this.Econo_Mode;
-            
-            // Only log when state actually changes
-            if (oldState !== econoState) {
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: Econo mode: %s → %s', oldState, econoState);
-              } else {
-                this.log.debug('connectFaikinWebSocket: Econo mode: %s → %s', oldState, econoState);
-              }
-            }
-            
-            this.Econo_Mode = econoState;
-            
-            if (this.enableEconoMode && this.econoModeService && oldState !== econoState) {
-              this.econoModeService.updateCharacteristic(Characteristic.On, this.Econo_Mode);
-              
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
-              } else {
-                this.log.debug('connectFaikinWebSocket: ✅ Updated Econo switch to: %s', this.Econo_Mode);
-              }
-            }
-          }
-
-          if (message.powerful !== undefined) {
-            const powerfulState = !!message.powerful;
-            const oldState = this.Powerful_Mode;
-            
-            // Only log when state actually changes
-            if (oldState !== powerfulState) {
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: Powerful mode: %s → %s', oldState, powerfulState);
-              } else {
-                this.log.debug('connectFaikinWebSocket: Powerful mode: %s → %s', oldState, powerfulState);
-              }
-            }
-            
-            this.Powerful_Mode = powerfulState;
-            
-            if (this.enablePowerfulMode && this.powerfulModeService && oldState !== powerfulState) {
-              this.powerfulModeService.updateCharacteristic(Characteristic.On, this.Powerful_Mode);
-              
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: ✅ Updated Powerful switch to: %s', this.Powerful_Mode);
-              } else {
-                this.log.debug('connectFaikinWebSocket: ✅ Updated Powerful switch to: %s', this.Powerful_Mode);
-              }
-            }
-          }
-          // Night Quiet mode is controlled by fan speed 'Q', not the 'quiet' field
-          // The 'quiet' field controls outdoor unit quiet mode (different feature)
-
-          if (message.fan !== undefined) {
-            const nightQuietState = (message.fan === 'Q');
-            const oldState = this.NightQuiet_Mode;
-            
-            // Only log when state actually changes
-            if (oldState !== nightQuietState) {
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: Night Quiet mode: %s → %s (fan: %s)', oldState, nightQuietState, message.fan);
-              } else {
-                this.log.debug('connectFaikinWebSocket: Night Quiet mode: %s → %s (fan: %s)', oldState, nightQuietState, message.fan);
-              }
-            }
-            
-            this.NightQuiet_Mode = nightQuietState;
-            
-            if (this.enableNightQuietMode && this.nightQuietModeService && oldState !== nightQuietState) {
-              this.nightQuietModeService.updateCharacteristic(Characteristic.On, this.NightQuiet_Mode);
-              
-              if (!this.quietWebSocketLogging) {
-                this.log.info('connectFaikinWebSocket: ✅ Updated Night Quiet switch to: %s', this.NightQuiet_Mode);
-              } else {
-                this.log.debug('connectFaikinWebSocket: ✅ Updated Night Quiet switch to: %s', this.NightQuiet_Mode);
-              }
-            }
-          }
+          this.log[logMethod]('connectFaikinWebSocket: Received status: %s', JSON.stringify(message));
+          this._updateFaikinStatus(message, logMethod);
         } catch (error) {
-          this.log.warn('connectFaikinWebSocket: Error parsing message: %s', error.message);
-          this.log.warn('connectFaikinWebSocket: Raw data was: %s', data.toString());
+          this.log.warn('connectFaikinWebSocket: Invalid status message: %s', error.message);
         }
       });
 
-      this.faikinWs.on('error', (error) => {
-        this.log.warn('connectFaikinWebSocket: WebSocket error: %s', error.message);
-      });
-
-      this.faikinWs.on('close', () => {
-        const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
-        this.log[logMethod]('connectFaikinWebSocket: WebSocket closed, will reconnect in 5 seconds');
-        
-        // Clear heartbeat timer
-        if (this.faikinWsHeartbeat) {
-          clearInterval(this.faikinWsHeartbeat);
-          this.faikinWsHeartbeat = null;
-        }
-        
+      socket.on('error', error => this.log.warn('connectFaikinWebSocket: %s', error.message));
+      socket.on('close', () => {
+        if (socket !== this.faikinWs) return;
+        clearInterval(this.faikinWsHeartbeat);
+        this.faikinWsHeartbeat = null;
         this.faikinWs = null;
-        
-        // Reconnect after 5 seconds
-        this.faikinWsReconnectTimer = setTimeout(() => {
-          this.connectFaikinWebSocket();
-        }, 5000);
+        this.log[logMethod]('connectFaikinWebSocket: Closed; reconnecting in 5 seconds');
+        this.faikinWsReconnectTimer = setTimeout(() => this.connectFaikinWebSocket(), 5000);
       });
-    } catch (error) {
-      this.log.error('connectFaikinWebSocket: Failed to create WebSocket: %s', error.message);
-      
-      // Retry connection after 10 seconds
-      this.faikinWsReconnectTimer = setTimeout(() => {
-        this.connectFaikinWebSocket();
-      }, 10_000);
-    }
     });
   },
 
-  sendFaikinWebSocketCommand(controlData, callback) {
-    if (!this.faikinWs || this.faikinWs.readyState !== WebSocket.OPEN) {
-      this.log.debug('sendFaikinWebSocketCommand: WebSocket not connected, queuing command');
-      this.faikinWsPendingCommands.push({data: controlData, callback});
-      this.connectFaikinWebSocket();
-      return;
-    }
+  _updateFaikinStatus(message, logMethod) {
+    const modes = [
+      ['econo', 'Econo_Mode', 'enableEconoMode', 'econoModeService', value => Boolean(value)],
+      ['powerful', 'Powerful_Mode', 'enablePowerfulMode', 'powerfulModeService', value => Boolean(value)],
+      ['fan', 'NightQuiet_Mode', 'enableNightQuietMode', 'nightQuietModeService', value => value === 'Q'],
+    ];
 
-    const message = JSON.stringify(controlData);
-    const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
-    this.log[logMethod]('sendFaikinWebSocketCommand: >>>> Sending to Faikout: %s', message);
-    
-    try {
-      this.faikinWs.send(message, (error) => {
-        if (error) {
-          this.log.error('sendFaikinWebSocketCommand: Error sending command: %s', error.message);
-          if (callback) callback(error);
-        } else {
-          this.log[logMethod]('sendFaikinWebSocketCommand: Command sent successfully, waiting for Faikout response...');
-          if (callback) callback(null);
-        }
-      });
-    } catch (error) {
-      this.log.error('sendFaikinWebSocketCommand: Exception sending command: %s', error.message);
-      if (callback) callback(error);
+    for (const [field, state, enabled, service, normalize] of modes) {
+      if (message[field] === undefined) continue;
+      const value = normalize(message[field]);
+      if (value === this[state]) continue;
+      this.log[logMethod]('connectFaikinWebSocket: %s changed to %s', field, value);
+      this[state] = value;
+      if (this[enabled] && this[service]) this[service].updateCharacteristic(Characteristic.On, value);
     }
   },
 
+  sendFaikinWebSocketCommand(controlData, callback) {
+    const command = {data: controlData, callback, done: false};
+    command.timer = setTimeout(() => {
+      const index = this.faikinWsPendingCommands.indexOf(command);
+      if (index >= 0) this.faikinWsPendingCommands.splice(index, 1);
+      this._finishFaikinCommand(command, new Error('Faikout command timed out'));
+    }, Math.min(this.deadline, 9000));
+
+    if (this.faikinWs?.readyState === this.WebSocket.OPEN) {
+      this._sendFaikinCommand(this.faikinWs, command);
+    } else {
+      this.faikinWsPendingCommands.push(command);
+      this.connectFaikinWebSocket();
+    }
+  },
+
+  _sendFaikinCommand(socket, command) {
+    const message = JSON.stringify(command.data);
+    this.log.debug('sendFaikinWebSocketCommand: Sending %s', message);
+    try {
+      socket.send(message, error => this._finishFaikinCommand(command, error));
+    } catch (error) {
+      this._finishFaikinCommand(command, error);
+    }
+  },
+
+  _finishFaikinCommand(command, error) {
+    if (command.done) return;
+    command.done = true;
+    clearTimeout(command.timer);
+    if (error) this.log.error('sendFaikinWebSocketCommand: %s', error.message);
+    if (command.callback) command.callback(error || null);
+  },
+
   closeFaikinWebSocket() {
-    if (this.faikinWsReconnectTimer) {
-      clearTimeout(this.faikinWsReconnectTimer);
-      this.faikinWsReconnectTimer = null;
-    }
+    clearTimeout(this.faikinWsReconnectTimer);
+    this.faikinWsReconnectTimer = null;
     
-    if (this.faikinWsHeartbeat) {
-      clearInterval(this.faikinWsHeartbeat);
-      this.faikinWsHeartbeat = null;
-    }
+    clearInterval(this.faikinWsHeartbeat);
+    this.faikinWsHeartbeat = null;
     
-    if (this.faikinWs) {
-      const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
-      this.log[logMethod]('closeFaikinWebSocket: Closing WebSocket connection');
-      this.faikinWs.close();
-      this.faikinWs = null;
+    const socket = this.faikinWs;
+    this.faikinWs = null;
+    if (socket) socket.close();
+    for (const command of this.faikinWsPendingCommands.splice(0)) {
+      this._finishFaikinCommand(command, new Error('Faikout connection closed'));
     }
   },
 
@@ -1036,10 +934,10 @@ Daikin.prototype = {
         this.horizontalSwingService.getCharacteristic(Characteristic.On).updateValue(swingH);
       }
 
-      this.sendFaikinControl(controlData, () => {
+      this.sendFaikinControl(controlData, error => {
         this.HeaterCooler_SwingMode = swing;
         this.log.debug('setSwingMode: confirmed SwingMode: %s.', this.HeaterCooler_SwingMode);
-        callback();
+        callback(error);
       });
     } else {
       // Traditional Daikin API
@@ -1085,11 +983,11 @@ Daikin.prototype = {
     this.log.info('setVerticalSwing (Faikout): HomeKit requested vertical swing %s.', value ? 'ON' : 'OFF');
     this.Vertical_Swing = value;
     const controlData = {swingv: value};
-    this.sendFaikinControl(controlData, () => {
+    this.sendFaikinControl(controlData, error => {
       this.log.debug('setVerticalSwing: confirmed VerticalSwing: %s.', this.Vertical_Swing);
       // Update the main oscillation toggle to reflect the combined state
       this._updateMainSwingMode();
-      if (callback) callback();
+      if (callback) callback(error);
     });
   },
 
@@ -1118,11 +1016,11 @@ Daikin.prototype = {
     this.log.info('setHorizontalSwing (Faikout): HomeKit requested horizontal swing %s.', value ? 'ON' : 'OFF');
     this.Horizontal_Swing = value;
     const controlData = {swingh: value};
-    this.sendFaikinControl(controlData, () => {
+    this.sendFaikinControl(controlData, error => {
       this.log.debug('setHorizontalSwing: confirmed HorizontalSwing: %s.', this.Horizontal_Swing);
       // Update the main oscillation toggle to reflect the combined state
       this._updateMainSwingMode();
-      if (callback) callback();
+      if (callback) callback(error);
     });
   },
 
@@ -1459,10 +1357,10 @@ Daikin.prototype = {
       this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
       
       // For Faikout, we need to send a POST request with JSON payload
-      this.sendFaikinControl(controlData, () => {
+      this.sendFaikinControl(controlData, error => {
         this.Econo_Mode = value;
         this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
-        if (callback) callback();
+        if (callback) callback(error);
       });
     } else {
       // Traditional Daikin API
@@ -1554,10 +1452,10 @@ Daikin.prototype = {
       this.Powerful_Mode = value;
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
       
-      this.sendFaikinControl(controlData, () => {
+      this.sendFaikinControl(controlData, error => {
         this.Powerful_Mode = value;
         this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
-        if (callback) callback();
+        if (callback) callback(error);
       });
     } else {
       // Traditional Daikin API
@@ -1653,10 +1551,10 @@ Daikin.prototype = {
       this.NightQuiet_Mode = value;
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
       
-      this.sendFaikinControl(controlData, () => {
+      this.sendFaikinControl(controlData, error => {
         this.NightQuiet_Mode = value;
         this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
-        if (callback) callback();
+        if (callback) callback(error);
       });
     } else {
       // Traditional Daikin API: Set fan rate to 'B' (silent) for night quiet mode
@@ -1788,9 +1686,9 @@ getFanSpeed: function (callback) {
       this.log.info('setFanSpeed (Faikout): Sending fan control: %s', JSON.stringify(controlData));
       this.Fan_Speed = this.daikinSpeedToRaw(value);
       this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed);
-      this.sendFaikinControl(controlData, () => {
+      this.sendFaikinControl(controlData, error => {
         this.log.debug('setFanSpeed (Faikout): confirmed fan speed.');
-        if (!(callback === undefined)) callback();
+        if (!(callback === undefined)) callback(error);
       });
     } else {
       // Traditional Daikin API

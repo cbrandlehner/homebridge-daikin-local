@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {EventEmitter} = require('node:events');
 const {parseResponse} = require('../src/utils.js');
 const {
   createDaikin,
@@ -133,4 +134,58 @@ test('Faikout setFanSpeed sends native fan values over the control channel', () 
   daikin.setFanSpeed(5, () => {});
 
   assert.deepEqual(sent, [{fan: '5'}, {fan: '1'}, {fan: 'A'}, {fan: 'Q'}]);
+});
+
+test('Faikout reuses a connecting WebSocket for concurrent commands', async () => {
+  let connections = 0;
+  let options;
+  class FakeWebSocket extends EventEmitter {
+    static CONNECTING = 0;
+    static OPEN = 1;
+
+    constructor(_url, socketOptions) {
+      super();
+      connections++;
+      options = socketOptions;
+      this.readyState = FakeWebSocket.CONNECTING;
+      setImmediate(() => {
+        this.readyState = FakeWebSocket.OPEN;
+        this.emit('open');
+      });
+    }
+
+    send(message, callback) {
+      if (message && callback) callback();
+    }
+
+    close() {
+      this.readyState = 3;
+      this.emit('close');
+    }
+  }
+
+  const daikin = createDaikin({system: 'Faikout'});
+  daikin.WebSocket = FakeWebSocket;
+  daikin._resolveHost = callback => callback('127.0.0.1');
+
+  await Promise.all([
+    new Promise((resolve, reject) => daikin.sendFaikinWebSocketCommand({fan: 'A'}, error => error ? reject(error) : resolve())),
+    new Promise((resolve, reject) => daikin.sendFaikinWebSocketCommand({swingv: true}, error => error ? reject(error) : resolve())),
+  ]);
+
+  assert.equal(connections, 1);
+  assert.equal(options.handshakeTimeout, 9000);
+  daikin.closeFaikinWebSocket();
+});
+
+test('Faikout command callbacks expire instead of hanging HomeKit', async () => {
+  const daikin = createDaikin({system: 'Faikout', deadline: 10});
+  daikin.connectFaikinWebSocket = () => {};
+
+  const error = await new Promise(resolve => {
+    daikin.sendFaikinWebSocketCommand({fan: 'A'}, resolve);
+  });
+
+  assert.match(error.message, /timed out/);
+  assert.equal(daikin.faikinWsPendingCommands.length, 0);
 });
