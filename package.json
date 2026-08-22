@@ -28,9 +28,9 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-local.git"
   },
   "dependencies": {
-    "superagent": "^10.2.3",
+    "superagent": "^10.3.0",
     "superagent-throttle": "^1.0.1",
-    "ws": "^8.21.0"
+    "ws": "^8.21.3"
   },
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-local/issues"
@@ -60,6 +60,6 @@
   },
   "devDependencies": {
     "@eslint/json": "^2.0.1",
-    "eslint": "^10.6.0"
+    "eslint": "^10.9.0"
   }
 }
