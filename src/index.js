@@ -430,7 +430,9 @@ function getLegacyAgent() {
   if (!LEGACY_AGENT) {
     LEGACY_AGENT = new https.Agent({
       keepAlive: true,
-      rejectUnauthorized: false, // device uses self-signed cert
+      // Local Daikin/Faikin controllers use self-signed certificates.
+      // codeql[js/disabling-certificate-validation]
+      rejectUnauthorized: false,
       minVersion: 'TLSv1.2',
       maxVersion: 'TLSv1.2',
       secureOptions: SECURE_OPS,
@@ -446,6 +448,8 @@ function getDefaultAgent() {
   if (!DEFAULT_AGENT) {
     DEFAULT_AGENT = new https.Agent({
       keepAlive: true,
+      // Local Daikin/Faikin controllers use self-signed certificates.
+      // codeql[js/disabling-certificate-validation]
       rejectUnauthorized: false,
     });
   }
@@ -648,7 +652,12 @@ Daikin.prototype = {
       const logMethod = this.quietWebSocketLogging ? 'debug' : 'info';
       let socket;
       try {
-        socket = new this.WebSocket(wsUrl, {rejectUnauthorized: false, handshakeTimeout: Math.min(this.deadline, 9000)});
+        socket = new this.WebSocket(wsUrl, {
+          // Local Daikin/Faikin controllers use self-signed certificates.
+          // codeql[js/disabling-certificate-validation]
+          rejectUnauthorized: false,
+          handshakeTimeout: Math.min(this.deadline, 9000),
+        });
       } catch (error) {
         this.log.warn('connectFaikinWebSocket: %s', error.message);
         this.faikinWsReconnectTimer = setTimeout(() => this.connectFaikinWebSocket(), 5000);
@@ -920,6 +929,9 @@ Daikin.prototype = {
         swingH,
         swingV,
       );
+      const previousSwing = this.HeaterCooler_SwingMode;
+      const previousVertical = this.Vertical_Swing;
+      const previousHorizontal = this.Horizontal_Swing;
       this.HeaterCooler_SwingMode = swing;
       this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode);
 
@@ -935,9 +947,24 @@ Daikin.prototype = {
       }
 
       this.sendFaikinControl(controlData, error => {
-        this.HeaterCooler_SwingMode = swing;
+        if (error) {
+          this.HeaterCooler_SwingMode = previousSwing;
+          this.Vertical_Swing = previousVertical;
+          this.Horizontal_Swing = previousHorizontal;
+          if (this.enableVerticalSwingSwitch) {
+            this.verticalSwingService.getCharacteristic(Characteristic.On).updateValue(previousVertical);
+          }
+
+          if (this.enableHorizontalSwingSwitch) {
+            this.horizontalSwingService.getCharacteristic(Characteristic.On).updateValue(previousHorizontal);
+          }
+
+          callback(error);
+          return;
+        }
+
         this.log.debug('setSwingMode: confirmed SwingMode: %s.', this.HeaterCooler_SwingMode);
-        callback(error);
+        callback();
       });
     } else {
       // Traditional Daikin API
@@ -981,13 +1008,19 @@ Daikin.prototype = {
 
   setVerticalSwing: function (value, callback) {
     this.log.info('setVerticalSwing (Faikout): HomeKit requested vertical swing %s.', value ? 'ON' : 'OFF');
+    const previous = this.Vertical_Swing;
     this.Vertical_Swing = value;
     const controlData = {swingv: value};
     this.sendFaikinControl(controlData, error => {
+      if (error) {
+        this.Vertical_Swing = previous;
+        if (callback) callback(error);
+        return;
+      }
+
       this.log.debug('setVerticalSwing: confirmed VerticalSwing: %s.', this.Vertical_Swing);
-      // Update the main oscillation toggle to reflect the combined state
       this._updateMainSwingMode();
-      if (callback) callback(error);
+      if (callback) callback();
     });
   },
 
@@ -1014,14 +1047,37 @@ Daikin.prototype = {
 
   setHorizontalSwing: function (value, callback) {
     this.log.info('setHorizontalSwing (Faikout): HomeKit requested horizontal swing %s.', value ? 'ON' : 'OFF');
+    const previous = this.Horizontal_Swing;
     this.Horizontal_Swing = value;
     const controlData = {swingh: value};
     this.sendFaikinControl(controlData, error => {
+      if (error) {
+        this.Horizontal_Swing = previous;
+        if (callback) callback(error);
+        return;
+      }
+
       this.log.debug('setHorizontalSwing: confirmed HorizontalSwing: %s.', this.Horizontal_Swing);
-      // Update the main oscillation toggle to reflect the combined state
       this._updateMainSwingMode();
-      if (callback) callback(error);
+      if (callback) callback();
     });
+  },
+
+  _restoreFaikinExclusiveModes(previousEcono, previousPowerful, previousNightQuiet) {
+    this.Econo_Mode = previousEcono;
+    this.Powerful_Mode = previousPowerful;
+    this.NightQuiet_Mode = previousNightQuiet;
+    if (this.enableEconoMode && this.econoModeService) {
+      this.econoModeService.getCharacteristic(Characteristic.On).updateValue(previousEcono);
+    }
+
+    if (this.enablePowerfulMode && this.powerfulModeService) {
+      this.powerfulModeService.getCharacteristic(Characteristic.On).updateValue(previousPowerful);
+    }
+
+    if (this.enableNightQuietMode && this.nightQuietModeService) {
+      this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(previousNightQuiet);
+    }
   },
 
   // Helper: update the main SwingMode characteristic after individual swing changes
@@ -1321,7 +1377,10 @@ Daikin.prototype = {
 
   setEconoMode: function (value, callback) {
     this.log.info('setEconoMode: HomeKit requested to turn Econo mode %s.', value ? 'ON' : 'OFF');
-    
+    const previousEcono = this.Econo_Mode;
+    const previousPowerful = this.Powerful_Mode;
+    const previousNightQuiet = this.NightQuiet_Mode;
+
     // Econo, Powerful, and Night Quiet modes are mutually exclusive
     if (value) {
       if (this.Powerful_Mode) {
@@ -1358,9 +1417,14 @@ Daikin.prototype = {
       
       // For Faikout, we need to send a POST request with JSON payload
       this.sendFaikinControl(controlData, error => {
-        this.Econo_Mode = value;
+        if (error) {
+          this._restoreFaikinExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
-        if (callback) callback(error);
+        if (callback) callback();
       });
     } else {
       // Traditional Daikin API
@@ -1417,7 +1481,10 @@ Daikin.prototype = {
 
   setPowerfulMode: function (value, callback) {
     this.log.info('setPowerfulMode: HomeKit requested to turn Powerful mode %s.', value ? 'ON' : 'OFF');
-    
+    const previousEcono = this.Econo_Mode;
+    const previousPowerful = this.Powerful_Mode;
+    const previousNightQuiet = this.NightQuiet_Mode;
+
     // Econo, Powerful, and Night Quiet modes are mutually exclusive
     if (value) {
       if (this.Econo_Mode) {
@@ -1453,9 +1520,14 @@ Daikin.prototype = {
       this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
       
       this.sendFaikinControl(controlData, error => {
-        this.Powerful_Mode = value;
+        if (error) {
+          this._restoreFaikinExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
-        if (callback) callback(error);
+        if (callback) callback();
       });
     } else {
       // Traditional Daikin API
@@ -1515,7 +1587,10 @@ Daikin.prototype = {
 
   setNightQuietMode: function (value, callback) {
     this.log.info('setNightQuietMode: HomeKit requested to turn Night Quiet mode %s.', value ? 'ON' : 'OFF');
-    
+    const previousEcono = this.Econo_Mode;
+    const previousPowerful = this.Powerful_Mode;
+    const previousNightQuiet = this.NightQuiet_Mode;
+
     // Econo, Powerful, and Night Quiet modes are mutually exclusive
     if (value) {
       if (this.Econo_Mode) {
@@ -1552,9 +1627,14 @@ Daikin.prototype = {
       this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
       
       this.sendFaikinControl(controlData, error => {
-        this.NightQuiet_Mode = value;
+        if (error) {
+          this._restoreFaikinExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
-        if (callback) callback(error);
+        if (callback) callback();
       });
     } else {
       // Traditional Daikin API: Set fan rate to 'B' (silent) for night quiet mode
@@ -1684,11 +1764,18 @@ getFanSpeed: function (callback) {
       // Native control JSON expects A/Q/1-5 rather than Daikin A/B/3-7.
       const controlData = {fan: daikinToFaikinFanRate(value)};
       this.log.info('setFanSpeed (Faikout): Sending fan control: %s', JSON.stringify(controlData));
+      const previousSpeed = this.Fan_Speed;
       this.Fan_Speed = this.daikinSpeedToRaw(value);
       this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed);
       this.sendFaikinControl(controlData, error => {
+        if (error) {
+          this.Fan_Speed = previousSpeed;
+          if (!(callback === undefined)) callback(error);
+          return;
+        }
+
         this.log.debug('setFanSpeed (Faikout): confirmed fan speed.');
-        if (!(callback === undefined)) callback(error);
+        if (!(callback === undefined)) callback();
       });
     } else {
       // Traditional Daikin API

@@ -189,3 +189,42 @@ test('Faikout command callbacks expire instead of hanging HomeKit', async () => 
   assert.match(error.message, /timed out/);
   assert.equal(daikin.faikinWsPendingCommands.length, 0);
 });
+
+test('Faikout restores cached state when a control command fails', async () => {
+  const daikin = createDaikin({
+    system: 'Faikout',
+    enableVerticalSwingSwitch: true,
+    enableHorizontalSwingSwitch: true,
+    enableEconoMode: true,
+    enablePowerfulMode: true,
+  });
+  daikin.sendFaikinControl = (_controlData, callback) => callback(new Error('timed out'));
+
+  daikin.HeaterCooler_SwingMode = 0;
+  daikin.Vertical_Swing = false;
+  daikin.Horizontal_Swing = false;
+  const swingError = await new Promise(resolve => daikin.setSwingMode(1, resolve));
+  assert.match(swingError.message, /timed out/);
+  assert.equal(daikin.HeaterCooler_SwingMode, 0);
+  assert.equal(daikin.Vertical_Swing, false);
+  assert.equal(daikin.Horizontal_Swing, false);
+
+  daikin.Vertical_Swing = false;
+  daikin.HeaterCooler_SwingMode = 0;
+  const verticalError = await new Promise(resolve => daikin.setVerticalSwing(true, resolve));
+  assert.match(verticalError.message, /timed out/);
+  assert.equal(daikin.Vertical_Swing, false);
+  assert.equal(daikin.HeaterCooler_SwingMode, 0);
+
+  daikin.Fan_Speed = 50;
+  const fanError = await new Promise(resolve => daikin.setFanSpeed(100, resolve));
+  assert.match(fanError.message, /timed out/);
+  assert.equal(daikin.Fan_Speed, 50);
+
+  daikin.Econo_Mode = false;
+  daikin.Powerful_Mode = true;
+  const econoError = await new Promise(resolve => daikin.setEconoMode(true, resolve));
+  assert.match(econoError.message, /timed out/);
+  assert.equal(daikin.Econo_Mode, false);
+  assert.equal(daikin.Powerful_Mode, true);
+});
