@@ -6,7 +6,7 @@ const {
   parseTemperatureDisplayUnits,
   daikinSpeedToRaw,
   rawToDaikinSpeed,
-  daikinToFaikinFanRate,
+  daikinToFaikoutFanRate,
 } = require('../src/utils.js');
 
 const TemperatureDisplayUnits = {
@@ -39,13 +39,13 @@ test('rawToDaikinSpeed maps HomeKit percentages back to Daikin rates', () => {
   assert.equal(rawToDaikinSpeed(100), '7');
 });
 
-test('daikinToFaikinFanRate maps Daikin rates to Faikin fan values', () => {
-  assert.equal(daikinToFaikinFanRate('A'), 'A');
-  assert.equal(daikinToFaikinFanRate('B'), 'Q');
-  assert.equal(daikinToFaikinFanRate('3'), '1');
-  assert.equal(daikinToFaikinFanRate('4'), '2');
-  assert.equal(daikinToFaikinFanRate('5'), '3');
-  assert.equal(daikinToFaikinFanRate('6'), '4');
-  assert.equal(daikinToFaikinFanRate('7'), '5');
-  assert.equal(daikinToFaikinFanRate('X'), 'A');
+test('daikinToFaikoutFanRate maps Daikin rates to Faikout fan values', () => {
+  assert.equal(daikinToFaikoutFanRate('A'), 'A');
+  assert.equal(daikinToFaikoutFanRate('B'), 'Q');
+  assert.equal(daikinToFaikoutFanRate('3'), '1');
+  assert.equal(daikinToFaikoutFanRate('4'), '2');
+  assert.equal(daikinToFaikoutFanRate('5'), '3');
+  assert.equal(daikinToFaikoutFanRate('6'), '4');
+  assert.equal(daikinToFaikoutFanRate('7'), '5');
+  assert.equal(daikinToFaikoutFanRate('X'), 'A');
 });

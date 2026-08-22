@@ -112,8 +112,17 @@ test('Faikout system enables Faikout mode', () => {
     system: 'Faikout',
   });
 
-  assert.equal(daikin.isFaikin, true);
+  assert.equal(daikin.isFaikout, true);
   assert.equal(daikin.get_control_info, 'http://192.168.1.88/aircon/get_control_info');
+});
+
+test('legacy Faikin system config still enables Faikout mode', () => {
+  const daikin = createDaikin({
+    apiroute: 'http://192.168.1.88',
+    system: 'Faikin',
+  });
+
+  assert.equal(daikin.isFaikout, true);
 });
 
 test('Faikout setFanSpeed sends native fan values over the control channel', () => {
@@ -123,7 +132,7 @@ test('Faikout setFanSpeed sends native fan values over the control channel', () 
   });
 
   const sent = [];
-  daikin.sendFaikinWebSocketCommand = (controlData, callback) => {
+  daikin.sendFaikoutWebSocketCommand = (controlData, callback) => {
     sent.push(controlData);
     if (callback) callback(null);
   };
@@ -169,25 +178,25 @@ test('Faikout reuses a connecting WebSocket for concurrent commands', async () =
   daikin._resolveHost = callback => callback('127.0.0.1');
 
   await Promise.all([
-    new Promise((resolve, reject) => daikin.sendFaikinWebSocketCommand({fan: 'A'}, error => error ? reject(error) : resolve())),
-    new Promise((resolve, reject) => daikin.sendFaikinWebSocketCommand({swingv: true}, error => error ? reject(error) : resolve())),
+    new Promise((resolve, reject) => daikin.sendFaikoutWebSocketCommand({fan: 'A'}, error => error ? reject(error) : resolve())),
+    new Promise((resolve, reject) => daikin.sendFaikoutWebSocketCommand({swingv: true}, error => error ? reject(error) : resolve())),
   ]);
 
   assert.equal(connections, 1);
   assert.equal(options.handshakeTimeout, 9000);
-  daikin.closeFaikinWebSocket();
+  daikin.closeFaikoutWebSocket();
 });
 
 test('Faikout command callbacks expire instead of hanging HomeKit', async () => {
   const daikin = createDaikin({system: 'Faikout', deadline: 10});
-  daikin.connectFaikinWebSocket = () => {};
+  daikin.connectFaikoutWebSocket = () => {};
 
   const error = await new Promise(resolve => {
-    daikin.sendFaikinWebSocketCommand({fan: 'A'}, resolve);
+    daikin.sendFaikoutWebSocketCommand({fan: 'A'}, resolve);
   });
 
   assert.match(error.message, /timed out/);
-  assert.equal(daikin.faikinWsPendingCommands.length, 0);
+  assert.equal(daikin.faikoutWsPendingCommands.length, 0);
 });
 
 test('Faikout restores cached state when a control command fails', async () => {
@@ -198,7 +207,7 @@ test('Faikout restores cached state when a control command fails', async () => {
     enableEconoMode: true,
     enablePowerfulMode: true,
   });
-  daikin.sendFaikinControl = (_controlData, callback) => callback(new Error('timed out'));
+  daikin.sendFaikoutControl = (_controlData, callback) => callback(new Error('timed out'));
 
   daikin.HeaterCooler_SwingMode = 0;
   daikin.Vertical_Swing = false;

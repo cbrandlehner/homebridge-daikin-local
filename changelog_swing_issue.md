@@ -85,7 +85,7 @@ Each switch sends only its own parameter to the Faikout `/control` endpoint (e.g
 
 ### Rename: Faikin → Faikout
 
-All user-facing references (log messages, comments) renamed from "Faikin" to "Faikout". Internal variable names (`isFaikin`, `sendFaikinControl`, `faikinWs`, etc.) kept as-is for stability. Backward compatibility maintained: `case 'Faikin':` still accepted in the system switch for existing configs.
+All user-facing references (log messages, comments) and internal identifiers (`isFaikout`, `sendFaikoutControl`, `faikoutWs`, etc.) use Faikout. `"system": "Faikin"` remains accepted as a config alias for existing accessories.
 
 ---
 
