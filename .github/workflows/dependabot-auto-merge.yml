@@ -1,0 +1,26 @@
+# GitHub Dependabot cannot push to master. This approves the PR and
+# squash-merges it after the required CI checks.
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr review --approve "$PR_URL"
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
