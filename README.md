@@ -1,5 +1,5 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-![node](https://img.shields.io/node/v/homebridge-daikin-local)
+[![node](https://img.shields.io/badge/node-22%20%7C%2024%20%7C%2026-brightgreen)](https://github.com/cbrandlehner/homebridge-daikin-local/blob/master/package.json)
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-local.svg)](https://www.npmjs.com/package/homebridge-daikin-local)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-local.svg)](https://github.com/cbrandlehner/homebridge-daikin-local/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/homebridge-daikin-local.svg)](https://badge.fury.io/js/homebridge-daikin-local)
