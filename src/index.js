@@ -9,6 +9,8 @@
 
 let Service;
 let Characteristic;
+// A connection reset is tried again this many times, then the caller hears about it.
+const ECONNRESET_ATTEMPTS = 3;
 // Use node: protocol for core modules
 const https = require('node:https');
 const http = require('node:http');
@@ -504,15 +506,21 @@ Daikin.prototype = {
 
         this._doSendGetRequest(path, (error, response) => {
           if (error) {
-            // this.log.error('ERROR: Queued request to %s returned error %s', path, error);
             if (error.code === 'ECONNRESET') {
-              this.log.debug('requeueing request after econnreset');
-              options.skipQueue = 'prepend';
-              this._queueGetRequest(path, callback, options || {});
-            } else if (typeof options.onError === 'function') {
-              options.onError(error);
+              const attempt = (options._econnresetAttempt || 0) + 1;
+              if (attempt < ECONNRESET_ATTEMPTS) {
+                this.log.debug('requeueing request after econnreset (%s/%s)', attempt, ECONNRESET_ATTEMPTS);
+                options._econnresetAttempt = attempt;
+                options.skipQueue = 'prepend';
+                this._queueGetRequest(path, callback, options || {});
+                done();
+                return;
+              }
+
+              this.log.debug('giving up after %s ECONNRESET responses for %s', attempt, path);
             }
 
+            if (typeof options.onError === 'function') options.onError(error);
             done();
             return;
           }
@@ -827,7 +835,13 @@ Daikin.prototype = {
     });
   },
   setActive(power, callback) {
-      this.sendGetRequest(this.get_control_info, body => {
+      const previousActive = this.HeaterCooler_Active;
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          if (callback) callback(error);
+          return;
+        }
+
         const responseValues = this.parseResponse(body);
         this.log.info('setActive: Power is %s, Mode is %s. Going to change power to %s.', responseValues.pow, responseValues.mode, power);
         let query = body.replace(/,/g, '&').replace(/pow=[01]/, `pow=${power}`);
@@ -870,7 +884,13 @@ Daikin.prototype = {
 
         this.HeaterCooler_Active = power; // FV210510 updating Active Cache
         this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+          if (setError) {
+            this.HeaterCooler_Active = previousActive;
+            if (callback) callback(setError);
+            return;
+          }
+
           this.HeaterCooler_Active = power; // FV210510 updating Active Cache
           this.log.debug('setActive: update Active: %s.', this.HeaterCooler_Active); // FV210510
           if (!(callback === undefined)) callback();
@@ -1284,7 +1304,13 @@ Daikin.prototype = {
 
   setTargetHeaterCoolerState(state, callback) {
     this.log.info('setTargetHeaterCoolerState: received new state %s', state);
-          this.sendGetRequest(this.get_control_info, body => {
+          const previousState = this.HeaterCooler_TargetHeaterCoolerState;
+          this._sendDaikinRequest(this.get_control_info, (error, body) => {
+                  if (error) {
+                    callback(error);
+                    return;
+                  }
+
                   const currentValues = this.parseResponse(body);
                   let mode = currentValues.mode;
                   switch (state) {
@@ -1312,7 +1338,13 @@ Daikin.prototype = {
                   this.log.info('setTargetHeaterCoolerState: query: %s', query);
                   this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
                   this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
-                  this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+                  this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+                      if (setError) {
+                        this.HeaterCooler_TargetHeaterCoolerState = previousState;
+                        callback(setError);
+                        return;
+                      }
+
                       this.HeaterCooler_TargetHeaterCoolerState = state; // FV2105010
                       this.log.debug('setTargetHeaterCoolerState: update TargetHeaterCoolerState: %s.', this.HeaterCooler_TargetHeaterCoolerState); // FV2105010
                       callback();
@@ -1433,7 +1465,13 @@ Daikin.prototype = {
   },
 
   setCoolingTemperature(temperature, callback) {
-          this.sendGetRequest(this.get_control_info, body => {
+          const previousTemperature = this.HeaterCooler_CoolingTemperature;
+          this._sendDaikinRequest(this.get_control_info, (error, body) => {
+          if (error) {
+            callback(error);
+            return;
+          }
+
           const responseValues = this.parseResponse(body);
           if (shouldRouteCoolingSetToHeating(responseValues.mode)) {
             this.log.info('setCoolingTemperature: unit is in heat mode, routing to setHeatingTemperature.');
@@ -1450,7 +1488,13 @@ Daikin.prototype = {
             .replace(/dt7=[\d.]+/, `dt7=${temperature}`);
           this.HeaterCooler_CoolingTemperature = temperature;
           this.log.debug('setCoolingTemperature: update CoolingTemperature: %s.', this.HeaterCooler_CoolingTemperature); // FV2105010
-          this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+                    if (setError) {
+                      this.HeaterCooler_CoolingTemperature = previousTemperature;
+                      callback(setError);
+                      return;
+                    }
+
                     this.HeaterCooler_CoolingTemperature = temperature;
                     this.log.debug('setCoolingTemperature: update CoolingTemperature: %s.', this.HeaterCooler_CoolingTemperature); // FV2105010
                     callback();
@@ -1478,7 +1522,13 @@ Daikin.prototype = {
   },
 
   setHeatingTemperature(temperature, callback) {
-          this.sendGetRequest(this.get_control_info, body => {
+          const previousTemperature = this.HeaterCooler_HeatingTemperature;
+          this._sendDaikinRequest(this.get_control_info, (error, body) => {
+            if (error) {
+              callback(error);
+              return;
+            }
+
             const responseValues = this.parseResponse(body);
             if (shouldRouteHeatingSetToCooling(responseValues.mode)) {
               this.log.info('setHeatingTemperature: unit is in cool mode, routing to setCoolingTemperature.');
@@ -1495,7 +1545,13 @@ Daikin.prototype = {
               .replace(/dt5=[\d.]+/, `dt5=${temperature}`);
           this.HeaterCooler_HeatingTemperature = temperature;
           this.log.debug('setHeatingTemperature: update HeatingTemperature: %s.', this.HeaterCooler_HeatingTemperature); // FV2105010
-          this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+          this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+                      if (setError) {
+                        this.HeaterCooler_HeatingTemperature = previousTemperature;
+                        callback(setError);
+                        return;
+                      }
+
                       this.HeaterCooler_HeatingTemperature = temperature;
                       this.log.debug('setHeatingTemperature: update HeatingTemperature: %s.', this.HeaterCooler_HeatingTemperature); // FV2105010
                       callback();
@@ -1592,7 +1648,13 @@ Daikin.prototype = {
       });
     } else {
       // Traditional Daikin API
-      this.sendGetRequest(this.get_control_info, body => {
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         const targetValue = value ? '1' : '0';
         let query = body.replace(/,/g, '&').replace(/en_economode=[01]/, `en_economode=${targetValue}`);
         // If turning on Econo, also disable Powerful
@@ -1603,7 +1665,13 @@ Daikin.prototype = {
         this.log.debug('setEconoMode: Query is: %s', query);
         this.Econo_Mode = value;
         this.log.debug('setEconoMode: update EconoMode: %s.', this.Econo_Mode);
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+          if (setError) {
+            this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+            if (callback) callback(setError);
+            return;
+          }
+
           this.Econo_Mode = value;
           this.log.debug('setEconoMode: confirmed EconoMode: %s.', this.Econo_Mode);
           if (callback) callback();
@@ -1695,7 +1763,13 @@ Daikin.prototype = {
       });
     } else {
       // Traditional Daikin API
-      this.sendGetRequest(this.get_control_info, body => {
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         const targetValue = value ? '1' : '0';
         let query = body.replace(/,/g, '&').replace(/en_powerful=[01]/, `en_powerful=${targetValue}`);
         // If turning on Powerful, also disable Econo
@@ -1706,7 +1780,13 @@ Daikin.prototype = {
         this.log.debug('setPowerfulMode: Query is: %s', query);
         this.Powerful_Mode = value;
         this.log.debug('setPowerfulMode: update PowerfulMode: %s.', this.Powerful_Mode);
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+          if (setError) {
+            this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+            if (callback) callback(setError);
+            return;
+          }
+
           this.Powerful_Mode = value;
           this.log.debug('setPowerfulMode: confirmed PowerfulMode: %s.', this.Powerful_Mode);
           if (callback) callback();
@@ -1803,14 +1883,26 @@ Daikin.prototype = {
     } else {
       // Traditional Daikin API: Set fan rate to 'B' (silent) for night quiet mode
       // When turning off, restore to 'A' (auto) or previous fan speed
-      this.sendGetRequest(this.get_control_info, body => {
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+          if (callback) callback(error);
+          return;
+        }
+
         const targetFanRate = value ? 'B' : 'A'; // 'B' is typically silent mode, 'A' is auto
         let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${targetFanRate}`);
         query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${targetFanRate}`);
         this.log.debug('setNightQuietMode: Setting fan rate to %s. Query is: %s', targetFanRate, query);
         this.NightQuiet_Mode = value;
         this.log.debug('setNightQuietMode: update NightQuietMode: %s.', this.NightQuiet_Mode);
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+          if (setError) {
+            this._restoreFaikoutExclusiveModes(previousEcono, previousPowerful, previousNightQuiet);
+            if (callback) callback(setError);
+            return;
+          }
+
           this.NightQuiet_Mode = value;
           this.log.debug('setNightQuietMode: confirmed NightQuietMode: %s.', this.NightQuiet_Mode);
           if (callback) callback();
@@ -1842,7 +1934,13 @@ Daikin.prototype = {
       targetPOW = 1;
 
     /* Get current state from daikin */
-    this.sendGetRequest(this.get_control_info, body => {
+    const previousFanStatus = this.Fan_Status;
+    this._sendDaikinRequest(this.get_control_info, (error, body) => {
+      if (error) {
+        if (callback) callback(error);
+        return;
+      }
+
       const responseValues = this.parseResponse(body);
       let currentPOW = 0;
       if (responseValues.pow === '1')
@@ -1891,7 +1989,13 @@ Daikin.prototype = {
      this.log.debug('setFanStatus: going to send this query: %s', query);
      this.Fan_Status = targetPOW; // FV2105010
      this.log.debug('setFanStatus: update Status: %s.', this.powerDescription[this.Fan_Status]); // FV2105010
-     this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+     this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+        if (setError) {
+          this.Fan_Status = previousFanStatus;
+          if (callback) callback(setError);
+          return;
+        }
+
         if (!(callback === undefined)) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});
@@ -1943,13 +2047,25 @@ getFanSpeed: function (callback) {
       });
     } else {
       // Traditional Daikin API
-      this.sendGetRequest(this.get_control_info, body => {
+      const previousSpeed = this.Fan_Speed;
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          if (!(callback === undefined)) callback(error);
+          return;
+        }
+
         let query = body.replace(/,/g, '&').replace(/f_rate=[01234567AB]/, `f_rate=${value}`);
         query = query.replace(/,/g, '&').replace(/b_f_rate=[01234567AB]/, `b_f_rate=${value}`);
         this.log.debug('setFanSpeed: Query is: %s', query);
         this.Fan_Speed = this.daikinSpeedToRaw(value); // FV2105010
         this.log.debug('setFanSpeed: update Speed: %s.', this.Fan_Speed); // FV2105010
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+        this._sendDaikinRequest(this.set_control_info + '?' + query, setError => {
+          if (setError) {
+            this.Fan_Speed = previousSpeed;
+            if (!(callback === undefined)) callback(setError);
+            return;
+          }
+
           if (!(callback === undefined)) callback();
         }, {skipCache: true, skipQueue: true});
       }, {skipCache: true});
