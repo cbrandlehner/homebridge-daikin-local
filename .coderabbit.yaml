@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+# Unset keys still come from the CodeRabbit organization UI.
+inheritance: true
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: true
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "src/**/*.js"
+      instructions: |
+        This plugin talks to Daikin adapters on the local network. Older adapters use plain HTTP. Do not suggest the Daikin cloud API.
+        Never set a TLS server name, or a Host header that Superagent copies into the server name, to an IP address. Node 26 rejects that. A hostname may still be used as the server name.
+        Do not log adapter UUIDs or credentials.
+        HomeKit characteristic handlers must call their callback on both success and failure.
+        On the standard Daikin API, f_dir is 0 off, 1 vertical, 2 horizontal, and 3 both. A change to one direction must leave the other direction, power, mode, setpoint, and fan rate unchanged.
+    - path: "test/**/*.js"
+      instructions: |
+        Tests use node:test and must not require a live Daikin device. Assert behavior, including the failure path, rather than only the happy path.
+chat:
+  auto_reply: true
