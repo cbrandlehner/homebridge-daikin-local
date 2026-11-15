@@ -229,6 +229,9 @@ function Daikin(log, config) {
   this.enableHumiditySensor = !!config.enableHumiditySensor;
 
   this.enableTemperatureSensor = !!config.enableTemperatureSensor;
+  this.enableOutsideTemperatureSensor = !!config.enableOutsideTemperatureSensor;
+  this.outsideTemperatureName = config.outsideTemperatureName || 'Outside Temperature';
+  this.Outside_CurrentTemperature = null;
 
   this.uuid = config.uuid || '';
 
@@ -313,6 +316,7 @@ function Daikin(log, config) {
   this.FanService = new Service.Fan(this.fanName);
   this.heaterCoolerService = new Service.HeaterCooler(this.name);
   this.temperatureService = new Service.TemperatureSensor(this.name);
+  this.outsideTemperatureService = new Service.TemperatureSensor(this.outsideTemperatureName, 'outside-temperature');
   this.humidityService = new Service.HumiditySensor(this.name);
 
   // Swing switch services for independent vertical/horizontal control (Faikout)
@@ -481,6 +485,15 @@ Daikin.prototype = {
     this._queueGetRequest(path, callback, options || {});
   },
 
+  // callback(error, body). Use this when the caller must run on a failed request.
+  // sendGetRequest still passes only the body, which existing callers expect.
+  _sendDaikinRequest(path, callback, options = {}) {
+    this.sendGetRequest(path, body => callback(null, body), {
+      ...options,
+      onError: error => callback(error),
+    });
+  },
+
    _queueGetRequest(path, callback, options) {
     const method = options.skipQueue ? 'prepend' : 'append';
 
@@ -496,6 +509,8 @@ Daikin.prototype = {
               this.log.debug('requeueing request after econnreset');
               options.skipQueue = 'prepend';
               this._queueGetRequest(path, callback, options || {});
+            } else if (typeof options.onError === 'function') {
+              options.onError(error);
             }
 
             done();
@@ -581,6 +596,19 @@ Daikin.prototype = {
           if (error.timeout) {/* timed out */}
           else if (error.code === 'ECONNRESET') {
             this.log.debug('_doSendGetRequest: eConnreset filtered');
+          } else if (error.status === 403) {
+            const now = Date.now();
+            if (!this._last403Warning || now - this._last403Warning > 3_600_000) {
+              this._last403Warning = now;
+              this.log.error(
+                'The Daikin adapter refused the request (403 Forbidden). %s See "HTTPS/Registered client support" in the README: '
+                + 'register the uuid once with /common/register_terminal and the KEY printed on the adapter sticker. '
+                + 'An adapter reset or power cut can clear the registration. (Repeats are suppressed for an hour.)',
+                this.uuid === '' ? 'No uuid is configured.' : 'The configured uuid is not registered on this adapter.',
+              );
+            } else {
+              this.log.debug('_doSendGetRequest: 403 for %s (suppressed)', resolvedPath);
+            }
           } else {
             this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', resolvedPath, error);
           }
@@ -887,9 +915,10 @@ Daikin.prototype = {
         // 1 - Vertical swing
         // 2 - Horizontal swing
         // 3 - 3D swing
-        this.log.debug('getSwingMode: swing mode is: %s. 0=No swing, 1=Vertical swing, 2=Horizontal swing, 3=3D swing.', responseValues.f_dir);
-        this.log.debug('getSwingMode: swing mode for HomeKit is: %s. 0=Disabled, 1=Enabled', responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_ENABLED : Characteristic.SwingMode.SWING_DISABLED);
-        callback(null, responseValues.f_dir === '0' ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED);
+        const fdir = Number.parseInt(responseValues.f_dir, 10) || 0;
+        this.log.debug('getSwingMode: f_dir is %s.', fdir);
+        this._applyDaikinSwingState(fdir);
+        callback(null, this.HeaterCooler_SwingMode);
       }
     });
   },
@@ -974,18 +1003,31 @@ Daikin.prototype = {
         callback();
       });
     } else {
-      // Traditional Daikin API
-      this.sendGetRequest(this.get_control_info, body => {
-        this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
-        if (swing !== Characteristic.SwingMode.SWING_DISABLED) swing = this.swingMode;
-        let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${swing}`);
-        query = query.replace(/,/g, '&').replace(/b_f_dir=[0123]/, `b_f_dir=${swing}`);
-        this.log.debug('setSwingMode: swing mode: %s, query is: %s', swing, query);
-        this.HeaterCooler_SwingMode = swing; // FV210510 update cache
-        this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
-        this.sendGetRequest(this.set_control_info + '?' + query, _response => {
-          this.HeaterCooler_SwingMode = swing; // FV210510 update cache
-          this.log.debug('setSwingMode: update SwingMode: %s.', this.HeaterCooler_SwingMode); // FV210510
+      // Traditional Daikin API. swingMode is the f_dir written when oscillation is turned on.
+      this.log.info('setSwingMode: HomeKit requested swing mode: %s', swing);
+      const fdir = swing === Characteristic.SwingMode.SWING_DISABLED ? 0 : this.swingMode;
+      this._sendDaikinRequest(this.get_control_info, (error, body) => {
+        if (error) {
+          callback(error);
+          return;
+        }
+
+        let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${fdir}`);
+        query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${fdir}`);
+        this.log.debug('setSwingMode: f_dir %s, query is: %s', fdir, query);
+        this._sendDaikinRequest(this.set_control_info + '?' + query, (setError, response) => {
+          if (setError) {
+            callback(setError);
+            return;
+          }
+
+          const result = this.parseResponse(response).ret;
+          if (result !== 'OK') {
+            callback(new Error(`Daikin adapter rejected f_dir=${fdir} (ret=${result})`));
+            return;
+          }
+
+          this._applyDaikinSwingState(fdir);
           callback();
         }, {skipCache: true, skipQueue: true});
       }, {skipCache: true});
@@ -994,6 +1036,8 @@ Daikin.prototype = {
 
   // Separate Vertical Swing switch (Faikout only)
   getVerticalSwing: function (callback) {
+    if (!this.isFaikout) return this._getDaikinSwingBit(1, callback);
+
     this.sendGetRequest(this.get_control_info, body => {
       const responseValues = this.parseResponse(body);
       const swingV = responseValues.swingv === '1' || responseValues.swingv === 'true' || responseValues.swingv === true;
@@ -1007,6 +1051,8 @@ Daikin.prototype = {
     this.log.debug('getVerticalSwingFV: early callback with cached state: %s (%d).', this.Vertical_Swing, counter);
     callback(null, this.Vertical_Swing);
     this.getVerticalSwing((error, state) => {
+      if (error || typeof state !== 'boolean') return;
+
       this.Vertical_Swing = state;
       this.verticalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Vertical_Swing);
       this.log.debug('getVerticalSwingFV: update VerticalSwing: %s (%d).', this.Vertical_Swing, counter);
@@ -1014,6 +1060,8 @@ Daikin.prototype = {
   },
 
   setVerticalSwing: function (value, callback) {
+    if (!this.isFaikout) return this._setDaikinSwingBit(1, value, callback);
+
     this.log.info('setVerticalSwing (Faikout): HomeKit requested vertical swing %s.', value ? 'ON' : 'OFF');
     const previous = this.Vertical_Swing;
     this.Vertical_Swing = value;
@@ -1033,6 +1081,8 @@ Daikin.prototype = {
 
   // Separate Horizontal Swing switch (Faikout only)
   getHorizontalSwing: function (callback) {
+    if (!this.isFaikout) return this._getDaikinSwingBit(2, callback);
+
     this.sendGetRequest(this.get_control_info, body => {
       const responseValues = this.parseResponse(body);
       const swingH = responseValues.swingh === '1' || responseValues.swingh === 'true' || responseValues.swingh === true;
@@ -1046,6 +1096,8 @@ Daikin.prototype = {
     this.log.debug('getHorizontalSwingFV: early callback with cached state: %s (%d).', this.Horizontal_Swing, counter);
     callback(null, this.Horizontal_Swing);
     this.getHorizontalSwing((error, state) => {
+      if (error || typeof state !== 'boolean') return;
+
       this.Horizontal_Swing = state;
       this.horizontalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Horizontal_Swing);
       this.log.debug('getHorizontalSwingFV: update HorizontalSwing: %s (%d).', this.Horizontal_Swing, counter);
@@ -1053,6 +1105,8 @@ Daikin.prototype = {
   },
 
   setHorizontalSwing: function (value, callback) {
+    if (!this.isFaikout) return this._setDaikinSwingBit(2, value, callback);
+
     this.log.info('setHorizontalSwing (Faikout): HomeKit requested horizontal swing %s.', value ? 'ON' : 'OFF');
     const previous = this.Horizontal_Swing;
     this.Horizontal_Swing = value;
@@ -1084,6 +1138,78 @@ Daikin.prototype = {
 
     if (this.enableNightQuietMode && this.nightQuietModeService) {
       this.nightQuietModeService.getCharacteristic(Characteristic.On).updateValue(previousNightQuiet);
+    }
+  },
+
+  // Standard Daikin API: f_dir is a bit field (0 = off, 1 = vertical, 2 = horizontal, 3 = both).
+  // Each separate swing switch flips one bit and leaves the other direction alone.
+  _getDaikinSwingBit: function (bit, callback) {
+    this._sendDaikinRequest(this.get_control_info, (error, body) => {
+      if (error) {
+        callback(error);
+        return;
+      }
+
+      const fdir = Number.parseInt(this.parseResponse(body).f_dir, 10) || 0;
+      callback(null, (fdir & bit) !== 0);
+    });
+  },
+
+  _setDaikinSwingBit: function (bit, value, callback) {
+    const done = error => {
+      if (callback) callback(error);
+    };
+
+    this._sendDaikinRequest(this.get_control_info, (error, body) => {
+      if (error) {
+        done(error);
+        return;
+      }
+
+      const current = Number.parseInt(this.parseResponse(body).f_dir, 10) || 0;
+      const fdir = value ? (current | bit) : (current & ~bit);
+      this.log.info('%s swing %s (f_dir %s -> %s)', bit === 1 ? 'Vertical' : 'Horizontal', value ? 'ON' : 'OFF', current, fdir);
+      let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${fdir}`);
+      query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${fdir}`);
+      this._sendDaikinRequest(this.set_control_info + '?' + query, (setError, response) => {
+        if (setError) {
+          done(setError);
+          return;
+        }
+
+        const result = this.parseResponse(response).ret;
+        if (result !== 'OK') {
+          // Leave cached state alone and let HomeKit revert the switch
+          this.log.warn('Swing change rejected by the adapter (ret=%s); f_dir stays %s.', result, current);
+          done(new Error(`Daikin adapter rejected f_dir=${fdir} (ret=${result})`));
+          return;
+        }
+
+        this._applyDaikinSwingState(fdir);
+        done();
+      }, {skipCache: true, skipQueue: true});
+    }, {skipCache: true});
+  },
+
+  _applyDaikinSwingState(fdir) {
+    const value = Number.parseInt(fdir, 10) || 0;
+    this.Vertical_Swing = (value & 1) !== 0;
+    this.Horizontal_Swing = (value & 2) !== 0;
+    if (this.enableVerticalSwingSwitch && this.verticalSwingService) {
+      this.verticalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Vertical_Swing);
+    }
+
+    if (this.enableHorizontalSwingSwitch && this.horizontalSwingService) {
+      this.horizontalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Horizontal_Swing);
+    }
+
+    this.HeaterCooler_SwingMode = value === 0 ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED;
+    if (this.heaterCoolerService) {
+      this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode).updateValue(this.HeaterCooler_SwingMode);
+    }
+
+    if (!this.disableFan && this.FanService) {
+      this.FanService.getCharacteristic(Characteristic.SwingMode).updateValue(this.HeaterCooler_SwingMode);
     }
   },
 
@@ -1241,17 +1367,48 @@ Daikin.prototype = {
 
   getCurrentOutsideTemperature(callback) {
     this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
-    this.sendGetRequest(this.get_sensor_info, body => {
-      const responseValues = this.parseResponse(body);
-      const rawTemperature = Number.parseFloat(responseValues.otemp);
+    this._sendDaikinRequest(this.get_sensor_info, (error, body) => {
+      if (error) {
+        callback(error);
+        return;
+      }
+
+      const rawTemperature = Number.parseFloat(this.parseResponse(body).otemp);
+      if (!Number.isFinite(rawTemperature)) {
+        callback(new Error('Outside temperature is not available'));
+        return;
+      }
+
       const adjustedTemperature = rawTemperature + this.temperatureOffsetOutside;
       this.log.debug(
         'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
         rawTemperature.toFixed(1),
         this.temperatureOffsetOutside.toFixed(1),
-        adjustedTemperature.toFixed(1)
-        );
+        adjustedTemperature.toFixed(1),
+      );
       callback(null, adjustedTemperature);
+    });
+  },
+
+  getCurrentOutsideTemperatureFV(callback) {
+    const cached = this.Outside_CurrentTemperature;
+    const hasCached = Number.isFinite(cached);
+    if (hasCached) callback(null, cached);
+
+    this.getCurrentOutsideTemperature((error, value) => {
+      // Some units report otemp as '-' while the outdoor unit is idle.
+      if (error || !Number.isFinite(value)) {
+        this.log.debug('getCurrentOutsideTemperatureFV: no valid outside temperature (%s)', value);
+        if (!hasCached) callback(error || new Error('Outside temperature is not available'));
+        return;
+      }
+
+      this.Outside_CurrentTemperature = value;
+      if (this.outsideTemperatureService) {
+        this.outsideTemperatureService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(value);
+      }
+
+      if (!hasCached) callback(null, value);
     });
   },
 
@@ -1945,6 +2102,16 @@ getFanSpeed: function (callback) {
         services.push(this.temperatureService);
     }
 
+    if (this.enableOutsideTemperatureSensor) {
+        this.outsideTemperatureService.setCharacteristic(Characteristic.ConfiguredName, this.outsideTemperatureName);
+        this.outsideTemperatureService
+            .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({minValue: -50, maxValue: 100})
+            .on('get', this.getCurrentOutsideTemperatureFV.bind(this));
+        services.push(this.outsideTemperatureService);
+        this.getCurrentOutsideTemperatureFV(() => {});
+    }
+
     if (this.enableHumiditySensor) {
         this.humidityService
             .getCharacteristic(Characteristic.CurrentRelativeHumidity)
@@ -2025,8 +2192,8 @@ getFanSpeed: function (callback) {
         this.log.info('======================================');
     }
 
-    // Separate Vertical Swing switch (Faikout only)
-    if (this.enableVerticalSwingSwitch && this.isFaikout) {
+    // Separate Vertical Swing switch (Faikout and standard Daikin)
+    if (this.enableVerticalSwingSwitch) {
         this.verticalSwingService
             .getCharacteristic(Characteristic.On)
             .on('get', this.getVerticalSwingFV.bind(this))
@@ -2047,8 +2214,8 @@ getFanSpeed: function (callback) {
         this.log.info('==========================================');
     }
 
-    // Separate Horizontal Swing switch (Faikout only)
-    if (this.enableHorizontalSwingSwitch && this.isFaikout) {
+    // Separate Horizontal Swing switch (Faikout and standard Daikin)
+    if (this.enableHorizontalSwingSwitch) {
         this.horizontalSwingService
             .getCharacteristic(Characteristic.On)
             .on('get', this.getHorizontalSwingFV.bind(this))

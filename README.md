@@ -75,6 +75,9 @@ Where the Oscillate control appears depends on how HomeKit groups the AC and Fan
 
 Recommended workaround if Oscillate is missing: leave `disableFan` as `false` (default), then in the Home app long-press the accessory → **Settings** → **Show as Separate Tiles**, and use Oscillate from Settings on either tile. Setting `disableFan` to `true` hides the Fan tile but does not reliably surface fan speed or oscillate in the Home app on all iOS versions.
 
+**Separate swing switches (`enableVerticalSwingSwitch`, `enableHorizontalSwingSwitch`):**
+Adds two switches to HomeKit, one per direction, so you can run vertical only, horizontal only, or both. Works with Faikout and with standard Daikin adapters (where each switch sets its own bit of `f_dir`: 1 = vertical, 2 = horizontal, 3 = both) and leaves the other direction unchanged. Optional names: `verticalSwingName`, `horizontalSwingName`.
+
 Econo Mode:
 When enabled in the configuration, a switch will appear in HomeKit to toggle the AC's Econo mode. This energy-saving mode reduces power consumption by moderating the cooling/heating output.
 
@@ -94,6 +97,9 @@ When enabled in the configuration, a fan slider will appear in HomeKit to switch
 - 80-100%: Return to normal operation (Cool/Heat/Auto)
 
 **Note:** Night Quiet Mode can be used independently with either Econo or Powerful modes.
+
+Outside temperature:
+When `enableOutsideTemperatureSensor` is set, a temperature sensor shows the outdoor unit's temperature (`otemp` from `get_sensor_info`, adjusted by `temperatureOffsetOutside`). Nothing is published until the first real reading. Some units only report it while running; that reading is kept when the unit later reports `-`. Optional name: `outsideTemperatureName` (default "Outside Temperature").
 
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">
 
@@ -199,6 +205,8 @@ curl --insecure -H "X-Daikin-uuid: 7b9c9a47c9c64ee19063848e67cc7edd" -v "https:/
 ```
 
 This UUID must be used in client requests to the device.
+
+If the log shows `403 Forbidden`, the adapter does not recognise the configured `uuid`. Register it as above. An adapter reset or power cut can clear the registration, so a setup that worked before can start returning 403.
 
 Test your registered token using the above requests but using `https` instead of `http`, _e.g._
 ```
