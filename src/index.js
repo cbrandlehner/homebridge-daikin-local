@@ -36,6 +36,7 @@ const {
   resolveControllerHost,
   replaceHostInUrl,
   buildWebSocketStatusUrl,
+  isIpAddress,
 } = require('./utils.js');
 
 function Daikin(log, config) {
@@ -546,8 +547,13 @@ Daikin.prototype = {
           deadline: this.deadline, // total ms to finish
         })
         .use(throttlePlugin)
-        .set('User-Agent', 'superagent')
-        .set('Host', resolvedIP);
+        .set('User-Agent', 'superagent');
+
+      // Node 26 rejects a TLS servername that is an IP. Superagent copies the
+      // Host header into servername, and the URL already addresses this host.
+      if (!isIpAddress(resolvedIP)) {
+        request = request.set('Host', resolvedIP);
+      }
 
       if (this.uuid !== '') {
         request = request.set('X-Daikin-uuid', this.uuid);
