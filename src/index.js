@@ -1128,12 +1128,26 @@ Daikin.prototype = {
       this.log.info('%s swing %s (f_dir %s -> %s)', bit === 1 ? 'Vertical' : 'Horizontal', value ? 'ON' : 'OFF', current, fdir);
       let query = body.replace(/,/g, '&').replace(/f_dir=[0123]/, `f_dir=${fdir}`);
       query = query.replace(/b_f_dir=[0123]/, `b_f_dir=${fdir}`);
-      this.sendGetRequest(this.set_control_info + '?' + query, _response => {
+      this.sendGetRequest(this.set_control_info + '?' + query, response => {
+        const result = this.parseResponse(response).ret;
+        if (result !== 'OK') {
+          // Leave cached state alone and let HomeKit revert the switch
+          this.log.warn('Swing change rejected by the adapter (ret=%s); f_dir stays %s.', result, current);
+          if (callback) callback(new Error(`Daikin adapter rejected f_dir=${fdir} (ret=${result})`));
+          return;
+        }
+
         this.Vertical_Swing = (fdir & 1) !== 0;
         this.Horizontal_Swing = (fdir & 2) !== 0;
         if (this.enableVerticalSwingSwitch) this.verticalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Vertical_Swing);
         if (this.enableHorizontalSwingSwitch) this.horizontalSwingService.getCharacteristic(Characteristic.On).updateValue(this.Horizontal_Swing);
-        this._updateMainSwingMode();
+        // Standard Daikin: same rule as getSwingMode, any non-zero f_dir means swing is on
+        this.HeaterCooler_SwingMode = fdir === 0 ? Characteristic.SwingMode.SWING_DISABLED : Characteristic.SwingMode.SWING_ENABLED;
+        this.heaterCoolerService.getCharacteristic(Characteristic.SwingMode).updateValue(this.HeaterCooler_SwingMode);
+        if (!this.disableFan) {
+          this.FanService.getCharacteristic(Characteristic.SwingMode).updateValue(this.HeaterCooler_SwingMode);
+        }
+
         if (callback) callback();
       }, {skipCache: true, skipQueue: true});
     }, {skipCache: true});

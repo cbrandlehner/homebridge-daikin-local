@@ -6,12 +6,12 @@ const {createDaikin} = require('./helpers/mock-homebridge.js');
 
 const CONTROL = 'ret=OK,pow=1,mode=3,stemp=24.0,shum=0,f_rate=A,f_dir=1,b_mode=3,b_stemp=24.0,b_f_rate=A,b_f_dir=1';
 
-/** Mock sendGetRequest: answers get_control_info with `body`, records every path. */
-function mockRequests(daikin, body) {
+/** Mock sendGetRequest: answers get_control_info with `body` and set_control_info with `setReply`, records every path. */
+function mockRequests(daikin, body, setReply = 'ret=OK') {
   const paths = [];
   daikin.sendGetRequest = (path, callback) => {
     paths.push(path);
-    callback(path.includes('/set_control_info') ? 'ret=OK' : body);
+    callback(path.includes('/set_control_info') ? setReply : body);
   };
 
   return paths;
@@ -76,4 +76,26 @@ test('outside temperature sensor is only published when enabled', () => {
   assert.ok(!off.getServices().includes(off.outsideTemperatureService));
   assert.ok(on.getServices().includes(on.outsideTemperatureService));
   assert.equal(on.outsideTemperatureName, 'Lounge Outside');
+});
+
+test('standard Daikin: a rejected swing write keeps the cached state and reports an error', async () => {
+  const daikin = createDaikin({enableVerticalSwingSwitch: true, enableHorizontalSwingSwitch: true});
+  mockRequests(daikin, CONTROL, 'ret=PARAM NG');
+  daikin.Vertical_Swing = true;
+  daikin.Horizontal_Swing = false;
+
+  const error = await new Promise(resolve => daikin.setHorizontalSwing(true, resolve));
+
+  assert.ok(error instanceof Error);
+  assert.equal(daikin.Vertical_Swing, true);
+  assert.equal(daikin.Horizontal_Swing, false);
+});
+
+test('standard Daikin: main swing shows enabled for horizontal-only swing (f_dir 2)', async () => {
+  const daikin = createDaikin({swingMode: '1', enableVerticalSwingSwitch: true, enableHorizontalSwingSwitch: true});
+  mockRequests(daikin, CONTROL.replaceAll('f_dir=1', 'f_dir=0'));
+
+  await new Promise(resolve => daikin.setHorizontalSwing(true, resolve));
+
+  assert.equal(daikin.HeaterCooler_SwingMode, 1); // SWING_ENABLED
 });
