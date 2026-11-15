@@ -99,7 +99,7 @@ When enabled in the configuration, a fan slider will appear in HomeKit to switch
 **Note:** Night Quiet Mode can be used independently with either Econo or Powerful modes.
 
 Outside temperature:
-When `enableOutsideTemperatureSensor` is set, a temperature sensor shows the outdoor unit's temperature (`otemp` from `get_sensor_info`, adjusted by `temperatureOffsetOutside`). Some units only report it while running; the last good reading is kept until a new one arrives. Optional name: `outsideTemperatureName` (default "Outside Temperature").
+When `enableOutsideTemperatureSensor` is set, a temperature sensor shows the outdoor unit's temperature (`otemp` from `get_sensor_info`, adjusted by `temperatureOffsetOutside`). Nothing is published until the first real reading. Some units only report it while running; that reading is kept when the unit later reports `-`. Optional name: `outsideTemperatureName` (default "Outside Temperature").
 
 <img src="https://user-images.githubusercontent.com/2294359/80783674-b40efd00-8ba4-11ea-9977-5af6bdc5799c.png" align="center" alt="Aircon" width="50%" height="50%">
 

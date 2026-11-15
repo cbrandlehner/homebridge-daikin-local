@@ -53,6 +53,18 @@ test('standard Daikin: vertical switch OFF clears only the vertical bit (f_dir 3
   assert.match(set, /b_f_dir=2/);
 });
 
+test('outside temperature sensor does not publish 0 before the first real reading', async () => {
+  const daikin = createDaikin({enableOutsideTemperatureSensor: true});
+  daikin.sendGetRequest = (_path, callback) => callback('ret=OK,otemp=-');
+
+  const result = await new Promise(resolve => {
+    daikin.getCurrentOutsideTemperatureFV((error, value) => resolve({error, value}));
+  });
+
+  assert.ok(result.error instanceof Error);
+  assert.equal(daikin.Outside_CurrentTemperature, null);
+});
+
 test('outside temperature sensor reports otemp and keeps the last value when otemp is "-"', async () => {
   const daikin = createDaikin({enableOutsideTemperatureSensor: true, temperatureOffsetOutside: 0});
   let body = 'ret=OK,htemp=25.0,hhum=-,otemp=27.0,err=0,cmpfreq=0';
@@ -89,6 +101,53 @@ test('standard Daikin: a rejected swing write keeps the cached state and reports
   assert.ok(error instanceof Error);
   assert.equal(daikin.Vertical_Swing, true);
   assert.equal(daikin.Horizontal_Swing, false);
+});
+
+test('standard Daikin: a failed swing request still calls the HomeKit callback', async () => {
+  const daikin = createDaikin({enableHorizontalSwingSwitch: true});
+  daikin._doSendGetRequest = (_path, callback) => {
+    const error = new Error('timed out');
+    error.status = 403;
+    callback(error);
+  };
+
+  const error = await new Promise(resolve => daikin.setHorizontalSwing(true, resolve));
+
+  assert.ok(error instanceof Error);
+  assert.equal(daikin.Horizontal_Swing, false);
+});
+
+test('standard Daikin: the main swing control writes one f_dir and updates both switches', async () => {
+  const daikin = createDaikin({
+    swingMode: '1',
+    enableVerticalSwingSwitch: true,
+    enableHorizontalSwingSwitch: true,
+    disableFan: true,
+  });
+  daikin.Vertical_Swing = true;
+  daikin.Horizontal_Swing = true;
+  const paths = mockRequests(daikin, CONTROL.replaceAll('f_dir=1', 'f_dir=3'));
+
+  await new Promise((resolve, reject) => {
+    daikin.setSwingMode(0, error => error ? reject(error) : resolve());
+  });
+
+  const off = paths.find(path => path.includes('/set_control_info'));
+  assert.match(off, /[?&]f_dir=0(&|$)/);
+  assert.equal(daikin.Vertical_Swing, false);
+  assert.equal(daikin.Horizontal_Swing, false);
+  assert.equal(daikin.HeaterCooler_SwingMode, 0);
+
+  paths.length = 0;
+  await new Promise((resolve, reject) => {
+    daikin.setSwingMode(1, error => error ? reject(error) : resolve());
+  });
+
+  const on = paths.find(path => path.includes('/set_control_info'));
+  assert.match(on, /[?&]f_dir=1(&|$)/);
+  assert.equal(daikin.Vertical_Swing, true);
+  assert.equal(daikin.Horizontal_Swing, false);
+  assert.equal(daikin.HeaterCooler_SwingMode, 1);
 });
 
 test('standard Daikin: main swing shows enabled for horizontal-only swing (f_dir 2)', async () => {
