@@ -187,6 +187,19 @@
         "type": "boolean",
         "default": false
       },
+      "enableOutsideTemperatureSensor": {
+        "title": "Outside temperature sensor enabled",
+        "description": "Adds a temperature sensor in HomeKit showing the outdoor unit's temperature (otemp). Some units only report it while running; the last reading is kept.",
+        "type": "boolean",
+        "default": false
+      },
+      "outsideTemperatureName": {
+        "title": "Outside temperature sensor name (optional)",
+        "description": "Custom name for the outside temperature sensor. Default: 'Outside Temperature'.",
+        "type": "string",
+        "required": false,
+        "placeholder": "Outside Temperature"
+      },
       "enableEconoMode": {
         "title": "Econo Mode switch enabled",
         "description": "Enables a switch in HomeKit to toggle the AC's Econo mode (energy-saving mode). Works with both traditional Daikin and Faikout controllers. Mutually exclusive with Powerful mode.",
@@ -241,8 +254,8 @@
         "required": false
       },
       "enableVerticalSwingSwitch": {
-        "title": "Enable Vertical Swing Switch (Faikout only)",
-        "description": "Adds a separate switch in HomeKit to independently control vertical (up/down) swing. Combined with the Horizontal Swing switch, this gives you 3 modes: vertical only, horizontal only, or 3D (both). Only works with Faikout controllers.",
+        "title": "Enable Vertical Swing Switch",
+        "description": "Adds a separate switch in HomeKit to independently control vertical (up/down) swing. Combined with the Horizontal Swing switch, this gives you 3 modes: vertical only, horizontal only, or 3D (both). Works with Faikout controllers and standard Daikin adapters (f_dir).",
         "type": "boolean",
         "default": false
       },
@@ -254,8 +267,8 @@
         "placeholder": "Vertical Swing"
       },
       "enableHorizontalSwingSwitch": {
-        "title": "Enable Horizontal Swing Switch (Faikout only)",
-        "description": "Adds a separate switch in HomeKit to independently control horizontal (left/right) swing. Combined with the Vertical Swing switch, this gives you 3 modes: vertical only, horizontal only, or 3D (both). Only works with Faikout controllers.",
+        "title": "Enable Horizontal Swing Switch",
+        "description": "Adds a separate switch in HomeKit to independently control horizontal (left/right) swing. Combined with the Vertical Swing switch, this gives you 3 modes: vertical only, horizontal only, or 3D (both). Works with Faikout controllers and standard Daikin adapters (f_dir).",
         "type": "boolean",
         "default": false
       },
@@ -350,7 +363,7 @@
         "enableOscillationInSettings",
         {
           "type": "help",
-          "helpvalue": "<div style='background-color: #e8f5e9; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>\u2195\u2194 Independent Swing Switches (Faikout only):</strong><br/><br/>Enable separate switches for vertical and horizontal swing to get 3 swing modes:<br/>\u2022 <strong>Vertical only</strong> - up/down airflow<br/>\u2022 <strong>Horizontal only</strong> - left/right airflow<br/>\u2022 <strong>3D mode</strong> - both switches ON<br/><br/>These appear as separate toggles in the Home app and work independently of the main oscillation setting above.</div>"
+          "helpvalue": "<div style='background-color: #e8f5e9; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>\u2195\u2194 Independent Swing Switches:</strong><br/><br/>Enable separate switches for vertical and horizontal swing to get 3 swing modes:<br/>\u2022 <strong>Vertical only</strong> - up/down airflow<br/>\u2022 <strong>Horizontal only</strong> - left/right airflow<br/>\u2022 <strong>3D mode</strong> - both switches ON<br/><br/>These appear as separate toggles in the Home app and work independently of the main oscillation setting above.</div>"
         },
         "enableVerticalSwingSwitch",
         {
@@ -412,6 +425,13 @@
         "defaultMode",
         "enableHumiditySensor",
         "enableTemperatureSensor",
+        "enableOutsideTemperatureSensor",
+        {
+          "key": "outsideTemperatureName",
+          "condition": {
+            "functionBody": "return model.enableOutsideTemperatureSensor === true;"
+          }
+        },
         {
           "type": "help",
           "helpvalue": "<div style='background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>\ud83c\udf21\ufe0f Temperature Range Settings:</strong><br/>Configure the minimum and maximum temperature limits for your specific Daikin AC unit. Different models support different ranges.</div>"
