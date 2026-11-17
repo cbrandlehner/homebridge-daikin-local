@@ -279,6 +279,20 @@
         "required": false,
         "placeholder": "Horizontal Swing"
       },
+      "faikoutUseBleSensor": {
+        "title": "Use Faikout BLE sensor for current temperature (Faikout only)",
+        "description": "Shows the temperature (and humidity, if the humidity sensor is enabled) of the BLE thermometer paired in Faikout instead of the AC's own sensor. Falls back to the AC's sensor when no BLE reading is available. Pair the sensor in the Faikout web UI first (Settings > Basic > BLE Sensors).",
+        "type": "boolean",
+        "default": false,
+        "required": false
+      },
+      "faikoutUseAutoTarget": {
+        "title": "Use Faikout auto target as target temperature (Faikout only)",
+        "description": "When Faikout's own auto temperature control is active (Auto functions enabled with a margin), shows and sets Faikout's auto target instead of the AC setpoint. Faikout then pushes the AC setpoint up or down itself to reach the target on its reference sensor, so the raw setpoint is not meaningful in HomeKit. Has no effect while Faikout auto is off.",
+        "type": "boolean",
+        "default": false,
+        "required": false
+      },
       "quietWebSocketLogging": {
         "title": "Quiet WebSocket Logging (Faikout only)",
         "description": "When enabled (default), reduces log noise from WebSocket heartbeat and button status updates. Status messages will use debug level instead of info level. Set to false for verbose debugging.",
@@ -449,6 +463,8 @@
           "type": "help",
           "helpvalue": "<div style='background-color: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0;'><strong>\ud83c\udf10 Faikout WebSocket Settings:</strong><br/>For Faikout controllers (ESP32-Faikout), quiet logging reduces log noise from status updates while maintaining full functionality.</div>"
         },
+        "faikoutUseBleSensor",
+        "faikoutUseAutoTarget",
         "quietWebSocketLogging",
         {
           "type": "help",
