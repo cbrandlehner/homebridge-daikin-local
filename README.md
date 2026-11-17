@@ -171,6 +171,25 @@ Not yet implemented:
 - `env` - Temperature reference for Faikout auto mode
 - `streamer` - Air purifier/ionizer boolean
 
+**BLE thermometer and Faikout auto (Faikout only):**
+Faikout can read a BLE thermometer (for example a Xiaomi thermometer with pvvx firmware in BTHome v2 format) and use it to control the AC with its own auto temperature control. The AC's built-in sensor sits high in the indoor unit and often reads several degrees above the room, so this sensor is usually the better reference. Two options make HomeKit follow it:
+
+- `faikoutUseBleSensor` (default `false`): the current temperature, and the humidity if `enableHumiditySensor` is on, come from the BLE sensor paired in Faikout (Settings > Basic > BLE Sensors). If no recent BLE reading is available, the AC's own sensor is used as before.
+- `faikoutUseAutoTarget` (default `false`): while Faikout auto is active (Auto functions enabled with a margin), the target temperature in HomeKit shows and sets Faikout's auto target (`autot`). Faikout pushes the AC setpoint well above or below the target to force heating or cooling on and off, so the raw setpoint (for example 29°C) is not meaningful in HomeKit. When Faikout auto is off, the target temperature works as before.
+
+Both options read the status that Faikout pushes over its `/status` WebSocket, so the plugin keeps that connection open when either is enabled.
+
+```json
+{
+  "accessory": "Daikin-Local",
+  "name": "Living room",
+  "apiroute": "http://192.168.1.50",
+  "system": "Faikout",
+  "faikoutUseBleSensor": true,
+  "faikoutUseAutoTarget": true
+}
+```
+
 To test Faikout connectivity, access your Faikout device's web interface at `http://<Faikout-ip>.local` or check the `/aircon/get_control_info` endpoint.
 
 To test `https` connectivity see [HTTPS/Registered client support](#https-registered-client)

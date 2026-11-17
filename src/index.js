@@ -41,6 +41,9 @@ const {
   isIpAddress,
 } = require('./utils.js');
 
+// Faikout pushes status about once a second over the /status WebSocket; older data is treated as missing.
+const FAIKOUT_STATUS_MAX_AGE = 60 * 1000;
+
 function Daikin(log, config) {
   this.log = log;
 
@@ -380,6 +383,8 @@ function Daikin(log, config) {
   this.faikoutWsReconnectTimer = null;
   this.faikoutWsHeartbeat = null;
   this.faikoutWsPendingCommands = [];
+
+  this._setupFaikoutStatusOptions(config);
 }
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -744,6 +749,11 @@ Daikin.prototype = {
   },
 
   _updateFaikoutStatus(message, logMethod) {
+    if (message && typeof message === 'object') {
+      this.faikoutStatus = {...this.faikoutStatus, ...message};
+      this.faikoutStatusTime = Date.now();
+    }
+
     const modes = [
       ['econo', 'Econo_Mode', 'enableEconoMode', 'econoModeService', value => Boolean(value)],
       ['powerful', 'Powerful_Mode', 'enablePowerfulMode', 'powerfulModeService', value => Boolean(value)],
@@ -792,6 +802,65 @@ Daikin.prototype = {
     clearTimeout(command.timer);
     if (error) this.log.error('sendFaikoutWebSocketCommand: %s', error.message);
     if (command.callback) command.callback(error || null);
+  },
+
+  _setupFaikoutStatusOptions(config) {
+    // Faikout BLE sensor and Faikout auto target (Faikout only)
+    this.faikoutUseBleSensor = this.isFaikout && Boolean(config.faikoutUseBleSensor);
+    this.faikoutUseAutoTarget = this.isFaikout && Boolean(config.faikoutUseAutoTarget);
+    this.faikoutStatus = null;
+    this.faikoutStatusTime = 0;
+    if (this.faikoutUseBleSensor || this.faikoutUseAutoTarget) {
+      // Both options read the live status the /status WebSocket pushes, so open it at startup.
+      setImmediate(() => this.connectFaikoutWebSocket());
+    }
+  },
+
+  _getFreshFaikoutStatus() {
+    if (this.faikoutStatus && Date.now() - this.faikoutStatusTime <= FAIKOUT_STATUS_MAX_AGE) {
+      return this.faikoutStatus;
+    }
+
+    // No recent status: make sure the WebSocket is (re)connecting for next time.
+    this.connectFaikoutWebSocket();
+    return null;
+  },
+
+  _getFaikoutBleValue(field) {
+    const value = Number(this._getFreshFaikoutStatus()?.ble?.[field]);
+    return Number.isFinite(value) ? value : null;
+  },
+
+  _getFaikoutAutoTarget() {
+    const status = this._getFreshFaikoutStatus();
+    if (!status || status.autoe !== true || !(Number(status.autor) > 0)) return null;
+    const target = Number(status.autot);
+    return Number.isFinite(target) ? target : null;
+  },
+
+  _setFaikoutAutoTarget(temperature, callback) {
+    const target = Math.round(temperature * 2) / 2;
+    const previousHeating = this.HeaterCooler_HeatingTemperature;
+    const previousCooling = this.HeaterCooler_CoolingTemperature;
+    this.log.info('Faikout auto is active: setting Faikout auto target to %s° instead of the AC setpoint.', target.toFixed(1));
+    this.HeaterCooler_HeatingTemperature = target;
+    this.HeaterCooler_CoolingTemperature = target;
+    this.sendFaikoutWebSocketCommand({autot: target}, error => {
+      if (error) {
+        this.HeaterCooler_HeatingTemperature = previousHeating;
+        this.HeaterCooler_CoolingTemperature = previousCooling;
+        callback(error);
+        return;
+      }
+
+      if (this.faikoutStatus) this.faikoutStatus.autot = target;
+      if (this.heaterCoolerService) {
+        this.heaterCoolerService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(target);
+        this.heaterCoolerService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(target);
+      }
+
+      callback();
+    });
   },
 
   closeFaikoutWebSocket() {
@@ -1353,6 +1422,17 @@ Daikin.prototype = {
         },
 
   getCurrentTemperature(callback) {
+    if (this.faikoutUseBleSensor) {
+      const bleTemperature = this._getFaikoutBleValue('temp');
+      if (bleTemperature !== null) {
+        this.log.debug('getCurrentTemperature: using Faikout BLE sensor: %s°', bleTemperature);
+        callback(null, Math.round(bleTemperature * 10) / 10);
+        return;
+      }
+
+      this.log.debug('getCurrentTemperature: no Faikout BLE reading, falling back to the AC sensor');
+    }
+
     this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
     this.sendGetRequest(this.get_sensor_info, body => {
       const responseValues = this.parseResponse(body);
@@ -1380,6 +1460,15 @@ Daikin.prototype = {
   },
 
   getCurrentHumidity(callback) {
+            if (this.faikoutUseBleSensor) {
+              const bleHumidity = this._getFaikoutBleValue('hum');
+              if (bleHumidity !== null) {
+                this.log.debug('getCurrentHumidity: using Faikout BLE sensor: %s%%', bleHumidity);
+                callback(null, Math.round(bleHumidity));
+                return;
+              }
+            }
+
             this.log.debug('getCurrentHumidity using %s', this.get_sensor_info);
             this.sendGetRequest(this.get_sensor_info, body => {
                     const responseValues = this.parseResponse(body);
@@ -1445,6 +1534,13 @@ Daikin.prototype = {
   },
 
   getCoolingTemperature(callback) {
+          const autoTarget = this.faikoutUseAutoTarget ? this._getFaikoutAutoTarget() : null;
+          if (autoTarget !== null) {
+            this.log.debug('getCoolingTemperature: using Faikout auto target %s°', autoTarget);
+            callback(null, autoTarget);
+            return;
+          }
+
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
                   const coolingThresholdTemperature = getCoolingThresholdFromControl(responseValues);
@@ -1465,6 +1561,11 @@ Daikin.prototype = {
   },
 
   setCoolingTemperature(temperature, callback) {
+          if (this.faikoutUseAutoTarget && this._getFaikoutAutoTarget() !== null) {
+            this._setFaikoutAutoTarget(temperature, callback);
+            return;
+          }
+
           const previousTemperature = this.HeaterCooler_CoolingTemperature;
           this._sendDaikinRequest(this.get_control_info, (error, body) => {
           if (error) {
@@ -1503,6 +1604,13 @@ Daikin.prototype = {
         },
 
   getHeatingTemperature(callback) {
+          const autoTarget = this.faikoutUseAutoTarget ? this._getFaikoutAutoTarget() : null;
+          if (autoTarget !== null) {
+            this.log.debug('getHeatingTemperature: using Faikout auto target %s°', autoTarget);
+            callback(null, autoTarget);
+            return;
+          }
+
           this.sendGetRequest(this.get_control_info, body => {
                   const responseValues = this.parseResponse(body);
                   const heatingThresholdTemperature = getHeatingThresholdFromControl(responseValues);
@@ -1522,6 +1630,11 @@ Daikin.prototype = {
   },
 
   setHeatingTemperature(temperature, callback) {
+          if (this.faikoutUseAutoTarget && this._getFaikoutAutoTarget() !== null) {
+            this._setFaikoutAutoTarget(temperature, callback);
+            return;
+          }
+
           const previousTemperature = this.HeaterCooler_HeatingTemperature;
           this._sendDaikinRequest(this.get_control_info, (error, body) => {
             if (error) {
