@@ -127,7 +127,7 @@ test('setting the target sends the Faikout auto target instead of the AC setpoin
   await promisify(callback => daikin.setHeatingTemperature(22.2, callback));
 
   assert.deepEqual(commands, [{autot: 21.5}, {autot: 22}]);
-  assert.equal(daikin.faikoutStatus.autot, 22);
+  assert.equal(await readCoolingTemperature(daikin), 22);
   assert.equal(daikin.HeaterCooler_HeatingTemperature, 22);
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 22);
 });
@@ -165,7 +165,7 @@ test('a cached read while an auto target write is pending keeps the new target',
 
   assert.equal(daikin.HeaterCooler_HeatingTemperature, 23);
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 23);
-  assert.equal(daikin.faikoutStatus.autot, 23);
+  assert.equal(await readCoolingTemperature(daikin), 23);
 });
 
 function startPendingWrites(daikin, targets) {
@@ -218,10 +218,48 @@ test('when only the newer auto target write fails, the older confirmed target is
 
   const {finishers, writes} = startPendingWrites(daikin, [23, 24]);
   finishers[0](null);
+  daikin._updateFaikoutStatus({autot: 23}, 'debug');
   finishers[1](new Error('second failed'));
 
   assert.deepEqual(await Promise.all(writes), ['ok', 'second failed']);
   assert.equal(await readCoolingTemperature(daikin), 23);
   assert.equal(daikin.HeaterCooler_HeatingTemperature, 23);
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 23);
+});
+
+test('a status message sent before the unit applied the new target does not undo it', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin.sendFaikoutWebSocketCommand = (_controlData, callback) => callback(null);
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  await promisify(callback => daikin.setHeatingTemperature(23, callback));
+  daikin._updateFaikoutStatus({autot: 21}, 'debug');
+  assert.equal(await readCoolingTemperature(daikin), 23);
+
+  daikin._updateFaikoutStatus({autot: 23}, 'debug');
+  assert.equal(daikin.faikoutPendingAutoTarget, null);
+  assert.equal(await readCoolingTemperature(daikin), 23);
+});
+
+test('a sent target the unit never reports back expires and the reported target is shown', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin.sendFaikoutWebSocketCommand = (_controlData, callback) => callback(null);
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  await promisify(callback => daikin.setHeatingTemperature(23, callback));
+  daikin.faikoutPendingAutoTarget.time = Date.now() - (60 * 1000);
+  daikin._updateFaikoutStatus({autot: 21}, 'debug');
+
+  assert.equal(await readCoolingTemperature(daikin), 21);
+  assert.equal(daikin.faikoutPendingAutoTarget, null);
+});
+
+test('an old BLE reading is not used once status messages stop carrying it', async () => {
+  const daikin = createFaikout({faikoutUseBleSensor: true, temperatureOffsetInside: 0});
+  daikin.sendGetRequest = (_path, callback) => callback('ret=OK,htemp=23.0,otemp=7.0');
+  daikin._updateFaikoutStatus(status, 'debug');
+  daikin.faikoutBleTime = Date.now() - (5 * 60 * 1000);
+  daikin._updateFaikoutStatus({home: 23}, 'debug');
+
+  assert.equal(await readCurrentTemperature(daikin), 23);
 });

@@ -43,6 +43,8 @@ const {
 
 // Faikout pushes status about once a second over the /status WebSocket; older data is treated as missing.
 const FAIKOUT_STATUS_MAX_AGE = 60 * 1000;
+// How long a sent auto target is shown before the unit has reported it back.
+const FAIKOUT_PENDING_TARGET_MAX_AGE = 15 * 1000;
 
 function Daikin(log, config) {
   this.log = log;
@@ -752,6 +754,11 @@ Daikin.prototype = {
     if (message && typeof message === 'object') {
       this.faikoutStatus = {...this.faikoutStatus, ...message};
       this.faikoutStatusTime = Date.now();
+      // Track BLE separately: a status without a BLE block must not keep an old reading alive.
+      if (message.ble !== undefined) this.faikoutBleTime = this.faikoutStatusTime;
+      // A sent auto target stays pending until the unit reports it back.
+      const pending = this.faikoutPendingAutoTarget;
+      if (pending?.sent && Number(message.autot) === pending.target) this.faikoutPendingAutoTarget = null;
     }
 
     const modes = [
@@ -810,6 +817,7 @@ Daikin.prototype = {
     this.faikoutUseAutoTarget = this.isFaikout && Boolean(config.faikoutUseAutoTarget);
     this.faikoutStatus = null;
     this.faikoutStatusTime = 0;
+    this.faikoutBleTime = 0;
     this.faikoutPendingAutoTarget = null;
     if (this.faikoutUseBleSensor || this.faikoutUseAutoTarget) {
       // Both options read the live status the /status WebSocket pushes, so open it at startup.
@@ -828,7 +836,9 @@ Daikin.prototype = {
   },
 
   _getFaikoutBleValue(field) {
-    const value = Number(this._getFreshFaikoutStatus()?.ble?.[field]);
+    const status = this._getFreshFaikoutStatus();
+    if (!status || Date.now() - this.faikoutBleTime > FAIKOUT_STATUS_MAX_AGE) return null;
+    const value = Number(status.ble?.[field]);
     return Number.isFinite(value) ? value : null;
   },
 
@@ -836,21 +846,30 @@ Daikin.prototype = {
     const status = this._getFreshFaikoutStatus();
     if (!status || status.autoe !== true || !(Number(status.autor) > 0)) return null;
     // The newest target still being sent wins over the target the unit last confirmed.
+    const pending = this.faikoutPendingAutoTarget;
+    if (pending && Date.now() - pending.time > FAIKOUT_PENDING_TARGET_MAX_AGE) this.faikoutPendingAutoTarget = null;
     const target = Number(this.faikoutPendingAutoTarget ? this.faikoutPendingAutoTarget.target : status.autot);
     return Number.isFinite(target) ? target : null;
   },
 
   _setFaikoutAutoTarget(temperature, callback) {
     const target = Math.round(temperature * 2) / 2;
-    const pending = {target};
+    const pending = {target, time: Date.now(), sent: false};
     this.faikoutPendingAutoTarget = pending;
     this.log.info('Faikout auto is active: setting Faikout auto target to %s° instead of the AC setpoint.', target.toFixed(1));
     this.HeaterCooler_HeatingTemperature = target;
     this.HeaterCooler_CoolingTemperature = target;
     this.sendFaikoutWebSocketCommand({autot: target}, error => {
       const isNewest = this.faikoutPendingAutoTarget === pending;
-      if (isNewest) this.faikoutPendingAutoTarget = null;
-      if (!error && this.faikoutStatus) this.faikoutStatus.autot = target;
+      if (isNewest) {
+        if (error) {
+          this.faikoutPendingAutoTarget = null;
+        } else {
+          // Sent, but status messages already on their way may still carry the old target.
+          pending.sent = true;
+          pending.time = Date.now();
+        }
+      }
 
       // Only the newest write sets the caches; an older write finishing late must not override it.
       if (isNewest) {
