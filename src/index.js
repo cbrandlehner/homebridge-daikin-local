@@ -843,16 +843,23 @@ Daikin.prototype = {
     const previousHeating = this.HeaterCooler_HeatingTemperature;
     const previousCooling = this.HeaterCooler_CoolingTemperature;
     this.log.info('Faikout auto is active: setting Faikout auto target to %s° instead of the AC setpoint.', target.toFixed(1));
+    const previousAutoTarget = this.faikoutStatus?.autot;
+    // Update the status optimistically so a read while the write is pending does not return the old target.
+    if (this.faikoutStatus) this.faikoutStatus.autot = target;
     this.HeaterCooler_HeatingTemperature = target;
     this.HeaterCooler_CoolingTemperature = target;
     this.sendFaikoutWebSocketCommand({autot: target}, error => {
       if (error) {
+        if (this.faikoutStatus && this.faikoutStatus.autot === target) this.faikoutStatus.autot = previousAutoTarget;
         this.HeaterCooler_HeatingTemperature = previousHeating;
         this.HeaterCooler_CoolingTemperature = previousCooling;
         callback(error);
         return;
       }
 
+      // A cached read may have run while the write was pending, so set both caches again.
+      this.HeaterCooler_HeatingTemperature = target;
+      this.HeaterCooler_CoolingTemperature = target;
       if (this.faikoutStatus) this.faikoutStatus.autot = target;
       if (this.heaterCoolerService) {
         this.heaterCoolerService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(target);

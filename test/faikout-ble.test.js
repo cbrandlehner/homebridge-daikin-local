@@ -144,3 +144,26 @@ test('a failed auto target write restores the cached targets', async () => {
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 21);
   assert.equal(daikin.faikoutStatus.autot, 21);
 });
+
+test('a cached read while an auto target write is pending keeps the new target', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin.sendGetRequest = () => assert.fail('AC setpoint should not be read');
+  daikin.HeaterCooler_HeatingTemperature = 21;
+  daikin.HeaterCooler_CoolingTemperature = 21;
+  let finishWrite;
+  daikin.sendFaikoutWebSocketCommand = (_controlData, callback) => {
+    finishWrite = callback;
+  };
+
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  const write = promisify(callback => daikin.setHeatingTemperature(23, callback));
+  await promisify(callback => daikin.getCoolingTemperatureFV(callback));
+  await promisify(callback => daikin.getHeatingTemperatureFV(callback));
+  finishWrite(null);
+  await write;
+
+  assert.equal(daikin.HeaterCooler_HeatingTemperature, 23);
+  assert.equal(daikin.HeaterCooler_CoolingTemperature, 23);
+  assert.equal(daikin.faikoutStatus.autot, 23);
+});
