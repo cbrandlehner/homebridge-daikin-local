@@ -132,6 +132,43 @@ test('setting the target sends the Faikout auto target instead of the AC setpoin
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 22);
 });
 
+test('setting the target does not write the AC setpoint when Faikout status is stale', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin.sendGetRequest = () => assert.fail('AC setpoint should not be written');
+  daikin.sendFaikoutWebSocketCommand = () => assert.fail('auto target should not be sent without status');
+  daikin._updateFaikoutStatus(status, 'debug');
+  daikin.faikoutStatusTime = Date.now() - (5 * 60 * 1000);
+  daikin.HeaterCooler_HeatingTemperature = 21;
+  daikin.HeaterCooler_CoolingTemperature = 21;
+
+  await assert.rejects(writeCoolingTemperature(daikin, 23), /Faikout status is not available/);
+  await assert.rejects(promisify(callback => daikin.setHeatingTemperature(22, callback)), /Faikout status is not available/);
+  assert.equal(daikin.HeaterCooler_HeatingTemperature, 21);
+  assert.equal(daikin.HeaterCooler_CoolingTemperature, 21);
+  assert.equal(daikin.faikoutPendingAutoTarget, null);
+});
+
+test('setting the target writes the AC setpoint while Faikout auto is off', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  const requests = [];
+  daikin.sendFaikoutWebSocketCommand = () => assert.fail('auto target should not be sent');
+  daikin.sendGetRequest = (path, callback) => {
+    requests.push(path);
+    callback(path.includes('set_control_info')
+      ? 'ret=OK'
+      : 'ret=OK,pow=1,mode=3,stemp=24.0,dt3=24.0,dt7=24.0');
+  };
+  daikin._updateFaikoutStatus({...status, autoe: false}, 'debug');
+
+  await writeCoolingTemperature(daikin, 22);
+  await promisify(callback => daikin.setHeatingTemperature(19, callback));
+
+  const setRequests = requests.filter(path => path.includes('set_control_info'));
+  assert.equal(setRequests.length, 2);
+  assert.match(setRequests[0], /stemp=22\.0/);
+  assert.match(setRequests[1], /stemp=19\.0/);
+});
+
 test('a failed auto target write restores the cached targets', async () => {
   const daikin = createFaikout({faikoutUseAutoTarget: true});
   daikin.HeaterCooler_HeatingTemperature = 21;

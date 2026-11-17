@@ -842,14 +842,35 @@ Daikin.prototype = {
     return Number.isFinite(value) ? value : null;
   },
 
+  _faikoutAutoIsActive(status) {
+    return Boolean(status) && status.autoe === true && Number(status.autor) > 0;
+  },
+
   _getFaikoutAutoTarget() {
     const status = this._getFreshFaikoutStatus();
-    if (!status || status.autoe !== true || !(Number(status.autor) > 0)) return null;
+    if (!this._faikoutAutoIsActive(status)) return null;
     // The newest target still being sent wins over the target the unit last confirmed.
     const pending = this.faikoutPendingAutoTarget;
     if (pending && Date.now() - pending.time > FAIKOUT_PENDING_TARGET_MAX_AGE) this.faikoutPendingAutoTarget = null;
     const target = Number(this.faikoutPendingAutoTarget ? this.faikoutPendingAutoTarget.target : status.autot);
     return Number.isFinite(target) ? target : null;
+  },
+
+  // Handles the set when the option is on. Returns true when the caller must not write the AC setpoint.
+  _setTemperatureViaFaikoutAutoTarget(temperature, callback) {
+    if (!this.faikoutUseAutoTarget) return false;
+
+    const status = this._getFreshFaikoutStatus();
+    if (!status) {
+      this.log.error('Faikout auto target is enabled, but no recent status is available. Not changing the AC setpoint.');
+      callback(new Error('Faikout status is not available'));
+      return true;
+    }
+
+    if (!this._faikoutAutoIsActive(status)) return false;
+
+    this._setFaikoutAutoTarget(temperature, callback);
+    return true;
   },
 
   _setFaikoutAutoTarget(temperature, callback) {
@@ -1591,10 +1612,7 @@ Daikin.prototype = {
   },
 
   setCoolingTemperature(temperature, callback) {
-          if (this.faikoutUseAutoTarget && this._getFaikoutAutoTarget() !== null) {
-            this._setFaikoutAutoTarget(temperature, callback);
-            return;
-          }
+          if (this._setTemperatureViaFaikoutAutoTarget(temperature, callback)) return;
 
           const previousTemperature = this.HeaterCooler_CoolingTemperature;
           this._sendDaikinRequest(this.get_control_info, (error, body) => {
@@ -1660,10 +1678,7 @@ Daikin.prototype = {
   },
 
   setHeatingTemperature(temperature, callback) {
-          if (this.faikoutUseAutoTarget && this._getFaikoutAutoTarget() !== null) {
-            this._setFaikoutAutoTarget(temperature, callback);
-            return;
-          }
+          if (this._setTemperatureViaFaikoutAutoTarget(temperature, callback)) return;
 
           const previousTemperature = this.HeaterCooler_HeatingTemperature;
           this._sendDaikinRequest(this.get_control_info, (error, body) => {
