@@ -167,3 +167,61 @@ test('a cached read while an auto target write is pending keeps the new target',
   assert.equal(daikin.HeaterCooler_CoolingTemperature, 23);
   assert.equal(daikin.faikoutStatus.autot, 23);
 });
+
+function startPendingWrites(daikin, targets) {
+  const finishers = [];
+  daikin.sendFaikoutWebSocketCommand = (_controlData, callback) => {
+    finishers.push(callback);
+  };
+
+  const writes = targets.map(target => promisify(callback => daikin.setHeatingTemperature(target, callback)).then(
+    () => 'ok',
+    error => error.message,
+  ));
+  return {finishers, writes};
+}
+
+test('two overlapping auto target writes that both fail restore the confirmed target', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  const {finishers, writes} = startPendingWrites(daikin, [23, 24]);
+  assert.equal(await readCoolingTemperature(daikin), 24);
+
+  finishers[0](new Error('first failed'));
+  assert.equal(await readCoolingTemperature(daikin), 24);
+  finishers[1](new Error('second failed'));
+
+  assert.deepEqual(await Promise.all(writes), ['first failed', 'second failed']);
+  assert.equal(await readCoolingTemperature(daikin), 21);
+  assert.equal(daikin.faikoutStatus.autot, 21);
+  assert.equal(daikin.HeaterCooler_HeatingTemperature, 21);
+  assert.equal(daikin.HeaterCooler_CoolingTemperature, 21);
+});
+
+test('an older auto target write finishing late does not override a newer one', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  const {finishers, writes} = startPendingWrites(daikin, [23, 24]);
+  finishers[1](null);
+  finishers[0](null);
+
+  assert.deepEqual(await Promise.all(writes), ['ok', 'ok']);
+  assert.equal(daikin.HeaterCooler_HeatingTemperature, 24);
+  assert.equal(daikin.HeaterCooler_CoolingTemperature, 24);
+});
+
+test('when only the newer auto target write fails, the older confirmed target is restored', async () => {
+  const daikin = createFaikout({faikoutUseAutoTarget: true});
+  daikin._updateFaikoutStatus(status, 'debug');
+
+  const {finishers, writes} = startPendingWrites(daikin, [23, 24]);
+  finishers[0](null);
+  finishers[1](new Error('second failed'));
+
+  assert.deepEqual(await Promise.all(writes), ['ok', 'second failed']);
+  assert.equal(await readCoolingTemperature(daikin), 23);
+  assert.equal(daikin.HeaterCooler_HeatingTemperature, 23);
+  assert.equal(daikin.HeaterCooler_CoolingTemperature, 23);
+});
